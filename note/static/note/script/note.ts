@@ -193,6 +193,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     relayout() {
 
     }
+    deleteElement(element: HTMLElement) {
+        const clone = element.cloneNode(true) as HTMLElement; // true: 子要素も複製
+        element.replaceWith(clone);
+        clone.remove();
+    }
+    dump() {
+        this.deleteElement(this.editorElement);
+        this.deleteElement(this.displayElement);
+        this.deleteElement(this.boxFrameElement);
+    }
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
