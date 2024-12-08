@@ -62,6 +62,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         { x, y, width, height }: RangeInterface,
         value?: string, type?: string, id?: string,
     ) {
+        this.loaderId = 0;
+
         this.id = id || String(Date.now());
         this.type = type || null;
         this.x = x;
@@ -160,7 +162,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             console.log("AAAAAA");
-            this.editorElement.focus();
+            //this.editorElement.focus();
             this.toggleToEditor();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
@@ -190,7 +192,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.displayElement.setAttribute('alt','');
         this.editorElement.addEventListener('change', ()=>{
             this.editorElement.value = '';
-            this.update(++this.loaderId);
+            this.update();
         });
         this.editorElement.addEventListener('dragenter', ()=>{
             this.toggleToEditor(); 
