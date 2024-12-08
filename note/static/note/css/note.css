@@ -32,13 +32,17 @@
 
 .box-view {
     pointer-events: none;
-    visibility: hidden;
+    /*visibility: hidden;*/
+    display: none;
 }
 
 .box-editor {
-    visibility: hidden;
+    /*visibility: hidden;*/
+    pointer-events: all;
+    display: none;
 }
 
 .visible {
     visibility: visible;
+    /*display: block;*/
 }

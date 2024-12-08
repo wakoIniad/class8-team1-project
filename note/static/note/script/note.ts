@@ -78,7 +78,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement = this.makeBoxFrame<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
-        
+
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
@@ -158,9 +158,10 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     init() {
         this.editorElement.value = this.value;
         
-        this.boxFrameElement.addEventListener('focus', (e)=>{
+        this.boxFrameElement.addEventListener('focusin', (e)=>{
             console.log("AAAAAA")
             this.toggleToEditor();
+//            this.editorElement.focus();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             console.log("BBBBB")
