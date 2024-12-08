@@ -140,6 +140,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if( processId !== this.loaderId )return;
             this.value = value;
             this.applyValue();
+            this.relayout();
         })
     }
     init(): void {
@@ -158,6 +159,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     relocate(x: number, y: number) {
         this.boxFrameElement.style.left = coordToString(this.x = x);
         this.boxFrameElement.style.top = coordToString(this.y = y);
+    }
+    relayout() {
+
     }
 }
 
@@ -225,6 +229,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             });
             //input[type="file"] と input[type="button"] を分ける型はない
             if(files.length) {
+                console.log(files[0])
                 fileReader.readAsDataURL(files[0]);
                 console.log(files,files[0])
             } else {
@@ -234,6 +239,11 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
+    }
+    relayout(): void {
+        this.displayElement.onload = ()=> {
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width);
+        }
     }
 }
 
