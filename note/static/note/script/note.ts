@@ -94,7 +94,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.left = coordToString(this.y);
+        box.style.left = coordToString(this.x);
         box.style.top = coordToString(this.y);
         box.style.width = coordToString(this.width);
         box.style.height = coordToString(this.height);
@@ -150,6 +150,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     applyValue(): void {
 
+    }
+    resize(width: number, height: number) {
+        this.boxFrameElement.style.width = coordToString(this.width = width);
+        this.boxFrameElement.style.height = coordToString(this.height = height);
+    }
+    relocate(x: number, y: number) {
+        this.boxFrameElement.style.left = coordToString(this.x = x);
+        this.boxFrameElement.style.top = coordToString(this.y = y);
     }
 }
 
