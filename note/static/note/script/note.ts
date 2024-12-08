@@ -296,6 +296,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     private lastY: number;
     constructor( range: RangeInterface, URI: string = SPACER ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
+        //console.log(this.editorElement.getContext('2d'))
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -344,14 +345,18 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        this.editorElement.addEventListener('mousemove', this.paintAt, { capture: true });
-        this.editorElement.addEventListener('mouseout', this.paintEnd);
-        this.editorElement.addEventListener('mouseleave', this.paintEnd);
+        const paintAt = this.paintAt.bind(this);
+        const paintEnd = this.paintEnd.bind(this);
+        const remove = ()=> {
+            this.editorElement.removeEventListener('mousemove', paintAt);
+            this.editorElement.removeEventListener('mouseout', paintEnd);
+            this.editorElement.removeEventListener('mouseleave', paintEnd);
+        }
     }
     paintEnd() {
-        this.editorElement.removeEventListener('mousemove', this.paintAt);
-        this.editorElement.removeEventListener('mouseout', this.paintEnd);
-        this.editorElement.removeEventListener('mouseleave', this.paintEnd);
+        this.editorElement.addEventListener('mousemove', binded, { capture: true });
+        this.editorElement.addEventListener('mouseout', remove);
+        this.editorElement.addEventListener('mouseleave', remove);
     }
     getValue() {
         return this.editorElement.toDataURL();
