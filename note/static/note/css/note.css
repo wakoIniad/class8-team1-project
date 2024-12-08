@@ -32,17 +32,19 @@
 
 .box-view {
     pointer-events: none;
-    /*visibility: hidden;*/
-    display: none;
+    opacity: 0;
 }
 
 .box-editor {
-    /*visibility: hidden;*/
-    pointer-events: all;
-    display: none;
+    opacity: 0;
 }
-
 .visible {
-    visibility: visible;
-    /*display: block;*/
+    opacity: 1;
 }
+/*
+参考: https://qiita.com/YukiHoshi/items/0ed4b628acdab696be62
+スタイル	領域の確保	クリック（イベント）
+display:none;	×	×
+visibility:hidden;	○	×
+opacity:0;	○	○
+*/

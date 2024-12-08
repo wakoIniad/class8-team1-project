@@ -159,9 +159,9 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.editorElement.value = this.value;
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
-            console.log("AAAAAA")
+            console.log("AAAAAA");
+            this.editorElement.focus();
             this.toggleToEditor();
-//            this.editorElement.focus();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             console.log("BBBBB")
