@@ -346,6 +346,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
+        this.removeBindedEvents();
         const remove = this.removeBindedEvents.bind(this);
         this.bindedEvents = [
             ['mousemove',this.paintAt.bind(this)],
