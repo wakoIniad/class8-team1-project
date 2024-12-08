@@ -9,11 +9,15 @@ function appendToContainer(elm: HTMLElement): void {
     if(container) container.appendChild(elm);
 }
 
-interface BlockInterface {
+interface RangeInterface {
     x:number;
     y:number;
     width:number;
     height:number;
+}
+
+interface BlockInterface {
+
 }
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
@@ -27,7 +31,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     id: string;
     boxFrameElement: HTMLSpanElement;
     constructor(
-        {x, y, width, height}: BlockInterface,
+        {x, y, width, height}: RangeInterface,
         EditorType: string, 
         DisplayType: string,
         id?: string
@@ -41,6 +45,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement = this.makeBoxElement<S>(DisplayType);
         this.boxFrameElement = this.makeBoxElement<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
+        this.boxFrameElement.setAttribute('class', 'box-frame');
         appendToContainer(this.boxFrameElement);
     }
     makeBoxElement<T>(tagName: string):T {
@@ -49,7 +54,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         box.style.top = String(this.y);
         box.style.width = String(this.width);
         box.style.height = String(this.height);
-        box.setAttribute('class', 'boxes');
+        box.setAttribute('class', 'box-content');
         return box as T;
     }
     asign(element: HTMLElement) {
@@ -65,38 +70,49 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     value:string;
-    constructor(arg: BlockInterface, value: string) {
+    constructor(arg: RangeInterface, text: string = '') {
         super(arg, 'textarea', 'p');
-        this.value = value;
+        this.value = text;
         this.editorElment.value = this.value;
         this.displayElement.textContent = this.value;
+    }
+    getValue() {
+        this.value = this.editorElment.value;
     }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    src:string;
-    constructor(arg: BlockInterface, URI: string) {
+    constructor(arg: RangeInterface, URI: string = '') {
         super(arg, 'input', 'img');
-        this.src = URI;
+        this.value = URI;
         this.editorElment.setAttribute('type', 'file');
         this.editorElment.setAttribute('accept', 'image/*');
-        this.displayElement.setAttribute('src', this.src);
+        this.displayElement.setAttribute('src', this.value);
     }
 
-    update() {
-
+    getValue() {
+        const fileReader = new FileReader();
+        fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
+            if(e.target instanceof FileReader && typeof e.target.result === 'string') {
+                this.value = e.target.result;
+            } else {
+                throw new Error('[ImageBlock-update]想定通りではありません');
+            }
+        });
+        //input[type="file"] と input[type="button"] を分ける型はない
+        const files = this.editorElment.files!;
+        fileReader.readAsDataURL(files[0]);
     }
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
-    src:string;
-    constructor(arg: BlockInterface, URI: string) {
+    constructor(arg: RangeInterface, URI: string = '') {
         super(arg,'canvas', 'img');
-        this.src = URI;
+        this.value = URI;
         this.displayElement.setAttribute('src', this.src);
     }
-    dataURI() {
-        const dataURI:string = this.elm.toDataURL();
+    getValue() {
+        this.value = this.editorElment.toDataURL();
     }
 }
 

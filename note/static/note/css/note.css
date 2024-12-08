@@ -4,6 +4,22 @@
   height: 100%;
 }
 
-#boxes {
+.box-frame {
+    position: absolute;
+    width: fit-content;
+    height: fit-content;
+
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.box-content {
     position: relative;
+
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
