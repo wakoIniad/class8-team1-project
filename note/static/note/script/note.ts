@@ -303,23 +303,29 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 this.context.drawImage(image, 0, 0);
             }
         }
+        this.bindedEvents = [];
     }
     init() {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
+        const onmousedown = ()=> {
+            this.paintStart();
+            this.updateLineStyle();
+        }
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
             this.paintStart();
+            this.boxFrameElement.addEventListener('mousedown', onmousedown);
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             this.paintEnd();
             this.update();
             this.toggleToView();
+            this.boxFrameElement.removeEventListener('mousedown', onmousedown);
         });
         this.lastX = null;
         this.lastY = null;
-        this.bindedEvents = [];
     }
     updateLineStyle() {
         this.context.globalAlpha = this.penOpacity;
@@ -367,6 +373,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
+        this.updateLineStyle();
     }
     getValue() {
 //        console.log('AAA',this.editorElement.toDataURL())
