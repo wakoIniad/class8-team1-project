@@ -51,9 +51,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     boxFrameElement: HTMLSpanElement;
     type: string | null;
     constructor(
+        { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         x: number, y: number, width: number, height: number,
         id?: string, type?: string, value?: string, 
-        { EditorType, DisplayType } : { [key:string] : string } = {}
     ) {
         this.id = id || String(Date.now());
         this.type = type || null;
@@ -73,9 +73,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('class', 'box-frame');
 
+        this.init();
+
         appendToContainer(this.boxFrameElement);
         this.asign(this.editorElment, this.displayElement);
-        this.applyValue();
+        this.applyValue();//初期値の反映
         this.toggleToView();
     }
     makeBoxFrame<T>(tagName: string):T {
@@ -121,16 +123,18 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     applyValue(){}
     update(){
         this.updateValue();
-        this.applyValue
+        this.applyValue();
     }
+    init(){}
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor(...params: BlockObjectParameters) {
-        super(...params, {'EditorType':'textarea', 'DisplayType':'p'});
+        super({ 'EditorType': 'textarea', 'DisplayType': 'p' }, ...params);
+    }
+    init() {
         this.editorElment.value = this.value;
-        this.displayElement.textContent = this.value;
-        this.asign(this.editorElment,this.displayElement);
+        
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
         }, {capture: true});
@@ -138,7 +142,6 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             this.update();
             this.toggleToView();
         });
-        this.applyValue();
     }
     updateValue() {
         this.value = this.editorElment.value;
@@ -146,26 +149,23 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     applyValue() {
         this.displayElement.textContent = this.value;
     }
-    update() {
-        this.updateValue();
-        this.applyValue();
-    }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     constructor(...params: BlockObjectParameters) {
-        super(...params, 'input', 'img');
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, ...params);
+    }
+
+    init() {
         this.editorElment.setAttribute('type', 'file');
         this.editorElment.setAttribute('accept', 'image/*');
 
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
-        this.loaderId = 0;
         this.editorElment.addEventListener('change', ()=>{
             this.editorElment.value = '';
             this.update(++this.loaderId);
         });
-        this.applyValue();
     }
 
     async updateValue() {
@@ -201,7 +201,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     constructor(...params: BlockObjectParameters) {
-        super(...params, 'canvas', 'img');
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, ...params);
+    }
+    init() {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
@@ -212,17 +214,12 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.update();
             this.toggleToView();
         });
-        this.applyValue();//初期値の反映
     }
     UpdateValue() {
         this.value = this.editorElment.toDataURL();
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
-    }
-    update() {
-        this.UpdateValue();
-        this.applyValue();
     }
 }
 
