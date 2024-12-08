@@ -1,5 +1,3 @@
-
-console.log('test22');
 const objects = [];
 const SPACER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
@@ -80,7 +78,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement = this.makeBoxFrame<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
-        this.boxFrameElement.classList.add('box-frame');
+        
+        /** フォーカスを受け取れるようにする 
+         * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
+        this.boxFrameElement.setAttribute('tabindex', '-1');
 
         this?.init();
 
@@ -95,6 +96,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         box.style.top = coordToString(this.y);
         box.style.width = coordToString(this.width);
         box.style.height = coordToString(this.height);
+        box.classList.add('box-frame');
         return box as T;
     }
     
@@ -151,16 +153,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor( range: RangeInterface, text: string = '' ) {
-        console.log('test');
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
         this.editorElement.value = this.value;
         
-        this.boxFrameElement.addEventListener('focusin', (e)=>{
+        this.boxFrameElement.addEventListener('focus', (e)=>{
+            console.log("AAAAAA")
             this.toggleToEditor();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
+            console.log("BBBBB")
             this.update();
             this.toggleToView();
         });

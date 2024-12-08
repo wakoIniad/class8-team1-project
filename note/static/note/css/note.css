@@ -2,6 +2,8 @@
   position: relative;  
   width: 100%;
   height: 100%;
+
+  background: rgb(0,0,0);
 }
 
 .box-frame {
@@ -12,6 +14,8 @@
     margin: 0;
     box-sizing: border-box;
     overflow: hidden;
+
+    background-color: rgb(255,255,255);
 }
 
 .box-content {
@@ -21,7 +25,6 @@
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    overflow: hidden;
 
     width: 100%;
     height: 100%;
