@@ -77,7 +77,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         appendToContainer(this.boxFrameElement);
         this.asign(this.editorElment, this.displayElement);
-        this.applyValue();//初期値の反映
+        this?.applyValue();//初期値の反映
         this.toggleToView();
     }
     makeBoxFrame<T>(tagName: string):T {
@@ -120,18 +120,24 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    updateValue(){}
-    applyValue(){}
-    update(){
-        this.updateValue();
-        this.applyValue();
+    getValue: (...args) => string | Promise<string>
+    applyValue: (...args) => void
+    
+    
+    update(...args){
+        const processId = ++this.loaderId;
+        
+        Promise.all(this.updateValue()).then(()=>{
+            if( processId !== this.loaderId )return;
+            this.applyValue();
+        })
     }
     init(){}
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor(...params: BlockObjectParameters) {
-        super({ 'EditorType': 'textarea', 'DisplayType': 'p' }, ...params);
+    constructor( range: RangeInterface, text: string = '' ) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
         this.editorElment.value = this.value;
@@ -153,8 +159,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor(...params: BlockObjectParameters) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, ...params);
+    constructor( range: RangeInterface, URI: string = SPACER ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
     }
 
     init() {
@@ -201,8 +207,8 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
-    constructor(...params: BlockObjectParameters) {
-        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, ...params);
+    constructor( range: RangeInterface, URI: string = SPACER ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
     }
     init() {
         this.displayElement.setAttribute('src', this.value);
