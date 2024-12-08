@@ -241,7 +241,6 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         this.editorElement.addEventListener('change', ()=>{
-            console.log('changed image');
             this.update();
             this.editorElement.value = '';
         });
@@ -269,9 +268,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             });
             //input[type="file"] と input[type="button"] を分ける型はない
             if(files.length) {
-                console.log(files[0])
                 fileReader.readAsDataURL(files[0]);
-                console.log(files,files[0])
             } else {
                 resolve(SPACER);
             }
@@ -292,11 +289,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penSize: number = 3;
     penColor: string = '#000000';
     penOpacity: number = 1;
-    private lastX: number;
-    private lastY: number;
+    private lastX: number | null;
+    private lastY: number | null;
     constructor( range: RangeInterface, URI: string = SPACER ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
-        //console.log(this.editorElement.getContext('2d'))
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -311,21 +307,25 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
-        this.boxFrameElement.addEventListener('focusin', (e)=>{
+        this.boxFrameElement.addEventListener('mousedown', (e)=>{
             this.toggleToEditor();
             this.paintStart();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
-            this.paintEnd();
+            //this.paintEnd();
             this.update();
             this.toggleToView();
         });
+        this.lastX = null;
+        this.lastY = null;
     }
     updateLineStyle() {
         this.context.globalAlpha = this.penOpacity;
         this.context.lineCap = 'round';
         this.context.lineWidth =  this.penSize;
         this.context.strokeStyle = this.penColor;
+        this.lastX = null;
+        this.lastY = null;
     }
     paintAt(e: MouseEvent) {
         const x = e.offsetX;
@@ -345,23 +345,26 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        const paintAt = this.paintAt.bind(this);
-        const paintEnd = this.paintEnd.bind(this);
+        const binded = this.paintAt.bind(this);
         const remove = ()=> {
-            this.editorElement.removeEventListener('mousemove', paintAt);
-            this.editorElement.removeEventListener('mouseout', paintEnd);
-            this.editorElement.removeEventListener('mouseleave', paintEnd);
+            console.log('BBBBBBBB')
+            this.editorElement.removeEventListener('mousemove', binded);
+            this.editorElement.removeEventListener('mouseout', remove);
+            this.editorElement.removeEventListener('mouseleave', remove);
         }
-    }
-    paintEnd() {
-        this.editorElement.addEventListener('mousemove', binded, { capture: true });
+        this.editorElement.addEventListener('mousemove', binded);
         this.editorElement.addEventListener('mouseout', remove);
         this.editorElement.addEventListener('mouseleave', remove);
     }
+    paintEnd() {
+        
+    }
     getValue() {
+        console.log('AAA',this.editorElement.toDataURL())
         return this.editorElement.toDataURL();
     }
     applyValue() {
+        console.log(this.value)
         this.displayElement.setAttribute('src', this.value);
     }
 }
