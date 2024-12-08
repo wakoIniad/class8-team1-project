@@ -285,6 +285,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+    bindedEvents: [string, ()=>{}][];
     context: CanvasRenderingContext2D;
     penSize: number = 3;
     penColor: string = '#000000';
@@ -307,7 +308,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
-        this.boxFrameElement.addEventListener('mousedown', (e)=>{
+        this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
             this.paintStart();
         }, {capture: true});
@@ -316,8 +317,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.update();
             this.toggleToView();
         });
-        this.lastX = null;
-        this.lastY = null;
+        this.updateLineStyle();
+        this.bindedEvents = [];
     }
     updateLineStyle() {
         this.context.globalAlpha = this.penOpacity;
@@ -345,19 +346,20 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        const binded = this.paintAt.bind(this);
-        const remove = ()=> {
-            console.log('BBBBBBBB')
-            this.editorElement.removeEventListener('mousemove', binded);
-            this.editorElement.removeEventListener('mouseout', remove);
-            this.editorElement.removeEventListener('mouseleave', remove);
+        const remove = this.removeBindedEvents.bind(this);
+        this.bindedEvents = [
+            ['mousemove',this.paintAt.bind(this)],
+            ['mouseout',remove],
+            ['mouseleave',remove],
+        ];
+        for( const [name, callback] of this.bindedEvents ) {
+            this.editorElement.addEventListener(name, callback, {capture: true});
         }
-        this.editorElement.addEventListener('mousemove', binded);
-        this.editorElement.addEventListener('mouseout', remove);
-        this.editorElement.addEventListener('mouseleave', remove);
     }
-    paintEnd() {
-        
+    removeBindedEvents() {
+        for( const [name, callback] of this.bindedEvents ) {
+            this.editorElement.removeEventListener(name, callback, {capture: true});
+        }
     }
     getValue() {
         console.log('AAA',this.editorElement.toDataURL())
