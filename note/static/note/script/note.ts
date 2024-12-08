@@ -313,11 +313,12 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.paintStart();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
-            //this.paintEnd();
+            this.paintEnd();
             this.update();
             this.toggleToView();
         });
-        this.updateLineStyle();
+        this.lastX = null;
+        this.lastY = null;
         this.bindedEvents = [];
     }
     updateLineStyle() {
@@ -346,6 +347,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
+        this.paintEnd();
         this.bindedEvents = [
             ['mousemove', (e: MouseEvent)=>{
                 this.paintAt(e);
@@ -367,7 +369,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
     }
     getValue() {
-        console.log('AAA',this.editorElement.toDataURL())
+//        console.log('AAA',this.editorElement.toDataURL())
         return this.editorElement.toDataURL();
     }
     applyValue() {
