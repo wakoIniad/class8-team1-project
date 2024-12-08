@@ -73,7 +73,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('class', 'box-frame');
 
-        this.init();
+        this?.init();
 
         appendToContainer(this.boxFrameElement);
         this.asign(this.editorElment, this.displayElement);
@@ -120,15 +120,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    getValue: (...args) => string | Promise<string>
-    applyValue: (...args) => void
+    getValue: () => string | Promise<string>
+    applyValue: () => void
     
     
     update(...args){
         const processId = ++this.loaderId;
         
-        Promise.all(this.updateValue()).then(()=>{
+        Promise.any([this.getValue()]).then((value: string)=>{
             if( processId !== this.loaderId )return;
+            this.value = value;
             this.applyValue();
         })
     }
@@ -151,7 +152,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         });
     }
     updateValue() {
-        this.value = this.editorElment.value;
+        return this.editorElment.value;
     }
     applyValue() {
         this.displayElement.textContent = this.value;
@@ -175,13 +176,12 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         });
     }
 
-    async updateValue() {
+    async updateValue(): Promise<string> {
         const fileReader = new FileReader();
-        return await new Promise((resolve, reject)=>{
+        return await new Promise<string>((resolve, reject)=>{
             fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
                 if(e.target instanceof FileReader && typeof e.target.result === 'string') {
-                    this.value = e.target.result;
-                    resolve(this.value);
+                    resolve(e.target.result);
                 } else {
                     reject(new Error('[ImageBlock-update]想定通りではありません'))
                 }
@@ -191,18 +191,12 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             if(files.length) {
                 fileReader.readAsDataURL(files[0]);
             } else {
-                this.value = SPACER;
-                resolve(this.value);
+                resolve(SPACER);
             }
         });
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
-    }
-    async update(processId: number) {
-        await this.updateValue();
-        if(processId !== this.loaderId) return;
-        this.applyValue();
     }
 }
 
@@ -223,7 +217,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         });
     }
     UpdateValue() {
-        this.value = this.editorElment.toDataURL();
+        return this.editorElment.toDataURL();
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
