@@ -285,7 +285,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
-    bindedEvents: [string, ()=>{}][];
+    bindedEvents: [string, (any)=>void][];
     context: CanvasRenderingContext2D;
     penSize: number = 3;
     penColor: string = '#000000';
@@ -346,18 +346,22 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        this.removeBindedEvents();
-        const remove = this.removeBindedEvents.bind(this);
         this.bindedEvents = [
-            ['mousemove',this.paintAt.bind(this)],
-            ['mouseout',remove],
-            ['mouseleave',remove],
+            ['mousemove', (e: MouseEvent)=>{
+                this.paintAt(e);
+            }],
+            ['mouseout', ()=>{
+                this.paintEnd();
+            }],
+            ['mouseleave', (()=>{
+                this.paintEnd();
+            })],
         ];
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.addEventListener(name, callback, {capture: true});
         }
     }
-    removeBindedEvents() {
+    paintEnd() {
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
