@@ -81,7 +81,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
         this.boxFrameElement.setAttribute('id', this.id);
-        //this.boxFrameElement.classList.add('resizer');
+        this.boxFrameElement.setAttribute('draggable', 'true');
+
+        this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+            const callback = (e: DragEvent) => {
+                this.x += e.clientX - sx;
+                this.y += e.clientX - sy;
+                this.relocate(this.x, this.y);
+                this.boxFrameElement.removeEventListener('dragend', callback);
+            }
+            this.boxFrameElement.addEventListener('dragend', callback);
+            const sx: number = e.clientX; 
+            const sy: number = e.clientY;
+        })
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */

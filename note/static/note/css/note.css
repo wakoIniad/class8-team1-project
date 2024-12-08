@@ -49,8 +49,10 @@
     opacity: 1;
 }
 
+/* display: inlineでは使えない & overflow: visible でも使えない*/
 .resizer {
-    resize: both;
+    display: block;
+    resize: block;
     overflow: hidden;
 }
 
