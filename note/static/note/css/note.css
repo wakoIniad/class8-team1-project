@@ -13,7 +13,7 @@
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    overflow: visible;
+    overflow: hidden;
 
     background-color: rgb(255,255,255);
 }
@@ -45,13 +45,17 @@
 }
 
 .resizer {
-    box-sizing: content-box;
     position: absolute;
-    background: rgba(0,0,255,255);
-    resize: both;
+
+    background: rgba(0,0,0,0);
     border: 1em rgb(255,255,255) solid;
-    width: 100%;
-    height: 100%;
+    box-sizing: content-box;
+
+    padding: 0;
+    margin: 0;
+
+    resize: both;
+    overflow: hidden;
 }
 
 
