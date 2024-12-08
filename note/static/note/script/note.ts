@@ -86,7 +86,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
-                this.y += e.clientX - sy;
+                this.y += e.clientY - sy;
                 this.relocate(this.x, this.y);
                 this.boxFrameElement.removeEventListener('dragend', callback);
             }

@@ -52,7 +52,7 @@
 /* display: inlineでは使えない & overflow: visible でも使えない*/
 .resizer {
     display: block;
-    resize: block;
+    resize: both;
     overflow: hidden;
 }
 
