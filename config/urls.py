@@ -20,5 +20,5 @@ import note.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('test', include('note.urls')),
+    path('test/', note.views.test),#テスト用
 ]
