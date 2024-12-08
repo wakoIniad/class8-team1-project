@@ -12,11 +12,16 @@
 
     padding: 0;
     margin: 0;
-    box-sizing: border-box;
+    box-sizing: content-box;
     overflow: hidden;
 
     background-color: rgb(255,255,255);
 }
+
+.box-frame:hover {
+    background: rgba(0,0,0,0);
+    border: 1em rgb(255,255,255) solid;
+} 
 
 .box-content {
     position: absolute;
@@ -45,15 +50,6 @@
 }
 
 .resizer {
-    position: absolute;
-
-    background: rgba(0,0,0,0);
-    border: 1em rgb(255,255,255) solid;
-    box-sizing: content-box;
-
-    padding: 0;
-    margin: 0;
-
     resize: both;
     overflow: hidden;
 }
