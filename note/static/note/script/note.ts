@@ -299,9 +299,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
-            const image = new Image();
-            image.src = URI;
-            this.context.drawImage(image, 0, 0);
+            if(URI !== SPACER) {
+                const image = new Image();
+                image.src = URI;
+                this.context.drawImage(image, 0, 0);
+            }
         }
     }
     init() {
@@ -359,7 +361,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-const test = new ImageBlock({x:0,y:0,width:100,height:100});
+//const test = new ImageBlock({x:0,y:0,width:100,height:100});
+const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
 
 /**
  * @author JuthaDDA
