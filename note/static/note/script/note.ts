@@ -33,11 +33,14 @@ interface BlockInterface {
     asign(element: HTMLElement):void;
     toggleToEditor():void;
     toggleToView():void;
-
+    getValue: () => string | Promise<string>;
+    applyValue: () => void;
+    init: () => void;
 }
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
+    
     loaderId: number; 
     
     x:number;
@@ -119,10 +122,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             value: this.value,
         }
     }
-
-    getValue: () => string | Promise<string>
-    applyValue: () => void
-    
     
     update(...args){
         const processId = ++this.loaderId;
@@ -133,7 +132,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.applyValue();
         })
     }
-    init(){}
+    init(): void {
+        
+    }
+    getValue(): string | Promise<string> {
+        return ''
+    }
+    applyValue(): void {
+
+    }
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
@@ -151,7 +158,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             this.toggleToView();
         });
     }
-    updateValue() {
+    getValue() {
         return this.editorElment.value;
     }
     applyValue() {
@@ -176,7 +183,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         });
     }
 
-    async updateValue(): Promise<string> {
+    async getValue(): Promise<string> {
         const fileReader = new FileReader();
         return await new Promise<string>((resolve, reject)=>{
             fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
@@ -216,7 +223,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.toggleToView();
         });
     }
-    UpdateValue() {
+    getValue() {
         return this.editorElment.toDataURL();
     }
     applyValue() {
