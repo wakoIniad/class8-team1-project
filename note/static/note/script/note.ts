@@ -288,8 +288,21 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+    context: CanvasRenderingContext2D;
+    penSize: number = 3;
+    penColor: string = '#000000';
+    penOpacity: number = 1;
+    private lastX: number;
+    private lastY: number;
     constructor( range: RangeInterface, URI: string = SPACER ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
+        const context = this.editorElement.getContext('2d');
+        if(context !== null) {
+            this.context = context;
+            const image = new Image();
+            image.src = URI;
+            this.context.drawImage(image, 0, 0);
+        }
     }
     init() {
         this.displayElement.setAttribute('src', this.value);
@@ -297,11 +310,46 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
+            this.paintStart();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
+            this.paintEnd();
             this.update();
             this.toggleToView();
         });
+    }
+    updateLineStyle() {
+        this.context.globalAlpha = this.penOpacity;
+        this.context.lineCap = 'round';
+        this.context.lineWidth =  this.penSize;
+        this.context.strokeStyle = this.penColor;
+    }
+    paintAt(e: MouseEvent) {
+        const x = e.offsetX;
+        const y = e.offsetY;
+        this.context.beginPath();
+
+        const lastX = this.lastX || x;
+        const lastY = this.lastY || y;
+
+        this.context.moveTo(lastX, lastY);
+
+        this.context.lineTo(x, y);
+
+        this.context.stroke();
+
+        this.lastX = x;
+        this.lastY = y;
+    }
+    paintStart() {
+        this.editorElement.addEventListener('mousemove', this.paintAt, { capture: true });
+        this.editorElement.addEventListener('mouseout', this.paintEnd);
+        this.editorElement.addEventListener('mouseleave', this.paintEnd);
+    }
+    paintEnd() {
+        this.editorElement.removeEventListener('mousemove', this.paintAt);
+        this.editorElement.removeEventListener('mouseout', this.paintEnd);
+        this.editorElement.removeEventListener('mouseleave', this.paintEnd);
     }
     getValue() {
         return this.editorElement.toDataURL();
