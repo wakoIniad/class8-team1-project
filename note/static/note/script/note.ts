@@ -56,7 +56,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.width = width;
         this.height = height;
         this.editorElment = this.makeBoxElement<T>(EditorType);
+        this.editorElment.setAttribute('class','box-editor');
         this.displayElement = this.makeBoxElement<S>(DisplayType);
+        this.displayElement.setAttribute('class','box-view');
         this.boxFrameElement = this.makeBoxElement<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('class', 'box-frame');
@@ -89,7 +91,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.value = text;
         this.editorElment.value = this.value;
         this.displayElement.textContent = this.value;
-
+        this.asign(this.editorElment,this.displayElement);
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             e.preventDefault();
             this.displayEditor();

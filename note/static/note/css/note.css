@@ -23,3 +23,11 @@
     box-sizing: border-box;
     overflow: hidden;
 }
+
+.box-view {
+    pointer-events: none;
+}
+
+.box-editor {
+    opacity: 0;
+}
