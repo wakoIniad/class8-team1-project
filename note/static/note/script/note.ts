@@ -17,7 +17,7 @@ interface RangeInterface {
     height:number;
 }
 
-type BlockObjectParameters = [ number, number, number, number, string?, string?, string? ];
+type BlockObjectParameters = [ RangeInterface, string?, string?, string? ];
 
 interface BlockInterface {
     x:number;
@@ -46,14 +46,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     height:number;
     editorElment: T;
     displayElement: S;
+    boxFrameElement: HTMLSpanElement;
     value: string;
     id: string;
-    boxFrameElement: HTMLSpanElement;
     type: string | null;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
-        x: number, y: number, width: number, height: number,
-        id?: string, type?: string, value?: string, 
+        { x, y, width, height }: RangeInterface,
+        value?: string, type?: string, id?: string,
     ) {
         this.id = id || String(Date.now());
         this.type = type || null;
@@ -111,11 +111,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     makeData() {
         return {
-            type: this.type,
-            id: this.id,
             range: {
                 x:this.x, y:this.y, width: this.width, height: this.height,
-            }
+            },
+            id: this.id,
+            type: this.type,
+            value: this.value,
         }
     }
 
