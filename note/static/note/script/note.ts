@@ -87,16 +87,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
 
-        //this.resizerElement = this.makeResizer<HTMLSpanElement>('span');
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+            this.width = entries[0].contentRect.width;
+            this.height = entries[0].contentRect.height;
+            //this.resize(e;ntries[0].contentRect.width, entries[0].contentRect.height);
         });
         resizeObserver.observe(this.boxFrameElement);
 
         this?.init();
 
         appendToContainer(this.boxFrameElement);
-        this.asign(this.editorElement, this.displayElement/*, this.resizerElement*/);
+        this.asign(this.editorElement, this.displayElement);
         this?.applyValue();//初期値の反映
         this.toggleToView();
     }
@@ -106,7 +107,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         box.style.top = coordToString(this.y);
         box.style.width = coordToString(this.width);
         box.style.height = coordToString(this.height);
-        //box.classList.add('box-frame');
+        box.classList.add('box-frame');
         box.classList.add('resizer');
         return box as T;
     }
