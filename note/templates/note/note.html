@@ -1,11 +1,8 @@
-{% load static %}
 {% extends 'note/base.html' %}
+{% load static %}
 {% block content %}
-    {% static 'note/note.css' %}
-    {% static 'note/note.ts' %}
-  
+    <link rel='stylesheet' href='{% static "note/css/note.css" %}'>
+    <script src="{% static 'note/script/note.ts' %}" type="text/typescript"></script>
     <div id="container">
-        
     </div>
-    <script src="{% static 'note/note.ts' %}" type="text/typescript">
 {% endblock content %}

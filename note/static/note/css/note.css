@@ -6,6 +6,7 @@
 
 .box-frame {
     position: absolute;
+    display: block;
 
     padding: 0;
     margin: 0;
@@ -15,6 +16,7 @@
 
 .box-content {
     position: absolute;
+    display: block;
 
     padding: 0;
     margin: 0;

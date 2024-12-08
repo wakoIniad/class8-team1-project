@@ -1,7 +1,9 @@
+
+console.log('test22');
 const objects = [];
 const SPACER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
-let container:HTMLElement | null = document.getElementById('#container');
+let container:HTMLElement | null = document.getElementById('container');
 if(!(container instanceof HTMLElement)) {
     throw new Error('コンテナの取得に失敗しました');
 }
@@ -38,6 +40,10 @@ interface BlockInterface {
     init: () => void;
 }
 
+function coordToString(coord: number): string {
+    return `${coord}px`;
+}
+
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     
@@ -67,14 +73,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.value = value || '';
 
         this.editorElement = this.makeBoxContent<T>(EditorType);
-        this.editorElement.setAttribute('class','box-editor');
+        this.editorElement.classList.add('box-editor');
 
         this.displayElement = this.makeBoxContent<S>(DisplayType);
-        this.displayElement.setAttribute('class','box-view');
+        this.displayElement.classList.add('box-view');
 
         this.boxFrameElement = this.makeBoxFrame<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
-        this.boxFrameElement.setAttribute('class', 'box-frame');
+        this.boxFrameElement.classList.add('box-frame');
 
         this?.init();
 
@@ -85,19 +91,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.left = String(this.y);
-        box.style.top = String(this.y);
-        box.style.width = String(this.width);
-        box.style.height = String(this.height);
+        box.style.left = coordToString(this.y);
+        box.style.top = coordToString(this.y);
+        box.style.width = coordToString(this.width);
+        box.style.height = coordToString(this.height);
         return box as T;
     }
     
     makeBoxContent<T>(tagName: string):T {
-        const box: HTMLElement = document.createElement(tagName);
-        box.style.left = String(0);
-        box.style.top = String(0);
-        box.setAttribute('class', 'box-content');
-        return box as T;
+        const content: HTMLElement = document.createElement(tagName);
+        content.style.left = coordToString(0);
+        content.style.top = coordToString(0);
+        content.classList.add('box-content');
+        return content as T;
     }
     asign(...element: HTMLElement[]) {
         this.boxFrameElement.replaceChildren(...element);
@@ -145,6 +151,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor( range: RangeInterface, text: string = '' ) {
+        console.log('test');
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
@@ -236,6 +243,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
     }
 }
+
+const test = new TextBlock({x:0,y:0,width:100,height:100});
 
 /**
  * @author JuthaDDA
