@@ -1,4 +1,5 @@
 const objects = [];
+const SPACER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 let container:HTMLElement | null = document.getElementById('#container');
 if(!(container instanceof HTMLElement)) {
@@ -17,6 +18,19 @@ interface RangeInterface {
 }
 
 interface BlockInterface {
+    x:number;
+    y:number;
+    width:number;
+    height:number;
+    editorElment: HTMLElement;
+    displayElement: HTMLElement;
+    value: string;
+    id: string;
+    boxFrameElement: HTMLSpanElement;
+    makeBoxElement<T>(tagName: string):T;
+    asign(element: HTMLElement):void;
+    displayEditor():void;
+    displayView():void;
 
 }
 
@@ -57,8 +71,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         box.setAttribute('class', 'box-content');
         return box as T;
     }
-    asign(element: HTMLElement) {
-        this.boxFrameElement.replaceChildren(element);
+    asign(...element: HTMLElement[]) {
+        this.boxFrameElement.replaceChildren(...element);
     }
     displayEditor() {
         this.asign(this.editorElment);
@@ -75,44 +89,76 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.value = text;
         this.editorElment.value = this.value;
         this.displayElement.textContent = this.value;
+
+        this.boxFrameElement.addEventListener('focusin', (e)=>{
+            e.preventDefault();
+            this.displayEditor();
+            this.editorElment.focus();
+        });
     }
     getValue() {
         this.value = this.editorElment.value;
     }
+    update() {
+        this.getValue();
+        this.displayElement.textContent = this.value;
+    }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor(arg: RangeInterface, URI: string = '') {
+    constructor(arg: RangeInterface, URI: string = SPACER) {
         super(arg, 'input', 'img');
         this.value = URI;
         this.editorElment.setAttribute('type', 'file');
         this.editorElment.setAttribute('accept', 'image/*');
+        this.editorElment.style.opacity = '0';
         this.displayElement.setAttribute('src', this.value);
+        this.displayElement.setAttribute('alt','');
+        this.displayElement.style.pointerEvents = 'none';
+        this.asign(this.editorElment, this.displayElement);
+        this.editorElment.addEventListener('change', this.update);
     }
 
-    getValue() {
+    async getValue() {
         const fileReader = new FileReader();
-        fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
-            if(e.target instanceof FileReader && typeof e.target.result === 'string') {
-                this.value = e.target.result;
+        return await new Promise((resolve, reject)=>{
+            fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
+                if(e.target instanceof FileReader && typeof e.target.result === 'string') {
+                    this.value = e.target.result;
+                    resolve(this.value);
+                } else {
+                    reject(new Error('[ImageBlock-update]想定通りではありません'))
+                }
+            });
+            //input[type="file"] と input[type="button"] を分ける型はない
+            const files = this.editorElment.files!;
+            if(files.length) {
+                fileReader.readAsDataURL(files[0]);
             } else {
-                throw new Error('[ImageBlock-update]想定通りではありません');
+                this.value = SPACER;
             }
         });
-        //input[type="file"] と input[type="button"] を分ける型はない
-        const files = this.editorElment.files!;
-        fileReader.readAsDataURL(files[0]);
+    }
+    async update() {
+        await this.getValue();
+        this.editorElment.value = '';
+        this.displayElement.setAttribute('src', this.value);
     }
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
-    constructor(arg: RangeInterface, URI: string = '') {
+    constructor(arg: RangeInterface, URI: string = SPACER) {
         super(arg,'canvas', 'img');
         this.value = URI;
-        this.displayElement.setAttribute('src', this.src);
+        this.displayElement.setAttribute('src', this.value);
+        this.displayElement.setAttribute('alt','');
     }
     getValue() {
         this.value = this.editorElment.toDataURL();
+    }
+    update() {
+        this.getValue();
+        this.displayElement.setAttribute('src', this.value);
     }
 }
 
