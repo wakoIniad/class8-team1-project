@@ -55,21 +55,33 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.y = y;
         this.width = width;
         this.height = height;
-        this.editorElment = this.makeBoxElement<T>(EditorType);
+
+        this.editorElment = this.makeBoxContent<T>(EditorType);
         this.editorElment.setAttribute('class','box-editor');
-        this.displayElement = this.makeBoxElement<S>(DisplayType);
+
+        this.displayElement = this.makeBoxContent<S>(DisplayType);
         this.displayElement.setAttribute('class','box-view');
-        this.boxFrameElement = this.makeBoxElement<HTMLSpanElement>('span');
+
+        this.boxFrameElement = this.makeBoxFrame<HTMLSpanElement>('span');
         this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('class', 'box-frame');
+
         appendToContainer(this.boxFrameElement);
+        this.asign(this.editorElment, this.displayElement);
     }
-    makeBoxElement<T>(tagName: string):T {
+    makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
         box.style.left = String(this.y);
         box.style.top = String(this.y);
         box.style.width = String(this.width);
         box.style.height = String(this.height);
+        return box as T;
+    }
+    
+    makeBoxContent<T>(tagName: string):T {
+        const box: HTMLElement = document.createElement(tagName);
+        box.style.left = String(0);
+        box.style.top = String(0);
         box.setAttribute('class', 'box-content');
         return box as T;
     }
@@ -77,10 +89,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.replaceChildren(...element);
     }
     displayEditor() {
-        this.asign(this.editorElment);
+        this.editorElment.classList.add('visible');
+        this.displayElement.classList.remove('visible');
+        //this.asign(this.editorElment);
     }
     displayView() {
-        this.asign(this.displayElement);
+        this.editorElment.classList.remove('visible');
+        this.displayElement.classList.add('visible');
+        //this.asign(this.displayElement);
     }
 }
 
@@ -93,9 +109,10 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.displayElement.textContent = this.value;
         this.asign(this.editorElment,this.displayElement);
         this.boxFrameElement.addEventListener('focusin', (e)=>{
-            e.preventDefault();
             this.displayEditor();
-            this.editorElment.focus();
+        });
+        this.boxFrameElement.addEventListener('focusout', (e)=>{
+            this.displayView();
         });
     }
     getValue() {
@@ -113,11 +130,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.value = URI;
         this.editorElment.setAttribute('type', 'file');
         this.editorElment.setAttribute('accept', 'image/*');
-        this.editorElment.style.opacity = '0';
+
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
-        this.displayElement.style.pointerEvents = 'none';
-        this.asign(this.editorElment, this.displayElement);
         this.editorElment.addEventListener('change', this.update);
     }
 
