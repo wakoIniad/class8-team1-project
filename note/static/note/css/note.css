@@ -13,7 +13,7 @@
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
 
     background-color: rgb(255,255,255);
 }
@@ -33,14 +33,28 @@
 .box-view {
     pointer-events: none;
     opacity: 0;
+    overflow: hidden;
 }
 
 .box-editor {
     opacity: 0;
 }
+
 .visible {
     opacity: 1;
 }
+
+.resizer {
+    box-sizing: content-box;
+    position: absolute;
+    background: rgba(0,0,255,255);
+    resize: both;
+    border: 1em rgb(255,255,255) solid;
+    width: 100%;
+    height: 100%;
+}
+
+
 /*
 参考: https://qiita.com/YukiHoshi/items/0ed4b628acdab696be62
 スタイル	領域の確保	クリック（イベント）

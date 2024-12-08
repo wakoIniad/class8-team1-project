@@ -53,7 +53,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     height:number;
     editorElement: T;
     displayElement: S;
-    boxFrameElement: HTMLSpanElement;
+    boxFrameElement: HTMLDivElement;
+    resizerElement: HTMLSpanElement;
     value: string;
     id: string;
     type: string | null;
@@ -78,17 +79,23 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement = this.makeBoxContent<S>(DisplayType);
         this.displayElement.classList.add('box-view');
 
-        this.boxFrameElement = this.makeBoxFrame<HTMLSpanElement>('span');
+        this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
         this.boxFrameElement.setAttribute('id', this.id);
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
 
+        this.resizerElement = this.makeResizer<HTMLSpanElement>('span');
+        const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
+            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+        });
+        resizeObserver.observe(this.resizerElement);
+
         this?.init();
 
         appendToContainer(this.boxFrameElement);
-        this.asign(this.editorElement, this.displayElement);
+        this.asign(this.editorElement, this.displayElement, this.resizerElement);
         this?.applyValue();//初期値の反映
         this.toggleToView();
     }
@@ -107,6 +114,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         content.style.left = coordToString(0);
         content.style.top = coordToString(0);
         content.classList.add('box-content');
+        return content as T;
+    }
+    
+    makeResizer<T>(tagName: string):T {
+        const content: HTMLElement = document.createElement(tagName);
+        content.style.left = coordToString(0);
+        content.style.top = coordToString(0);
+        content.classList.add('resizer');
         return content as T;
     }
     asign(...element: HTMLElement[]) {
