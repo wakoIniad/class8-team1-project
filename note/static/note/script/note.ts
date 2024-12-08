@@ -24,7 +24,7 @@ interface BlockInterface {
     y:number;
     width:number;
     height:number;
-    editorElment: HTMLElement;
+    editorElement: HTMLElement;
     displayElement: HTMLElement;
     value: string;
     id: string;
@@ -47,7 +47,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     y:number;
     width:number;
     height:number;
-    editorElment: T;
+    editorElement: T;
     displayElement: S;
     boxFrameElement: HTMLSpanElement;
     value: string;
@@ -66,8 +66,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.height = height;
         this.value = value || '';
 
-        this.editorElment = this.makeBoxContent<T>(EditorType);
-        this.editorElment.setAttribute('class','box-editor');
+        this.editorElement = this.makeBoxContent<T>(EditorType);
+        this.editorElement.setAttribute('class','box-editor');
 
         this.displayElement = this.makeBoxContent<S>(DisplayType);
         this.displayElement.setAttribute('class','box-view');
@@ -79,7 +79,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this?.init();
 
         appendToContainer(this.boxFrameElement);
-        this.asign(this.editorElment, this.displayElement);
+        this.asign(this.editorElement, this.displayElement);
         this?.applyValue();//初期値の反映
         this.toggleToView();
     }
@@ -103,12 +103,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.replaceChildren(...element);
     }
     toggleToEditor() {
-        this.editorElment.classList.add('visible');
+        this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
         //this.asign(this.editorElment);
     }
     toggleToView() {
-        this.editorElment.classList.remove('visible');
+        this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
         //this.asign(this.displayElement);
     }
@@ -148,7 +148,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
-        this.editorElment.value = this.value;
+        this.editorElement.value = this.value;
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
@@ -159,7 +159,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         });
     }
     getValue() {
-        return this.editorElment.value;
+        return this.editorElement.value;
     }
     applyValue() {
         this.displayElement.textContent = this.value;
@@ -172,14 +172,20 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
 
     init() {
-        this.editorElment.setAttribute('type', 'file');
-        this.editorElment.setAttribute('accept', 'image/*');
+        this.editorElement.setAttribute('type', 'file');
+        this.editorElement.setAttribute('accept', 'image/*');
 
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
-        this.editorElment.addEventListener('change', ()=>{
-            this.editorElment.value = '';
+        this.editorElement.addEventListener('change', ()=>{
+            this.editorElement.value = '';
             this.update(++this.loaderId);
+        });
+        this.editorElement.addEventListener('dragenter', ()=>{
+            this.toggleToEditor(); 
+        });
+        this.editorElement.addEventListener('dragleave', ()=> {
+            this.toggleToView();
         });
     }
 
@@ -194,7 +200,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
                 }
             });
             //input[type="file"] と input[type="button"] を分ける型はない
-            const files = this.editorElment.files!;
+            const files = this.editorElement.files!;
             if(files.length) {
                 fileReader.readAsDataURL(files[0]);
             } else {
@@ -224,7 +230,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         });
     }
     getValue() {
-        return this.editorElment.toDataURL();
+        return this.editorElement.toDataURL();
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
