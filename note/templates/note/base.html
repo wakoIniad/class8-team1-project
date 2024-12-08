@@ -15,11 +15,11 @@
 <body>
     {% block content %}
     {% endblock content %}
+    <!-- thanks: https://qiita.com/dojyorin/items/00c167d0b4b41872b4a2 -->
     <script async type="module">
         import {transpile, ScriptTarget} from "https://esm.sh/typescript@5.6.3?target=esnext";
         import {minify} from "https://esm.sh/terser@5.36.0?target=esnext";
         (async()=>{
-            console.log('test');
             // esnext-polyfill
             Uint8Array.prototype.toBase64 ??= function() {
                 return btoa(Array.from(this, (v) => String.fromCharCode(v)).join(""));

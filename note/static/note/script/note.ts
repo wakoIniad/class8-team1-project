@@ -161,12 +161,10 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.editorElement.value = this.value;
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
-            console.log("AAAAAA");
             //this.editorElement.focus();
             this.toggleToEditor();
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
-            console.log("BBBBB")
             this.update();
             this.toggleToView();
         });
@@ -191,8 +189,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         this.editorElement.addEventListener('change', ()=>{
-            this.editorElement.value = '';
+            console.log('changed image');
             this.update();
+            this.editorElement.value = '';
         });
         this.editorElement.addEventListener('dragenter', ()=>{
             this.toggleToEditor(); 
@@ -200,10 +199,14 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.addEventListener('dragleave', ()=> {
             this.toggleToView();
         });
+        this.editorElement.addEventListener('drop', ()=> {
+            this.toggleToView();
+        });
     }
 
     async getValue(): Promise<string> {
         const fileReader = new FileReader();
+        const files = this.editorElement.files!;
         return await new Promise<string>((resolve, reject)=>{
             fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
                 if(e.target instanceof FileReader && typeof e.target.result === 'string') {
@@ -213,9 +216,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
                 }
             });
             //input[type="file"] と input[type="button"] を分ける型はない
-            const files = this.editorElement.files!;
             if(files.length) {
                 fileReader.readAsDataURL(files[0]);
+                console.log(files,files[0])
             } else {
                 resolve(SPACER);
             }
@@ -250,7 +253,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-const test = new TextBlock({x:0,y:0,width:100,height:100});
+const test = new ImageBlock({x:0,y:0,width:100,height:100});
 
 /**
  * @author JuthaDDA
