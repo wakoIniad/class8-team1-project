@@ -1,0 +1,47 @@
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>{{title}}</title>
+    {% bootstrap_css %}
+    
+    {% static 'note/global.css' %}
+    <!-- ブラウザによる表示の違いを少なくする -->
+    <link rel='stylesheet' href='https://unpkg.com/ress/dist/ress.min.css'>
+</head>
+<body>
+    {% block content %}
+    {% endblock content %}
+    
+    <script async type="module">
+        import {transpile, ScriptTarget} from "https://esm.sh/typescript@5.6.3?target=esnext";
+        import {minify} from "https://esm.sh/terser@5.36.0?target=esnext";
+    
+        // esnext-polyfill
+        Uint8Array.prototype.toBase64 ??= function() {
+            return btoa(Array.from(this, (v) => String.fromCharCode(v)).join(""));
+        }
+    
+        for(const {type, textContent} of document.getElementsByTagName("script")) {
+            if(type !== "text/typescript" || !textContent) {
+                continue;
+            }
+    
+            const js = transpile(textContent, {
+                target: ScriptTarget.ESNext
+            });
+    
+            const {code} = await minify(js, {
+                module: true
+            });
+    
+            await import(`data:text/javascript;base64,${new TextEncoder().encode(code).toBase64()}`);
+        }
+    </script>
+    {% bootstrap_javascript %}
+</body>
+</html>
+
