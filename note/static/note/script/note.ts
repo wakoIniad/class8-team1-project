@@ -1,4 +1,4 @@
-const objects = [];
+const objects: Block<any,any>[] = [];
 const SPACER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 let container:HTMLElement | null = document.getElementById('container');
@@ -377,7 +377,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
     }
     getValue() {
-//        console.log('AAA',this.editorElement.toDataURL())
         return this.editorElement.toDataURL();
     }
     applyValue() {
@@ -407,11 +406,13 @@ function putBox(type: string) {
             width: Mx - mx, 
             height: My - my
         };
-        const res = makeBlockObject(range, type)
+        const res = makeBlockObject(range, type);
         xs = [];
         ys = [];
         container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
+        objects.push(res);
+        console.log(makePageData())
     }
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
@@ -433,6 +434,17 @@ function makeBlockObject(range: RangeInterface, type, value?: string, id?: strin
         res.id = id;
     }
     return res;
+}
+
+function makePageData() {
+  return objects.map(object=>object.makeData());
+}
+
+function applyPageData(pageData) {
+    for( const boxData of pageData ) {
+        const { range, id, type, value } = boxData;
+        objects.push(makeBlockObject(range, type, value, id));
+    }
 }
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;

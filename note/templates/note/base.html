@@ -8,9 +8,9 @@
     
     <title>{{title}}</title>
     <link rel='stylesheet' href='{% static "note/style/global.css" %}'>
-    <!-- {% bootstrap_css %}-->
+    {% bootstrap_css %}
     <!-- ブラウザによる表示の違いを少なくする -->
-    <!--<link rel='stylesheet' href='https://unpkg.com/ress/dist/ress.min.css'>-->
+    <link rel='stylesheet' href='https://unpkg.com/ress/dist/ress.min.css'>
 </head>
 <body>
     {% include 'note/header.html' %}
