@@ -94,7 +94,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
             const sy: number = e.clientY;
-        })
+        });
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
@@ -209,6 +209,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor( range: RangeInterface, text: string = '' ) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
+        this.editorElement.setAttribute('draggable', 'false');
     }
     init() {
         this.editorElement.value = this.value;
@@ -391,27 +392,55 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 //const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
 //const test3 = new TextBlock({x:300,y:0,width:100,height:100});
 
-function ttt() {
+function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
-    container.addEventListener('mousedown', (e)=>{
+    const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-    })
-    container.addEventListener('mouseup', (e)=>{
+    }
+    const onmouseup = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
-        const res = new ImageBlock({x:mx,y:my,width:Mx-mx,height:My-my});
+        const range = { 
+            x: mx,
+            y: my,
+            width: Mx - mx, 
+            height: My - my
+        };
+        const res = makeBlockObject(range, type)
         xs = [];
         ys = [];
-    })
+        container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mouseup', onmouseup);
+    }
+    container.addEventListener('mousedown', onmousedown);
+    container.addEventListener('mouseup', onmouseup);
 }
-ttt();
+function makeBlockObject(range: RangeInterface, type, value?: string, id?: string) {
+    let res;
+    switch(type) {
+        case 'text':
+            res = new TextBlock(range, value);
+            break;
+        case 'image':
+            res = new ImageBlock(range, value);
+            break;
+        case 'canvas':
+            res = new canvasBlock(range, value);
+            break;
+    }
+    if(id) {
+        res.id = id;
+    }
+    return res;
+}
+putBox('text');
 /**
  * @author JuthaDDA
  * @see [element.tagName は readonly なので，

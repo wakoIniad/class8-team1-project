@@ -10,7 +10,6 @@
     position: absolute;
     display: block;
 
-    padding: 0;
     margin: 0;
     box-sizing: border-box;
     overflow: hidden;
@@ -20,6 +19,7 @@
 
 .box-frame:hover {
     background: rgba(0,0);
+    /*padding: 10px;*/
     border: 5px rgb(255,255,255) dashed;
 } 
 
