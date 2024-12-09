@@ -94,8 +94,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
             const sy: number = e.clientY;
-        });
-        //dragger(this.editorElement);
+        }, {capture: true});
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
@@ -441,7 +440,8 @@ function makeBlockObject(range: RangeInterface, type, value?: string, id?: strin
     }
     return res;
 }
-putBox('image');
+//putBox('image');
+new ImageBlock({x:0,y:0,width:100,height:100});
 /**
  * @author JuthaDDA
  * @see [element.tagName は readonly なので，
