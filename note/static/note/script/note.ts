@@ -434,4 +434,12 @@ function makeBlockObject(range: RangeInterface, type, value?: string, id?: strin
     }
     return res;
 }
-putBox('image');
+
+const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
+uitest.addEventListener('change',e=>{
+    putBox(uitest.value);
+    let option_states = document.querySelectorAll("#ui option");
+    for(let state of option_states) {
+        state.selected = false;
+    }
+})

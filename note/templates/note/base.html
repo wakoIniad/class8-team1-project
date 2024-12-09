@@ -7,12 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <title>{{title}}</title>
-    <link rel='stylesheet' href='{% static "note/css/global.css" %}'>
+    <link rel='stylesheet' href='{% static "note/style/global.css" %}'>
     <!-- {% bootstrap_css %}-->
     <!-- ブラウザによる表示の違いを少なくする -->
     <!--<link rel='stylesheet' href='https://unpkg.com/ress/dist/ress.min.css'>-->
 </head>
 <body>
+    {% include 'note/header.html' %}
     {% block content %}
     {% endblock content %}
     <!-- thanks: https://qiita.com/dojyorin/items/00c167d0b4b41872b4a2 -->
