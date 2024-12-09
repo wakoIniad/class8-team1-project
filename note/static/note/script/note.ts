@@ -84,7 +84,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('draggable', 'true');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
-            e.preventDefault();
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
                 this.y += e.clientY - sy;
@@ -94,7 +93,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
             const sy: number = e.clientY;
-        }, {capture: true});
+        })
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
@@ -209,7 +208,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor( range: RangeInterface, text: string = '' ) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
-        this.editorElement.setAttribute('draggable', 'false');
     }
     init() {
         this.editorElement.value = this.value;
@@ -388,10 +386,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-//const test = new ImageBlock({x:0,y:0,width:100,height:100});
-//const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
-//const test3 = new TextBlock({x:300,y:0,width:100,height:100});
-
 function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
@@ -440,28 +434,4 @@ function makeBlockObject(range: RangeInterface, type, value?: string, id?: strin
     }
     return res;
 }
-//putBox('image');
-new ImageBlock({x:0,y:0,width:100,height:100});
-/**
- * @author JuthaDDA
- * @see [element.tagName は readonly なので，
- *     HTML 要素のタグ名を変更する関数を作った - Qiita](
- *     https://qiita.com/juthaDDA/items/974fda70945750e68120)
- */
-const replaceTagName = ( target:Element, tagName:string ):Element => {
-	if ( ! target.parentNode ) { return target; }
-
-	const replacement = document.createElement( tagName );
-	Array.from( target.attributes ).forEach( ( attribute ) => {
-		const { nodeName, nodeValue } = attribute;
-		if ( nodeValue ) {
-			replacement.setAttribute( nodeName, nodeValue );
-		}
-	} );
-	Array.from( target.childNodes ).forEach( ( node ) => {
-		replacement.appendChild( node );
-	} ); // For some reason, only textNodes are appended
-		// without converting childNodes to Array.
-	target.parentNode.replaceChild( replacement, target );
-	return replacement;
-};
+putBox('image');
