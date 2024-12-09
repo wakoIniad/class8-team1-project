@@ -387,25 +387,31 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-const test = new ImageBlock({x:0,y:0,width:100,height:100});
-const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
-const test3 = new TextBlock({x:300,y:0,width:100,height:100});
+//const test = new ImageBlock({x:0,y:0,width:100,height:100});
+//const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
+//const test3 = new TextBlock({x:300,y:0,width:100,height:100});
 
 function ttt() {
     if(!container)return;
-    let sx:number = 0;
-    let sy:number = 0;
+    let xs:number[] = [];
+    let ys:number[] = [];
     container.addEventListener('mousedown', (e)=>{
-        sx = e.clientX;
-        sy = e.clientY;
+        xs.push(e.clientX);
+        ys.push(e.clientY);
     })
     container.addEventListener('mouseup', (e)=>{
-        const ex = e.clientX;
-        const ey = e.clientY;
-        new ImageBlock({x:sx,y:sy,width:ex-sx,height:ey-sy});
+        xs.push(e.clientX);
+        ys.push(e.clientY);
+        const mx = Math.min(...xs);
+        const my = Math.min(...ys);
+        const Mx = Math.max(...xs);
+        const My = Math.max(...ys);
+        const res = new ImageBlock({x:mx,y:my,width:Mx-mx,height:My-my});
+        xs = [];
+        ys = [];
     })
 }
-
+ttt();
 /**
  * @author JuthaDDA
  * @see [element.tagName は readonly なので，
