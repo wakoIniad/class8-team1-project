@@ -84,6 +84,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('draggable', 'true');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+            e.preventDefault();
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
                 this.y += e.clientY - sy;
@@ -389,6 +390,21 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 const test = new ImageBlock({x:0,y:0,width:100,height:100});
 const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
 const test3 = new TextBlock({x:300,y:0,width:100,height:100});
+
+function ttt() {
+    if(!container)return;
+    let sx:number = 0;
+    let sy:number = 0;
+    container.addEventListener('mousedown', (e)=>{
+        sx = e.clientX;
+        sy = e.clientY;
+    })
+    container.addEventListener('mouseup', (e)=>{
+        const ex = e.clientX;
+        const ey = e.clientY;
+        new ImageBlock({x:sx,y:sy,width:ex-sx,height:ey-sy});
+    })
+}
 
 /**
  * @author JuthaDDA
