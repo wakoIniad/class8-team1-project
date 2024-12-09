@@ -315,7 +315,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
-            this.paintStart();
+            //this.paintStart();
             this.boxFrameElement.addEventListener('mousedown', onmousedown);
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
@@ -335,9 +335,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastX = null;
         this.lastY = null;
     }
-    paintAt(e: MouseEvent) {
-        const x = e.offsetX;
-        const y = e.offsetY;
+    paintAt(e) {
+        const rect = this.editorElement.getBoundingClientRect();
+
+        const x = (e.clientX - rect.left) * (this.editorElement.width / rect.width);
+        const y = (e.clientY - rect.top) * (this.editorElement.height / rect.height);
         this.context.beginPath();
 
         const lastX = this.lastX || x;
@@ -373,7 +375,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
-        this.updateLineStyle();
     }
     getValue() {
 //        console.log('AAA',this.editorElement.toDataURL())
@@ -385,8 +386,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-//const test = new ImageBlock({x:0,y:0,width:100,height:100});
+const test = new ImageBlock({x:0,y:0,width:100,height:100});
 const test2 = new canvasBlock({x:200,y:150,width:100,height:100});
+const test3 = new TextBlock({x:300,y:0,width:100,height:100});
 
 /**
  * @author JuthaDDA
