@@ -3,8 +3,8 @@ import { rangeData } from './type/rangeData.ts';
 import { SPACER_URI } from './constants.ts';
 
 export class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor(container: HTMLElement, range: rangeData, text: string = '' ) {
-        super(container, {EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
+    constructor(range: rangeData, text: string = '' ) {
+        super({EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
         this.editorElement.value = this.value;

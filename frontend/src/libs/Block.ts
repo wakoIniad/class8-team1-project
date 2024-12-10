@@ -18,13 +18,11 @@ export class Block<T extends HTMLElement,S extends HTMLElement>{
     value: string;
     id: string;
     type: string | null;
-    container: HTMLElement;
     constructor(
-        container, { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
+        { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
         value?: string, type?: string, id?: string,
     ) {
-        this.container = container;
         this.loaderId = 0;
 
         this.id = id || String(Date.now());
@@ -72,14 +70,13 @@ export class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.init();
 
-        this.appendToContainer(this.boxFrameElement);
         this.asign(this.editorElement, this.displayElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
     }
 
-    appendToContainer(elm: HTMLElement): void {
-        this.container.appendChild(elm);
+    getHTMLElement(elm: HTMLElement): HTMLElement {
+        return this.boxFrameElement;
     }
 
     coordToString(coord: number): string {

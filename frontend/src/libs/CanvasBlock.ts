@@ -10,8 +10,8 @@ export class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor(container: HTMLElement, range: rangeData, URI: string = SPACER_URI ) {
-        super(container, { 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
+    constructor(range: rangeData, URI: string = SPACER_URI ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;

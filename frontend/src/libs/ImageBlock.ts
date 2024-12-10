@@ -3,8 +3,8 @@ import { rangeData } from './type/rangeData.ts';
 import { SPACER_URI } from './constants.ts';
 
 export class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor(container:HTMLElement, range: rangeData, URI: string = SPACER_URI ) {
-        super(container, { 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
+    constructor(range: rangeData, URI: string = SPACER_URI ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
     }
 
     init() {
