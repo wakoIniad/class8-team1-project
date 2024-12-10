@@ -1,13 +1,18 @@
 #container {
-  position: relative;  
-  width: 100%;
-  height: 100%;
-
-  background: rgb(0,0,0);
+    display: grid; /* Gridを使用して親要素が子要素に追従 */
+    grid-template-columns: min-content; /* 子要素の幅に応じて拡大 */
+    grid-template-rows: min-content;    /* 子要素の高さに応じて拡大 */
+    position: relative;
+    border: 2px solid black;
+    overflow: visible; /* 子要素がはみ出しても表示 */
+    min-width: 100%;
+    min-height: 100%;
+    
+    background: rgb(0,0,0);
 }
 
 .box-frame {
-    position: absolute;
+    position: relative;
     display: block;
 
     margin: 0;
@@ -46,18 +51,18 @@
 }
 
 .visible {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 /* display: inlineでは使えない & overflow: visible でも使えない*/
 .resizer {
-    display: block;
-    resize: both;
-    overflow: hidden;
+    display: block !important;
+    resize: both !important;
+    overflow: hidden !important;
 }
 
 .text-view {
-    white-space: pre;
+    white-space: pre !important;
 }
 
 .text-editor {
