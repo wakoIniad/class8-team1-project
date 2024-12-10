@@ -1,6 +1,7 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import testData from '../../test/test.json' assert { type: 'json' };;
 
 function App() {
   return (
@@ -10,14 +11,14 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        {
+          (function() {
+            for(const blockData of testData) {
+              
+            }
+            return <></>;
+          })()
+        }
       </header>
     </div>
   );
