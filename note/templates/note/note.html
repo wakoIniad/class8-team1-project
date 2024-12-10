@@ -2,7 +2,11 @@
 {% load static %}
 {% block content %}
     <link rel='stylesheet' href='{% static "note/style/note.css" %}'>
+    {% include 'note/header.html' %}
+
     <div id="container">
+    {% include 'note/boxUI.html' %}
     </div>
+    
     <script src="{% static 'note/script/note.ts' %}" type="text/typescript"></script>
 {% endblock content %}
