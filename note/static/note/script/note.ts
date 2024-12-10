@@ -211,6 +211,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     init() {
         this.editorElement.value = this.value;
+
+        this.displayElement.classList.add('text-view');
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             //this.editorElement.focus();
