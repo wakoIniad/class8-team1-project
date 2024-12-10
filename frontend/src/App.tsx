@@ -4,19 +4,18 @@ import './App.css';
 
 import testData from '../../test/test.json' assert { type: 'json' };;
 
-import { blockData } from '../lib/type/blockData.ts';
-import { rangeData } from '../lib/type/rangeData.ts';
+import { blockData } from './lib/type/blockData.ts';
+import { rangeData } from './lib/type/rangeData.ts';
 
-import { Block } from '../lib/Block.ts';
-import { TextBlock } from '../lib/TextBlock.ts';
-import { ImageBlock } from '../lib/ImageBlock.ts';
-import { canvasBlock } from '../lib/CanvasBlock.ts';
+import { Block } from './lib/Block.ts';
+import { TextBlock } from './lib/TextBlock.ts';
+import { ImageBlock } from './lib/ImageBlock.ts';
+import { canvasBlock } from './lib/CanvasBlock.ts';
 
 const pageObjects: Block<any,any>[] = [];
-const container:HTMLElement = document.getElementById('container')!;
 
 function putBox(type: string) {
-  if(!container)return;
+  const container:HTMLElement = document.getElementById('container')!;
   let xs:number[] = [];
   let ys:number[] = [];
   const onmousedown = (e)=>{
@@ -39,8 +38,8 @@ function putBox(type: string) {
       const res = makeBlockObject(range, type);
       xs = [];
       ys = [];
-      container?.removeEventListener('mousedown', onmousedown);
-      container?.removeEventListener('mouseup', onmouseup);
+      container.removeEventListener('mousedown', onmousedown);
+      container.removeEventListener('mouseup', onmouseup);
       pageObjects.push(res);
       console.log(makePageData())
   }
@@ -51,13 +50,13 @@ function makeBlockObject(range: rangeData, type, value?: string, id?: string) {
   let res;
   switch(type) {
       case 'text':
-          res = new TextBlock(container ,range, value);
+          res = new TextBlock(range, value);
           break;
       case 'image':
-          res = new ImageBlock(container ,range, value);
+          res = new ImageBlock(range, value);
           break;
       case 'canvas':
-          res = new canvasBlock(container ,range, value);
+          res = new canvasBlock(range, value);
           break;
   }
   if(id) {
@@ -91,17 +90,16 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        {
-          (function() {
-            for(const blockData of testData) {
+        <div id="container">
+          {
+            (function() {
+              for(const blockData of testData) {
               
-            }
-            return <></>;
-          })()
-        }
+              }
+              return <></>;
+            })()
+          }
+        </div>
       </header>
     </div>
   );
