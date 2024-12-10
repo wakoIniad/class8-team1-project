@@ -60,6 +60,10 @@
     white-space: pre;
 }
 
+.text-editor {
+    overflow:hidden !important;
+}
+
 
 /*
 参考: https://qiita.com/YukiHoshi/items/0ed4b628acdab696be62

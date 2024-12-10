@@ -1,5 +1,8 @@
-const objects: Block<any,any>[] = [];
-const SPACER = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+import { blockData } from '../lib/type/blockData';
+import { rangeData } from '../lib/type/rangeData';
+const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+
+const pageObjects: Block<any,any>[] = [];
 
 let container:HTMLElement | null = document.getElementById('container');
 if(!(container instanceof HTMLElement)) {
@@ -10,14 +13,7 @@ function appendToContainer(elm: HTMLElement): void {
     if(container) container.appendChild(elm);
 }
 
-interface RangeInterface {
-    x:number;
-    y:number;
-    width:number;
-    height:number;
-}
-
-type BlockObjectParameters = [ RangeInterface, string?, string?, string? ];
+type BlockObjectParameters = [ rangeData, string?, string?, string? ];
 
 interface BlockInterface {
     x:number;
@@ -38,10 +34,6 @@ interface BlockInterface {
     init: () => void;
 }
 
-function coordToString(coord: number): string {
-    return `${coord}px`;
-}
-
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     
@@ -60,7 +52,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     type: string | null;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
-        { x, y, width, height }: RangeInterface,
+        { x, y, width, height }: rangeData,
         value?: string, type?: string, id?: string,
     ) {
         this.loaderId = 0;
@@ -113,12 +105,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this?.applyValue();//初期値の反映
         this.toggleToView();
     }
+
+    coordToString(coord: number): string {
+        return `${coord}px`;
+    }   
+
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.left = coordToString(this.x);
-        box.style.top = coordToString(this.y);
-        box.style.width = coordToString(this.width);
-        box.style.height = coordToString(this.height);
+        box.style.left =   this.coordToString(this.x);
+        box.style.top =    this.coordToString(this.y);
+        box.style.width =  this.coordToString(this.width);
+        box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
         box.classList.add('resizer');
         return box as T;
@@ -126,16 +123,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     
     makeBoxContent<T>(tagName: string):T {
         const content: HTMLElement = document.createElement(tagName);
-        content.style.left = coordToString(0);
-        content.style.top = coordToString(0);
+        content.style.left = this.coordToString(0);
+        content.style.top =  this.coordToString(0);
         content.classList.add('box-content');
         return content as T;
     }
     
     makeResizer<T>(tagName: string):T {
         const content: HTMLElement = document.createElement(tagName);
-        content.style.left = coordToString(0);
-        content.style.top = coordToString(0);
+        content.style.left = this.coordToString(0);
+        content.style.top =  this.coordToString(0);
         content.classList.add('resizer');
         return content as T;
     }
@@ -152,7 +149,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('visible');
         //this.asign(this.displayElement);
     }
-    makeData() {
+    makeData(): blockData {
         return {
             range: {
                 x:this.x, y:this.y, width: this.width, height: this.height,
@@ -183,12 +180,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     }
     resize(width: number, height: number) {
-        this.boxFrameElement.style.width = coordToString(this.width = width);
-        this.boxFrameElement.style.height = coordToString(this.height = height);
+        this.boxFrameElement.style.width =  this.coordToString(this.width = width);
+        this.boxFrameElement.style.height = this.coordToString(this.height = height);
     }
     relocate(x: number, y: number) {
-        this.boxFrameElement.style.left = coordToString(this.x = x);
-        this.boxFrameElement.style.top = coordToString(this.y = y);
+        this.boxFrameElement.style.left = this.coordToString(this.x = x);
+        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
     }
     relayout() {
 
@@ -206,11 +203,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor( range: RangeInterface, text: string = '' ) {
+    constructor( range: rangeData, text: string = '' ) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
     }
     init() {
         this.editorElement.value = this.value;
+        this.editorElement.classList.add('text-editor');
 
         this.displayElement.classList.add('text-view');
         
@@ -232,7 +230,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: RangeInterface, URI: string = SPACER ) {
+    constructor( range: rangeData, URI: string = SPACER_URI ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
     }
 
@@ -272,7 +270,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             if(files.length) {
                 fileReader.readAsDataURL(files[0]);
             } else {
-                resolve(SPACER);
+                resolve(SPACER_URI);
             }
         });
     }
@@ -294,12 +292,12 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor( range: RangeInterface, URI: string = SPACER ) {
+    constructor( range: rangeData, URI: string = SPACER_URI ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
-            if(URI !== SPACER) {
+            if(URI !== SPACER_URI) {
                 const image = new Image();
                 image.src = URI;
                 this.context.drawImage(image, 0, 0);
@@ -413,13 +411,13 @@ function putBox(type: string) {
         ys = [];
         container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
-        objects.push(res);
+        pageObjects.push(res);
         console.log(makePageData())
     }
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
 }
-function makeBlockObject(range: RangeInterface, type, value?: string, id?: string) {
+function makeBlockObject(range: rangeData, type, value?: string, id?: string) {
     let res;
     switch(type) {
         case 'text':
@@ -438,21 +436,21 @@ function makeBlockObject(range: RangeInterface, type, value?: string, id?: strin
     return res;
 }
 
-function makePageData() {
-  return objects.map(object=>object.makeData());
+function makePageData(): blockData[] {
+  return pageObjects.map(object=>object.makeData());
 }
 
-function applyPageData(pageData) {
+function applyPageData(pageData: blockData[]): void {
     for( const boxData of pageData ) {
         const { range, id, type, value } = boxData;
-        objects.push(makeBlockObject(range, type, value, id));
+        pageObjects.push(makeBlockObject(range, type, value, id));
     }
 }
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
 uitest.addEventListener('change',e=>{
     putBox(uitest.value);
-    let option_states = document.querySelectorAll("#ui option");
+    let option_states: NodeListOf<HTMLOptionElement> = document.querySelectorAll("#ui option");
     for(let state of option_states) {
         state.selected = false;
     }
