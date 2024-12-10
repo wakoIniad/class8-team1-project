@@ -4,13 +4,13 @@ import './App.css';
 
 import testData from '../../test/test.json' assert { type: 'json' };;
 
-import { blockData } from './lib/type/blockData.ts';
-import { rangeData } from './lib/type/rangeData.ts';
+import { blockData } from './libs/type/blockData.ts';
+import { rangeData } from './libs/type/rangeData.ts';
 
-import { Block } from './lib/Block.ts';
-import { TextBlock } from './lib/TextBlock.ts';
-import { ImageBlock } from './lib/ImageBlock.ts';
-import { canvasBlock } from './lib/CanvasBlock.ts';
+import { Block } from './libs/Block.ts';
+import { TextBlock } from './libs/TextBlock.ts';
+import { ImageBlock } from './libs/ImageBlock.ts';
+import { canvasBlock } from './libs/CanvasBlock.ts';
 
 const pageObjects: Block<any,any>[] = [];
 
