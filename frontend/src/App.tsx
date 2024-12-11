@@ -1,7 +1,6 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
-
 import testData from '../../test/test.json' assert { type: 'json' };;
 
 import { blockData } from './libs/type/blockData.ts';
@@ -96,7 +95,7 @@ function App() {
               for(const blockData of testData) {
               
               }
-              return <></>;
+              return <>test</>;
             })()
           }
         </div>
