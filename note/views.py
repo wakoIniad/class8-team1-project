@@ -10,3 +10,17 @@ def new_note(request):
 
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
+
+def note(request, note_id):
+    context = { #テストデータ
+        "note": [
+            { "title": "",
+              "posted_at": "",
+              },
+            { "title": "",
+              "posted_at": "",
+              },
+
+        ]
+    }
+    return render(request, 'note/note.html')

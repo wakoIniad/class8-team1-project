@@ -1,5 +1,5 @@
-import { blockData } from '../lib/type/blockData';
-import { rangeData } from '../lib/type/rangeData';
+import { blockData } from '../type/blockData';
+import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 const pageObjects: Block<any,any>[] = [];
