@@ -1,0 +1,79 @@
+#container {
+    display: grid; /* Gridを使用して親要素が子要素に追従 */
+    grid-template-columns: min-content; /* 子要素の幅に応じて拡大 */
+    grid-template-rows: min-content;    /* 子要素の高さに応じて拡大 */
+    position: relative;
+    border: 2px solid black;
+    overflow: visible; /* 子要素がはみ出しても表示 */
+    min-width: 100%;
+    min-height: 100%;
+    
+    background: rgb(0,0,0);
+}
+
+.box-frame {
+    position: relative;
+    display: block;
+
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    background-color: rgb(255,255,255);
+}
+
+.box-frame:hover {
+    background: rgba(0,0);
+    /*padding: 10px;*/
+    border: 5px rgb(255,255,255) dashed;
+} 
+
+.box-content {
+    position: absolute;
+    display: block;
+
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+
+    width: 100%;
+    height: 100%;
+}
+
+.box-view {
+    pointer-events: none;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.box-editor {
+    opacity: 0;
+}
+
+.visible {
+    opacity: 1 !important;
+}
+
+/* display: inlineでは使えない & overflow: visible でも使えない*/
+.resizer {
+    display: block !important;
+    resize: both !important;
+    overflow: hidden !important;
+}
+
+.text-view {
+    white-space: pre !important;
+}
+
+.text-editor {
+    overflow:hidden !important;
+}
+
+
+/*
+参考: https://qiita.com/YukiHoshi/items/0ed4b628acdab696be62
+スタイル	領域の確保	クリック（イベント）
+display:none;	×	×
+visibility:hidden;	○	×
+opacity:0;	○	○
+*/
