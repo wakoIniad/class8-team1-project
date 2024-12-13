@@ -11,6 +11,7 @@ def new_note(request):
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
 
+
 def note(request, note_id):
     context = { #テストデータ
         "note": [
@@ -24,3 +25,5 @@ def note(request, note_id):
         ]
     }
     return render(request, 'note/note.html')
+def home(request):
+    return render(request, 'note/home.html')
