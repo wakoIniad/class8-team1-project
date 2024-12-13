@@ -10,3 +10,6 @@ def new_note(request):
 
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
+
+def home(request):
+    return render(request, 'note/home.html')
