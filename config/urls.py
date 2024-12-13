@@ -20,4 +20,5 @@ from django.urls import path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('new_note/', admin.site.urls),
+    path('be_made_note', admin.site.urls),
 ]
