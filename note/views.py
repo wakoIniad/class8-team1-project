@@ -4,3 +4,4 @@ from django.shortcuts import render
 #テスト用
 def test(request):
     return render(request, 'note/note.html')
+
