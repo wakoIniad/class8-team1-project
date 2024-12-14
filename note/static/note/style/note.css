@@ -1,5 +1,6 @@
 #container {
     display: flex; 
+    overflow: visible; /* 子要素がはみ出しても表示 */
     
     position: static;
     min-width: 100%;
