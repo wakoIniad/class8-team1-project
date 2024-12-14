@@ -388,10 +388,18 @@ function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
+    const cancel = ()=>{
+        container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mouseup', onmouseup);
+        container?.removeEventListener('onmouseout', cancel);
+        container?.removeEventListener('onmouseleave', cancel);
+    }
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
         container?.removeEventListener('mousedown', onmousedown);
+        //container?.removeEventListener('onmouseleave', cancel);
+        //container?.removeEventListener('onmouseout', cancel);
     }
     const onmouseup = (e)=>{
         xs.push(e.clientX);
@@ -413,6 +421,7 @@ function putBox(type: string) {
         pageObjects.push(res);
         console.log(makePageData())
     }
+
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
 }
