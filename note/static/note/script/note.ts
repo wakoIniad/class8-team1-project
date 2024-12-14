@@ -94,7 +94,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
             this.width = entries[0].contentRect.width;
             this.height = entries[0].contentRect.height;
-            //this.resize(e;ntries[0].contentRect.width, entries[0].contentRect.height);
+            //this.resize(this.width, this.height);
         });
         resizeObserver.observe(this.boxFrameElement);
 

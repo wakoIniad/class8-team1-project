@@ -1,10 +1,7 @@
 #container {
-    display: grid; /* Gridを使用して親要素が子要素に追従 */
-    grid-template-columns: 1fr; /* 子要素の幅に応じて拡大 */
-    grid-template-rows: 1fr;    /* 子要素の高さに応じて拡大 */
-    position: relative;
-    border: 2px solid black;
-    overflow: visible; /* 子要素がはみ出しても表示 */
+    display: flex; 
+    
+    position: static;
     min-width: 100%;
     min-height: 100%;
     
@@ -12,7 +9,7 @@
 }
 
 .box-frame {
-    position: absolute;
+    position: relative;
     display: block;
 
     margin: 0;
