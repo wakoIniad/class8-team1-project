@@ -391,6 +391,7 @@ function putBox(type: string) {
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
+        container?.removeEventListener('mousedown', onmousedown);
     }
     const onmouseup = (e)=>{
         xs.push(e.clientX);
@@ -402,13 +403,12 @@ function putBox(type: string) {
         const range = { 
             x: mx,
             y: my,
-            width: Mx - mx, 
-            height: My - my
+            width: Math.max(Mx - mx,150), 
+            height: Math.max(My - my, 100)
         };
         const res = makeBlockObject(range, type);
         xs = [];
         ys = [];
-        container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
         pageObjects.push(res);
         console.log(makePageData())
