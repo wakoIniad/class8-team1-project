@@ -21,7 +21,6 @@ def note(request, note_id):
             { "title": "",
               "posted_at": "",
               },
-
         ]
     }
     return render(request, 'note/note.html')
