@@ -9,7 +9,10 @@ urlpatterns = [
 
     path('new/', views.new_note, name='new_note'),
     path('<int:note_id>/', views.be_made_note, name='be_made_note'),
-    path('/', views.home, name='home'),
     
     path('api/<int:note_id>/<int:box_id>/', views.box_handler, name="box_handler")
+
+    path('new_note/', views.new_note, name='new_note'),
+    path('be_made_note/', views.be_made_note, name='be_made_note'),
+    path('', views.home, name='home'),
 ]
