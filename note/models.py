@@ -35,3 +35,8 @@ class Note(models.Model):
     def updateTime(self):
         self.published_at = timezone.now()
         self.save()
+
+    def json(self):
+        return {
+            "id": self.id
+        }

@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from .models import Note, Box
 from django.http import HttpResponse,Http404, JsonResponse
+import random
 
 # Create your views here.
 #テスト用
@@ -11,28 +12,43 @@ def test(request, note_id):
         Box.objects.get
     return render(request, 'note/note.html')
 
+def make_id(ref=[]):
+    return random.random()
+
 def box_handler(request, note_id, box_id):
     if request.method == "GET":
-        Box.objects.get(pk = note_id)
+        box = Box.objects.get(pk = box_id)
+        return JsonResponse(box.json())
     elif request.method == "POST":
+        box = Box.objects.get(pk = box_id)
+        data = request.POST
+        for key in data["update_keys"]:
+            box[key] = data["update_values"]
     elif request.method == "PUT":
         data = request.PUT
         range = data["range"]
         box = Box(x=range["x"], y=range["y"], width=range["width"], height=range["height"],
-                    value)
+                    value=data["value"],id=make_id(ref=[]), type=data["type"], parent_id=note_id)
     elif request.method == "DELETE":
         box = Box.objects.get(pk = note_id)
         box.delete()
 
 def note_handler(request, note_id):
     if request.method == "GET":
-        noteData = Note.objects.get(pk = note_id)
+        note = Note.objects.get(pk = note_id)
+        noteData = note.json()
         childrenData = Box.objects.get(parent_id = note_id)
-        noteData.children = childrenData
+        noteData["children"] = [ child.json() for child in childrenData ]
         return JsonResponse(noteData)
     elif request.method == "POST":
+        note = Note.objects.get(pk = note_id)
+        data = request.POST
+        for key in data["update_keys"]:
+            note[key] = data["update_values"]
     elif request.method == "PUT":
+        note = Note(id=make_id(ref=[]))
     elif request.method == "DELETE":
+        note = Note.objects.get(pk = note_id)
 
 def new_note(request):
     return render(request, 'note/new_note.html')
