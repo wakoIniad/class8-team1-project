@@ -94,7 +94,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
             this.width = entries[0].contentRect.width;
             this.height = entries[0].contentRect.height;
-            //this.resize(e;ntries[0].contentRect.width, entries[0].contentRect.height);
+            //this.resize(this.width, this.height);
         });
         resizeObserver.observe(this.boxFrameElement);
 
@@ -112,8 +112,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.left =   this.coordToString(this.x);
-        box.style.top =    this.coordToString(this.y);
+        box.style.marginLeft =   this.coordToString(this.x);
+        box.style.marginTop =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
         box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
@@ -123,8 +123,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     
     makeBoxContent<T>(tagName: string):T {
         const content: HTMLElement = document.createElement(tagName);
-        content.style.left = this.coordToString(0);
-        content.style.top =  this.coordToString(0);
+        content.style.marginLeft = this.coordToString(0);
+        content.style.marginTop =  this.coordToString(0);
         content.classList.add('box-content');
         return content as T;
     }
@@ -184,8 +184,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.height = this.coordToString(this.height = height);
     }
     relocate(x: number, y: number) {
-        this.boxFrameElement.style.left = this.coordToString(this.x = x);
-        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
+        this.boxFrameElement.style.marginLeft = this.coordToString(this.x = x);
+        this.boxFrameElement.style.marginTop =  this.coordToString(this.y = y);
     }
     relayout() {
 
@@ -388,10 +388,18 @@ function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
+    const cancel = ()=>{
+        container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mouseup', onmouseup);
+        container?.removeEventListener('onmouseout', cancel);
+        container?.removeEventListener('onmouseleave', cancel);
+    }
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
         container?.removeEventListener('mousedown', onmousedown);
+        //container?.removeEventListener('onmouseleave', cancel);
+        //container?.removeEventListener('onmouseout', cancel);
     }
     const onmouseup = (e)=>{
         xs.push(e.clientX);
@@ -413,6 +421,7 @@ function putBox(type: string) {
         pageObjects.push(res);
         console.log(makePageData())
     }
+
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
 }
