@@ -454,6 +454,8 @@ function applyPageData(pageData: blockData[]): void {
         pageObjects.push(makeBlockObject(range, type, value, id));
     }
 }
+applyPageData(initialPageObjects);
+pageObjects.push(...initialPageObjects);
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
 uitest.addEventListener('change',e=>{
