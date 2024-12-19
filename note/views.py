@@ -59,7 +59,7 @@ def note_api_handler(request, note_id):
     if request.method == "GET":
         note = Note.objects.get(pk = note_id)
         noteData = note.json()
-        childrenData = Box.objects.get(parent_id = note_id)
+        childrenData = Box.objects.filter(parent_id = note_id)
         noteData["children"] = [ child.json() for child in childrenData ]
         return JsonResponse(noteData)
     elif request.method == "POST":

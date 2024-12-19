@@ -21,7 +21,7 @@ class Box(models.Model):
 
     def json(self):
         return {
-            range: {
+            "range": {
                 "x": self.x, "y": self.y, "width": self.width, "height": self.height
             },
             "id": self.id, "value": self.value, "type": self.type
