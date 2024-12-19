@@ -25,5 +25,6 @@ def note(request, note_id):
         ]
     }
     return render(request, 'note/note.html')
+
 def home(request):
     return render(request, 'note/home.html')
