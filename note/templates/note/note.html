@@ -5,6 +5,8 @@
     <link rel='stylesheet' href='{% static "note/style/note.css" %}'>
     <div id="container">
     </div>
+    {% csrf_token %}
+    
     <script>
         const initialPageObjects = {{ initialPageObjects }};
     </script>

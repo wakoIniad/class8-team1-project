@@ -1,21 +1,24 @@
 from django.shortcuts import render
 from .models import Note, Box
-from django.http import HttpResponse, Http404, JsonResponse
+from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 import random
+
+import json
+
 
 # Create your views here.
 #テスト用
 def test(request, note_id):
-    if request.method == "POST":
-        data = request.POST
+    print(note_id)
+    initialPageObjects = []
     try:
-        initialPageObjects = Box.objects.get(parent_id=note_id)
+        initialPageObjects = Box.objects.filter(parent_id=note_id)
         initialPageObjects = [ box.json() for box in initialPageObjects ]
     except Box.DoesNotExist:
-        raise Http404("Article does not exist")
+        print( Http404("Article does not exist"))
     
     context = {
-        initialPageObjects: initialPageObjects
+        "initialPageObjects": initialPageObjects
     }
     return render(request, 'note/note.html', context)
 
@@ -26,19 +29,26 @@ def make_id(ref=[]):
 #PUTは２重で実行されないため、何かのミスで２回送信されて同じものが二つ作られたりするのを防げる
 def box_api_handler(request, note_id, box_id):
     if request.method == "GET":
-        box = Box.objects.get(pk = box_id)
-        return JsonResponse(box.json())
+        try:
+            box = Box.objects.get(pk = box_id)
+            return JsonResponse(box.json())
+        except: 
+            print("ERROR")
     elif request.method == "POST":
-        box = Box.objects.get(pk = box_id)
-        data = request.POST
-        for key in data["update_keys"]:
-            box[key] = data["update_values"]
-        box.save()
+        try:
+            box = Box.objects.get(pk = box_id)
+            data = request.POST
+            for key in data["update_keys"]:
+                box[key] = data["update_values"]
+            box.save()
+        except:
+            print("ERROR")
     elif request.method == "PUT":
-        data = request.PUT
+        data = json.loads(request.body)
+        print(note_id)
         range = data["range"]
         box = Box(x=range["x"], y=range["y"], width=range["width"], height=range["height"],
-                    value=data["value"],id=make_id(ref=[]), type=data["type"], parent_id=note_id)
+                    id=make_id(ref=[]), type=data["type"], parent_id=note_id)
         box.save()
         return HttpResponse(box.id)
     elif request.method == "DELETE":
