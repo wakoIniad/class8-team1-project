@@ -16,11 +16,13 @@ def test(request, note_id):
         initialPageObjects = [ box.json() for box in initialPageObjects ]
     except Box.DoesNotExist:
         print( Http404("Article does not exist"))
-    
+    print(initialPageObjects)
     context = {
         "initialPageObjects": initialPageObjects
     }
-    return render(request, 'note/note.html', context)
+    return render(request, 'note/note.html', 
+                  #context
+                  )
 
 def make_id(ref=[]):
     return random.randint(0,100000000)

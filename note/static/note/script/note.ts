@@ -12,6 +12,7 @@
     }
   }
   const csrftoken = getCookie('csrftoken')
+
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
@@ -497,8 +498,16 @@ function applyPageData(pageData: blockData[]): void {
         pageObjects.push(makeBlockObject(range, type, value, id));
     }
 }
-applyPageData(initialPageObjects);
-pageObjects.push(...initialPageObjects);
+/*applyPageData(initialPageObjects);
+pageObjects.push(...initialPageObjects);*/
+
+fetch(NOTE_API_URL+NOTE_ID)
+.then(result=>result.json())
+.then(pageData=>{
+    const initialPageObjects = pageData.children;
+    applyPageData(initialPageObjects);
+    pageObjects.push(...initialPageObjects);
+});
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
 uitest.addEventListener('change',e=>{
