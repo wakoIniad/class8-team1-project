@@ -112,8 +112,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.marginLeft =   this.coordToString(this.x);
-        box.style.marginTop =    this.coordToString(this.y);
+        box.style.left =   this.coordToString(this.x);
+        box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
         box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
@@ -123,8 +123,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     
     makeBoxContent<T>(tagName: string):T {
         const content: HTMLElement = document.createElement(tagName);
-        content.style.marginLeft = this.coordToString(0);
-        content.style.marginTop =  this.coordToString(0);
+        content.style.left = this.coordToString(0);
+        content.style.top =  this.coordToString(0);
         content.classList.add('box-content');
         return content as T;
     }
@@ -184,8 +184,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.height = this.coordToString(this.height = height);
     }
     relocate(x: number, y: number) {
-        this.boxFrameElement.style.marginLeft = this.coordToString(this.x = x);
-        this.boxFrameElement.style.marginTop =  this.coordToString(this.y = y);
+        this.boxFrameElement.style.left = this.coordToString(this.x = x);
+        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
     }
     relayout() {
 

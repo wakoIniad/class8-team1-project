@@ -1,8 +1,12 @@
+html {
+    background: black;
+}
+
 #container {
     display: flex; 
     overflow: visible; /* 子要素がはみ出しても表示 */
     
-    position: static;
+    position: relative;
     min-width: 100%;
     min-height: 100%;
     
@@ -10,7 +14,7 @@
 }
 
 .box-frame {
-    position: relative;
+    position: absolute;
     display: block;
 
     margin: 0;
