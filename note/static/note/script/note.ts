@@ -1,6 +1,8 @@
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
+const NOTE_ID: string = '0'
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const NOTE_API_URL: string = window.location.origin + 'note/api/';
 
 const pageObjects: Block<any,any>[] = [];
 
@@ -177,7 +179,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return ''
     }
     applyValue(): void {
-
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id);
     }
     resize(width: number, height: number) {
         this.boxFrameElement.style.width =  this.coordToString(this.width = width);
@@ -388,7 +390,7 @@ function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
-    const cancel = ()=>{
+    const cancel = () => {
         container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
         container?.removeEventListener('onmouseout', cancel);
@@ -408,18 +410,22 @@ function putBox(type: string) {
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
-        const range = { 
+        const range = {
             x: mx,
             y: my,
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
         };
+        const putData = {
+            ...range, type: type
+        }
+        fetch(NOTE_API_URL+NOTE_ID+'/CREATE/')
         const res = makeBlockObject(range, type);
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
         pageObjects.push(res);
-        console.log(makePageData())
+        console.log(makePageData());
     }
 
     container.addEventListener('mousedown', onmousedown);

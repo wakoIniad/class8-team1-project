@@ -10,7 +10,7 @@ class Box(models.Model):
     y = models.FloatField()
     width = models.FloatField()
     height = models.FloatField()
-    value = models.TextField() #でかすぎるファイルを入れられたら大変なので、max_lengthを設定してもいいかも（数千から数万じゃないと普通のファイルも入らない）
+    value = models.TextField(default="") #でかすぎるファイルを入れられたら大変なので、max_lengthを設定してもいいかも（数千から数万じゃないと普通のファイルも入らない）
     type = models.TextField()
     id = models.TextField(primary_key=True)
     parent_id = models.TextField()

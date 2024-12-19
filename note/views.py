@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import Note, Box
-from django.http import HttpResponse,Http404, JsonResponse
+from django.http import HttpResponse, Http404, JsonResponse
 import random
 
 # Create your views here.
@@ -11,16 +11,16 @@ def test(request, note_id):
     try:
         initialPageObjects = Box.objects.get(parent_id=note_id)
         initialPageObjects = [ box.json() for box in initialPageObjects ]
-    except: Box.DoesNotExist:
+    except Box.DoesNotExist:
         raise Http404("Article does not exist")
     
     context = {
-        pageBoxes: pageBoxes
+        initialPageObjects: initialPageObjects
     }
     return render(request, 'note/note.html', context)
 
 def make_id(ref=[]):
-    return random.random()
+    return random.randint(0,100000000)
 
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる
 #PUTは２重で実行されないため、何かのミスで２回送信されて同じものが二つ作られたりするのを防げる
@@ -40,6 +40,7 @@ def box_api_handler(request, note_id, box_id):
         box = Box(x=range["x"], y=range["y"], width=range["width"], height=range["height"],
                     value=data["value"],id=make_id(ref=[]), type=data["type"], parent_id=note_id)
         box.save()
+        return HttpResponse(box.id)
     elif request.method == "DELETE":
         box = Box.objects.get(pk = note_id)
         box.delete()
@@ -60,6 +61,7 @@ def note_api_handler(request, note_id):
     elif request.method == "PUT":
         note = Note(id=make_id(ref=[]))
         note.save()
+        return HttpResponse(note.id)
     elif request.method == "DELETE":
         note = Note.objects.get(pk = note_id)
 

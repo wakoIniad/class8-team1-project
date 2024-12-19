@@ -17,9 +17,9 @@ urlpatterns = [
     #英語のライティングでコロンの後のスペースが抜けてないかチェックする時とかに使えて意外と便利
     #コロンやカンマの後にスペースがない場合表示する正規表現:([.,][^ ])
     #頑張ればIEEEの形式チェックにも使えると思う
-
-    path('api/<str:note_id>/(?P<str:box_id>[^/]*?)/', views.box_api_handler, name="box_api"),
-    path('api/(?P<str:note_id>[^/]*?)/', views.note_api_handler, name="note_api"),
+    #xxxx-yyyy-zzzz
+    path('api/<str:note_id>/(?P<str:box_id>[a-zA-Z0-9]*)/', views.box_api_handler, name="box_api"),
+    path('api/(?P<str:note_id>[a-zA-Z0-9]*)/', views.note_api_handler, name="note_api"),
 
     path('new_note/', views.new_note, name='new_note'),
     path('be_made_note/', views.be_made_note, name='be_made_note'),
