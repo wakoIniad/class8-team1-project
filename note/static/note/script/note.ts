@@ -1,6 +1,24 @@
+  // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
+
+  // CSRF対策
+  const getCookie = (name) => {
+    if (document.cookie && document.cookie !== '') {
+      for (const cookie of document.cookie.split(';')) {
+        const [key, value] = cookie.trim().split('=')
+        if (key === name) {
+          return decodeURIComponent(value)
+        }
+      }
+    }
+  }
+  const csrftoken = getCookie('csrftoken')
+
+console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
+const NOTE_ID: string = '111'
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const NOTE_API_URL: string = window.location.origin + '/note/api/';
 
 const pageObjects: Block<any,any>[] = [];
 
@@ -112,8 +130,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        box.style.marginLeft =   this.coordToString(this.x);
-        box.style.marginTop =    this.coordToString(this.y);
+        box.style.left =   this.coordToString(this.x);
+        box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
         box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
@@ -123,8 +141,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     
     makeBoxContent<T>(tagName: string):T {
         const content: HTMLElement = document.createElement(tagName);
-        content.style.marginLeft = this.coordToString(0);
-        content.style.marginTop =  this.coordToString(0);
+        content.style.left = this.coordToString(0);
+        content.style.top =  this.coordToString(0);
         content.classList.add('box-content');
         return content as T;
     }
@@ -177,15 +195,48 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return ''
     }
     applyValue(): void {
-
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id, {
+            method: 'POST',
+            body: JSON.stringify({
+                update_keys: ["value"],
+                update_values: [this.value]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     resize(width: number, height: number) {
         this.boxFrameElement.style.width =  this.coordToString(this.width = width);
         this.boxFrameElement.style.height = this.coordToString(this.height = height);
+        
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id, {
+            method: 'POST',
+            body: JSON.stringify({
+                update_keys: ["width","height"],
+                update_values: [this.width, this.height]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     relocate(x: number, y: number) {
-        this.boxFrameElement.style.marginLeft = this.coordToString(this.x = x);
-        this.boxFrameElement.style.marginTop =  this.coordToString(this.y = y);
+        this.boxFrameElement.style.left = this.coordToString(this.x = x);
+        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id, {
+            method: 'POST',
+            body: JSON.stringify({
+                update_keys: ["x","y"],
+                update_values: [this.x, this.y]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     relayout() {
 
@@ -388,7 +439,7 @@ function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
-    const cancel = ()=>{
+    const cancel = () => {
         container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
         container?.removeEventListener('onmouseout', cancel);
@@ -408,18 +459,34 @@ function putBox(type: string) {
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
-        const range = { 
+        const range = {
             x: mx,
             y: my,
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
         };
-        const res = makeBlockObject(range, type);
+        const putData = {
+            range: range, type: type
+        }
+        const block = makeBlockObject(range, type);
+        fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
+            method: 'PUT',
+            body: JSON.stringify(putData),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        })
+        .then(res=>res.text())
+        .then(res=>{
+            block.id = res;
+            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+        });
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
-        pageObjects.push(res);
-        console.log(makePageData())
+        pageObjects.push(block);
+        console.log(makePageData());
     }
 
     container.addEventListener('mousedown', onmousedown);
@@ -454,6 +521,16 @@ function applyPageData(pageData: blockData[]): void {
         pageObjects.push(makeBlockObject(range, type, value, id));
     }
 }
+/*applyPageData(initialPageObjects);
+pageObjects.push(...initialPageObjects);*/
+
+fetch(NOTE_API_URL+NOTE_ID)
+.then(result=>result.json())
+.then(pageData=>{
+    const initialPageObjects = pageData.children;
+    applyPageData(initialPageObjects);
+    pageObjects.push(...initialPageObjects);
+});
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
 uitest.addEventListener('change',e=>{
