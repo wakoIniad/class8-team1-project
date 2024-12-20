@@ -40,13 +40,19 @@ def box_api_handler(request, note_id, box_id):
     elif request.method == "POST":
         print(box_id)
         try:
-            box = Box.objects.get(pk = box_id)
-            data = request.POST
+            box = Box.objects.get(pk = box_id)    
+            data = json.loads(request.body)
+            print(data)
             for key in data["update_keys"]:
-                box[key] = data["update_values"]
+                setattr(box, key, data["update_values"])
             box.save()
-        except:
-            print("ERROR")
+            return HttpResponse(status=200)
+        except Box.DoesNotExist:
+            print('Boxが存在しない')
+            return HttpResponse("Boxが存在しない",status=500)
+        except Exception as e:
+            print('予期しないエラー',e)
+            return HttpResponse("予期しないエラー",status=500)
     elif request.method == "PUT":
         data = json.loads(request.body)
         print(note_id)

@@ -22,5 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('note/', include('note.urls')),
     path('', views.redirect_view, name=''),
-    path('note/', views.new_view, name='note'),b
+    path('note/', views.new_view, name='note'),
 ]
