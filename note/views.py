@@ -43,10 +43,10 @@ def box_api_handler(request, note_id, box_id):
             box = Box.objects.get(pk = box_id)    
             data = json.loads(request.body)
             print(data)
-            for key in data["update_keys"]:
-                setattr(box, key, data["update_values"])
+            for i, key in enumerate(data["update_keys"]):
+                setattr(box, key, data["update_values"][i])
             box.save()
-            return HttpResponse(status=200)
+            return HttpResponse("OK",status=200)
         except Box.DoesNotExist:
             print('Boxが存在しない')
             return HttpResponse("Boxが存在しない",status=500)
