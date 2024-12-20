@@ -12,7 +12,6 @@ urlpatterns = [
     path('api/<str:note_id>/', views.note_api_handler, name="note_api"),
 #(?P<note_id>[a-zA-Z0-9]*)
 
-
     path('new_note/', views.new_note, name='new_note'),
     path('be_made_note/', views.be_made_note, name='be_made_note'),
     path('', views.home, name='home'),

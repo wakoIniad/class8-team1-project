@@ -30,6 +30,7 @@ def make_id(ref=[]):
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる
 #PUTは２重で実行されないため、何かのミスで２回送信されて同じものが二つ作られたりするのを防げる
 def box_api_handler(request, note_id, box_id):
+    print("BoxAPI",note_id,request.method)
     if request.method == "GET":
         try:
             box = Box.objects.get(pk = box_id)
@@ -37,6 +38,7 @@ def box_api_handler(request, note_id, box_id):
         except: 
             print("ERROR")
     elif request.method == "POST":
+        print(box_id)
         try:
             box = Box.objects.get(pk = box_id)
             data = request.POST
@@ -58,6 +60,7 @@ def box_api_handler(request, note_id, box_id):
         box.delete()
 
 def note_api_handler(request, note_id):
+    print("noteAPI",note_id)
     if request.method == "GET":
         note = Note.objects.get(pk = note_id)
         noteData = note.json()
@@ -82,7 +85,6 @@ def new_note(request):
 
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
-
 
 def note(request, note_id):
     context = { #テストデータ
