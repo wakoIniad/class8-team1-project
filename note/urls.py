@@ -6,13 +6,12 @@ from . import views
 
 urlpatterns = [
     path('test/<str:note_id>', views.test),
-    path('new/', views.new_note, name='new_note'),
     path('<str:note_id>/', views.be_made_note, name='be_made_note'),
     path('api/<str:note_id>/<str:box_id>/', views.box_api_handler, name="box_api"),
     path('api/<str:note_id>/', views.note_api_handler, name="note_api"),
 #(?P<note_id>[a-zA-Z0-9]*)
 
-    path('new_note/', views.new_note, name='new_note'),
-    path('be_made_note/', views.be_made_note, name='be_made_note'),
+    path('new/', views.new_note, name='new_note'),
+    path('all/', views.be_made_note, name='be_made_note'),
     path('', views.home, name='home'),
 ]
