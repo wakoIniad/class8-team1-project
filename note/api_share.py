@@ -3,14 +3,10 @@ from .models import ShortURL
 from . import constants
 
 class Interface(DefaultApiHandler):
-    usingModels = { 'short_url': ShortURL }
-    usingQueries = {
-        'PUT': [],
-        'POST': ['short_url'],
-        'GET': ['short_url'],
-        'DELETE': ['short_url'],
-    }
+    KeyModel = ShortURL
+    KeyQuery = 'short_url'
+    
     constants = constants
 
-    def get_model_initialization(data):
+    def get_model_initialization(self, data, queries):
         return { 'target': data.target }

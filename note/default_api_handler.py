@@ -9,9 +9,10 @@ import json
 import random
 
 class DefaultApiHandler:
-    keyModel = models.Model
-    refModels = { 'id': models.Model }
-    usingQueries = {
+    KeyModel = models.Model
+    KeyQuery = ""
+    RefModels = {  }
+    usingRefs = {
         'PUT': [],
         'POST': [],
         'GET': [],
@@ -19,7 +20,7 @@ class DefaultApiHandler:
     }
     constants = constants
 
-    def models_get(model, **args):
+    def models_get(self, model, **args):
         try:
             return model.objects.get(**args)
         except model.DoesNotExist:
@@ -27,31 +28,33 @@ class DefaultApiHandler:
         except Exception as e:
             raise e
     
-    def update_model(model, data):
+    def update_model(self, model, data):
         for i, key in enumerate(data["update_keys"]):
             setattr(model, key, data["update_values"][i])
         model.save()
 
     def handle(self, request, **kwargs):
         print(kwargs)
-        models = { q: self.models_get(self.usingModels[q], pk = kwargs[q]) 
-                  for q in self.usingQueries[request.method] if self.usingModels[q] is not None }
-        queries = { q: kwargs[q] for q in self.usingQueries[request.method]}
-        if None in models.values(): return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
+        key_query = kwargs[self.KeyQuery]
+        if request.method != "PUT":
+            key_model = self.models_get(self.KeyModel, pk=key_query)
+        
+        ref_models = { q: self.models_get(self.RefModels[q], pk = kwargs[q]) 
+                  for q in self.usingRefs[request.method] if self.RefModels[q] is not None }
+        queries = { q: kwargs[q] for q in self.usingRefs[request.method]}
+        if key_model is None: return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
 
         if request.method in ["POST","PUT"]:
             data = json.loads(request.body)
 
-        keyModel = list(models.values())[-1] if len(models) else None
-        keyQuery = list(queries.values())[-1] if len(queries) else None
-        if request.method == "GET":
-            return self.on_get(model=keyModel)
+        if request.method == "PUT":
+            return self.on_put(data=data, queries=queries, refs=ref_models)
         elif request.method == "POST":
-            return self.on_post(model=keyModel, data=data)
-        elif request.method == "PUT":
-            return self.on_put(queries=queries, data=data)
+            return self.on_post(model=key_model, data=data, refs=ref_models)
+        elif request.method == "GET":
+            return self.on_get(model=key_model, refs=ref_models)
         elif request.method == "DELETE":
-            return self.on_delete(model=keyModel)
+            return self.on_delete(model=key_model, refs=ref_models)
     
     def get_model_initialization(self, data, queries):
         return {}
@@ -59,18 +62,18 @@ class DefaultApiHandler:
     def make_id(self, ref=[]):
         return random.randint(0,100000000)
     
-    def on_put(self, queries, data):
-        model = self.usingModels[self.usingQueries["PUT"][0]]( pk=self.make_id(ref=[]), **self.get_model_initialization(data, queries))
+    def on_put(self, data, queries, refs):
+        model = self.KeyModel( pk=self.make_id(ref=[]), **self.get_model_initialization(data, queries))
         model.save()
-        return HttpResponse(model.objects.pk)
+        return HttpResponse(model.pk)
 
-    def on_post(self, model, data):
-        self.api_update_handler(model, data)
+    def on_post(self, model, data, refs):
+        self.update_model(model, data)
         return self.constants.API_RESPONSES["SUCCESS"]
 
-    def on_get(self, model):
+    def on_get(self, model, refs):
         return JsonResponse(model.json())
     
-    def on_delete(self, model):
+    def on_delete(self, model, refs):
         model.delete()
         return self.constants.API_RESPONSES["SUCCESS"]

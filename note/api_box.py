@@ -3,12 +3,14 @@ from .models import Box
 from . import constants
 
 class BoxApiHandler(DefaultApiHandler):
-    usingModels = { 'note_id': None, 'box_id': Box }
-    usingQueries = {
+    KeyModel = Box
+    KeyQuery = 'box_id'
+    RefModels = { 'note_id': None }
+    usingRefs = {
         'PUT': ['note_id'],
-        'POST': ['box_id'],
-        'GET': ['box_id'],
-        'DELETE': ['box_id'],
+        'POST': [],
+        'GET': [],
+        'DELETE': [],
     }
     constants = constants
     
