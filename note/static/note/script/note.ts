@@ -108,8 +108,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement.addEventListener("keydown", (e)=> {
             e.preventDefault();
+            /**
+             * キー属性値≒入力された文字を取得する
+             * 例えば、フルキーボードの5でもNumPadの5でもevent.keyで取得されるのは"5"
+             * ロケールやシステムレベルキーマップの影響を受ける
+             * https://qiita.com/riversun/items/3ff4f5ecf5c21b0548a4
+             * ※keyCodeは非推奨になった!!
+             */
             console.log(this.id, e.key);
-            this.dump();
+            if(e.key == 'Delete') this.dump();
         });
         
 
