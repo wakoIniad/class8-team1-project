@@ -2,7 +2,7 @@ from .default_api_handler import DefaultApiHandler
 from .models import Box
 from . import constants
 
-class Interface(DefaultApiHandler):
+class BoxApiHandler(DefaultApiHandler):
     usingModels = { 'note_id': None, 'box_id': Box }
     usingQueries = {
         'PUT': ['note_id'],
@@ -19,3 +19,5 @@ class Interface(DefaultApiHandler):
             "type": data["type"], 
             "parent_id": query["note_id"]
         }
+    
+Interface = BoxApiHandler()

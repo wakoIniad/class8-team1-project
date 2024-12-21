@@ -549,7 +549,11 @@ function putBox(type: string) {
                   'X-CSRFToken': csrftoken,
                 },
             });
-            return await response.text();
+            //try {
+                return await response.text();
+            //} catch(e) {
+            
+            //}
         })();
         //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
         

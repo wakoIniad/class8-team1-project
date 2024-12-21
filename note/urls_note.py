@@ -1,5 +1,5 @@
 from django.urls import path, register_converter
-from . import converters, views_note
+from . import converters, views_note, api_box, api_note
 
 register_converter(converters.NoteID, "noteid")
 register_converter(converters.BoxID, "boxid")
@@ -10,7 +10,7 @@ urlpatterns = [
     path('test/<noteid:note_id>', views_note.test),
     path('<noteid:note_id>/editor', views_note.editor, name="editor"),
 
-    path('api/<noteid:note_id>/<boxid:box_id>/', views_note.box_api_handler, name="box_api"),
+    path('api/<noteid:note_id>/<boxid:box_id>/', api_box.Interface.handle, name="box_api"),
     path('api/<noteid:note_id>/', views_note.note_api_handler, name="note_api"),
 #(?P<note_id>[a-zA-Z0-9]*)
 
