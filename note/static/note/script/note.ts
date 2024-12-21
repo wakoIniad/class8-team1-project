@@ -2,8 +2,6 @@
 
 // CSRF対策
 
-import { getCsrfToken } from '../lib/csrf-lib.js'
-
 const csrftoken: string = getCsrfToken();
 
 console.log(csrftoken)

@@ -11,6 +11,9 @@
     {% bootstrap_css %}
     <!-- ブラウザによる表示の違いを少なくする: https://unpkg.com/ress/dist/ress.min.css -->
     <link rel='stylesheet' href='{% static "note/style/ress.css" %}'>
+    
+    <script src="{% static 'note/lib/cookie-lib.js' %}"></script>
+    <script src="{% static 'note/lib/csrf-lib.js' %}"></script>
 </head>
 <body>
     {% block content %}
