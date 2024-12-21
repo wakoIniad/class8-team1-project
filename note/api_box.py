@@ -12,12 +12,12 @@ class BoxApiHandler(DefaultApiHandler):
     }
     constants = constants
     
-    def get_model_initialization(data, query):
+    def get_model_initialization(self, data, queries):
         range = data["range"]
         return {
             **range,
             "type": data["type"], 
-            "parent_id": query["note_id"]
+            "parent_id": queries["note_id"]
         }
     
 Interface = BoxApiHandler()

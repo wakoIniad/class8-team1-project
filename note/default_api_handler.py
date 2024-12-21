@@ -32,7 +32,7 @@ class DefaultApiHandler:
         model.save()
 
     def handle(self, request, **kwargs):
-        logger.info(kwargs)
+        print(kwargs)
         models = { q: self.models_get(self.usingModels[q], pk = kwargs[q]) 
                   for q in self.usingQueries[request.method] if self.usingModels[q] is not None }
         queries = { q: kwargs[q] for q in self.usingQueries[request.method]}
@@ -42,23 +42,24 @@ class DefaultApiHandler:
             data = json.loads(request.body)
 
         keyModel = list(models.values())[-1] if len(models) else None
+        keyQuery = list(queries.values())[-1] if len(queries) else None
         if request.method == "GET":
-            return self.on_get(model=keyModel, models=models)
+            return self.on_get(model=keyModel)
         elif request.method == "POST":
-            return self.on_post(model=keyModel, models=models, data=data)
+            return self.on_post(model=keyModel, data=data)
         elif request.method == "PUT":
-            return self.on_put(query=list(queries.values())[-1], queries=queries, data=data)
+            return self.on_put(queries=queries, data=data)
         elif request.method == "DELETE":
-            return self.on_delete(model=keyModel, models=models)
+            return self.on_delete(model=keyModel)
     
-    def get_model_initialization(data):
+    def get_model_initialization(self, data, queries):
         return {}
     
-    def make_id(ref):
+    def make_id(self, ref=[]):
         return random.randint(0,100000000)
     
     def on_put(self, queries, data):
-        model = self.Model( **self.get_model_initialization(data, queries), pk=self.make_id(ref=[]))
+        model = self.usingModels[self.usingQueries["PUT"][0]]( pk=self.make_id(ref=[]), **self.get_model_initialization(data, queries))
         model.save()
         return HttpResponse(model.objects.pk)
 
