@@ -17,11 +17,13 @@ class DefaultApiHandler:
         except Exception as e:
             raise e
     
+    @staticmethod
     def update_model(self, model, data):
         for i, key in enumerate(data["update_keys"]):
             setattr(model, key, data["update_values"][i])
         model.save()
 
+    @staticmethod
     def handle(self, request, id):
         if request.method != "PUT":
             model = self.models_get(self.Model, pk = id)
@@ -39,24 +41,30 @@ class DefaultApiHandler:
         elif request.method == "DELETE":
             return self.on_delete(model=model)
     
+    @staticmethod
     def get_model_initialization(data):
         return { 'target': data.target }
     
+    @staticmethod
     def make_id(ref):
         return random.randint(0,100000000)
     
+    @staticmethod
     def on_put(self, data):
         model = self.Model( **self.get_model_initialization(), pk=self.make_id(ref=[]))
         model.save()
         return HttpResponse(model.objects.pk)
 
+    @staticmethod
     def on_post(self, model, data):
         self.api_update_handler(model, data)
         return self.constants.API_RESPONSES["SUCCESS"]
 
+    @staticmethod
     def on_get(self, model):
         return JsonResponse(model.json())
     
+    @staticmethod
     def on_delete(self, model):
         model.delete()
         return self.constants.API_RESPONSES["SUCCESS"]
