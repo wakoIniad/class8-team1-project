@@ -31,22 +31,22 @@ class DefaultApiHandler:
             data = json.loads(request.body)
 
         if request.method == "GET":
-            self.on_get(model=model)
+            return self.on_get(model=model)
         elif request.method == "POST":
-            self.on_post(model=model, data=data)
+            return self.on_post(model=model, data=data)
         elif request.method == "PUT":
-            self.on_put(data=data)
+            return self.on_put(data=data)
         elif request.method == "DELETE":
-            self.on_delete(model=model)
+            return self.on_delete(model=model)
     
-    def get_model_args(data):
-        return {}
+    def get_model_initialization(data):
+        return { 'target': data.target }
     
     def make_id(ref):
         return random.randint(0,100000000)
     
     def on_put(self, data):
-        model = self.Model(target=data.target, path=self.make_id(ref=[]))
+        model = self.Model( **self.get_model_initialization(), pk=self.make_id(ref=[]))
         model.save()
         return HttpResponse(model.objects.pk)
 
