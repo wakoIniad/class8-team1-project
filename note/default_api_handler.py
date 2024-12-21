@@ -34,20 +34,20 @@ class DefaultApiHandler:
     def handle(self, request, **kwargs):
         models = { q: self.usingModels[q] and self.models_get(self.usingModels[q], pk = kwargs[q]) 
                   for q in self.usingQueries[request.method]}
-        queries = { kwargs[q] for q in self.usingQueries[request.method]}
+        queries = { q: kwargs[q] for q in self.usingQueries[request.method]}
         if None in models.values(): return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
 
         if request.method in ["POST","PUT"]:
             data = json.loads(request.body)
 
         if request.method == "GET":
-            return self.on_get(model=models[-1], models=models)
+            return self.on_get(model=models.values()[-1], models=models)
         elif request.method == "POST":
-            return self.on_post(model=models[-1], models=models, data=data)
+            return self.on_post(model=models.values()[-1], models=models, data=data)
         elif request.method == "PUT":
-            return self.on_put(data=data)
+            return self.on_put(query=queries.values()[-1], queries=queries, data=data)
         elif request.method == "DELETE":
-            return self.on_delete(model=models[-1], models=models)
+            return self.on_delete(model=models.values()[-1], models=models)
     
     @staticmethod
     def get_model_initialization(data):
@@ -58,8 +58,8 @@ class DefaultApiHandler:
         return random.randint(0,100000000)
     
     @staticmethod
-    def on_put(self, data):
-        model = self.Model( **self.get_model_initialization(), pk=self.make_id(ref=[]))
+    def on_put(self, queries, data):
+        model = self.Model( **self.get_model_initialization(data, queries), pk=self.make_id(ref=[]))
         model.save()
         return HttpResponse(model.objects.pk)
 
