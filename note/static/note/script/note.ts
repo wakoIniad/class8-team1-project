@@ -1,17 +1,18 @@
   // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
   // CSRF対策
-  const getCookie = (name) => {
+  const getCookie = (name): string => {
     if (document.cookie && document.cookie !== '') {
       for (const cookie of document.cookie.split(';')) {
         const [key, value] = cookie.trim().split('=')
         if (key === name) {
-          return decodeURIComponent(value)
+          return decodeURIComponent(value);
         }
       }
     }
+    return '';
   }
-  const csrftoken = getCookie('csrftoken')
+  const csrftoken: string = getCookie('csrftoken');
 
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
@@ -66,16 +67,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
     value: string;
-    id: string;
+    id: string | Promise<string>;
     type: string | null;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
-        value?: string, type?: string, id?: string,
+        id: string | Promise<string>, value?: string, type?: string,
     ) {
         this.loaderId = 0;
 
-        this.id = id || String(Date.now());
+        this.id = id;
         this.type = type || null;
         this.x = x;
         this.y = y;
@@ -108,7 +109,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.addEventListener("keydown", (e)=> {
             e.preventDefault();
             console.log(this.id,e.key);
-            this.deleteElement(this.boxFrameElement);
+            this.dump();
         });
         
 
@@ -129,6 +130,25 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.asign(this.editorElement, this.displayElement);
         this?.applyValue();//初期値の反映
         this.toggleToView();
+    }
+
+    async getId() {
+        return await Promise.any([this.id]);
+    }
+
+    async callAPI(method: string, body?: {}) {
+        const TARGET_URL = NOTE_API_URL+ NOTE_ID + '/' + await this.getId() + '/';
+        const config = {
+            method: method,
+            headers: {
+                'X-CSRFToken': csrftoken,
+            }
+        }
+        if(body) {
+            config['body'] = JSON.stringify(body);
+            config.headers['Content-Type'] = 'application/json; charset=utf-8';
+        }
+        await fetch(TARGET_URL, config);
     }
 
     coordToString(coord: number): string {
@@ -201,48 +221,26 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     getValue(): string | Promise<string> {
         return ''
     }
-    applyValue(): void {
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["value"],
-                update_values: [this.value]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
+    async applyValue(): Promise<void> {
+        await this.callAPI('POST', {
+            update_keys: ["value"],
+            update_values: [this.value]
         });
     }
-    resize(width: number, height: number) {
+    async resize(width: number, height: number): Promise<void> {
         this.boxFrameElement.style.width =  this.coordToString(this.width = width);
         this.boxFrameElement.style.height = this.coordToString(this.height = height);
-        
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["width","height"],
-                update_values: [this.width, this.height]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
+        await this.callAPI('POST', {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
         });
     }
-    relocate(x: number, y: number) {
+    async relocate(x: number, y: number): Promise<void> {
         this.boxFrameElement.style.left = this.coordToString(this.x = x);
         this.boxFrameElement.style.top =  this.coordToString(this.y = y);
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["x","y"],
-                update_values: [this.x, this.y]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
+        await this.callAPI('POST', {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
         });
     }
     relayout() {
@@ -252,23 +250,18 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         const clone = element.cloneNode(true) as HTMLElement; // true: 子要素も複製
         element.replaceWith(clone);
         clone.remove();
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'DELETE',
-            headers: {
-              'X-CSRFToken': csrftoken,
-            },
-        });
     }
-    dump() {
+    async dump(): Promise<void> {
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
+        await this.callAPI('DELETE');
     }
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor( range: rangeData, text: string = '' ) {
-        super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> ) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id,  text, 'text', );
     }
     init() {
         this.editorElement.value = this.value;
@@ -294,8 +287,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, URI, 'image');
     }
 
     init() {
@@ -357,8 +350,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor( range: rangeData, URI: string = SPACER_URI ) {
-        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -484,41 +477,42 @@ function putBox(type: string) {
         const putData = {
             range: range, type: type
         }
-        const block = makeBlockObject(range, type);
-        fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
-            method: 'PUT',
-            body: JSON.stringify(putData),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
-        })
-        .then(res=>res.text())
-        .then(res=>{
-            block.id = res;
-            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-        });
+        const idPromise = (async function() {
+            const response = await fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
+                method: 'PUT',
+                body: JSON.stringify(putData),
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'X-CSRFToken': csrftoken,
+                },
+            });
+            return await response.text();
+        })();
+        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+        
+        
+        const block = makeBlockObject(range, type, idPromise);
+        pageObjects.push(block);
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
-        pageObjects.push(block);
         console.log(makePageData());
     }
 
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
 }
-function makeBlockObject(range: rangeData, type, value?: string, id?: string) {
+function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
     switch(type) {
         case 'text':
-            res = new TextBlock(range, value);
+            res = new TextBlock(range, value, id);
             break;
         case 'image':
-            res = new ImageBlock(range, value);
+            res = new ImageBlock(range, value, id);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value);
+            res = new canvasBlock(range, value, id);
             break;
     }
     if(id) {
