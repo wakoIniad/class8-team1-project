@@ -9,12 +9,13 @@ import json
 import random
 
 class DefaultApiHandler:
-    usingModels = { 'id': models.Model }
+    keyModel = models.Model
+    refModels = { 'id': models.Model }
     usingQueries = {
         'PUT': [],
-        'POST': ['id'],
-        'GET': ['id'],
-        'DELETE': ['id'],
+        'POST': [],
+        'GET': [],
+        'DELETE': [],
     }
     constants = constants
 
