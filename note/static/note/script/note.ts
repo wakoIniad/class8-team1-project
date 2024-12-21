@@ -2,8 +2,6 @@
 
 // CSRF対策
 
-import { getCsrfToken } from '../lib/csrf-lib.js'
-
 const csrftoken: string = getCsrfToken();
 
 console.log(csrftoken)
@@ -123,6 +121,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
+        this.boxFrameElement.classList.add(`${type}-box-frame`)
 
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
             this.resize(entries[0].contentRect.width, entries[0].contentRect.height);

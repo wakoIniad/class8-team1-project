@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_bootstrap5',
     'note',
+#    'compressor'
+    'sass_processor',
 ]
 
 MIDDLEWARE = [
@@ -125,3 +128,20 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+#STATICFILES_DIRS = [
+#    BASE_DIR / 'note' / 'static',  # 'note/static' を指定,
+#]
+SASS_PROCESSOR_ROOT = os.path.join(BASE_DIR, 'note/static')
+SASS_PROCESSOR_INCLUDE_FILE_PATTERN = r'^.+\.(sass|scss)$'
+SASS_PRECISION = 8
+SASS_OUTPUT_STYLE = 'compressed'
+SASS_TEMPLATE_EXTS = ['.html', '.haml']
+STATIC_ROOT = BASE_DIR / 'note' / 'static' / 'compiled'
+
+COMPRESS_PRECOMPILERS = (
+    ('text/x-scss', 'django_libsass.SassCompiler'),
+)
+
+#STATICFILES_FINDERS = [
+#    'compressor.finders.CompressorFinder'
+#]

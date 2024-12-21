@@ -1,0 +1,22 @@
+@use 'global.scss';
+body {
+    @extend .jura-400 !optional;
+}
+.note-info {
+    width: 100%;
+    height: 3em;
+/*    background: #11631c;
+    background-color: rgb(37,153,118);*/
+    
+    background-color: rgb(57,123,108);
+    margin-top: 1px;
+}
+
+.note-logo-ber {
+    width: 100%;
+    height: 3em;
+/*    background: #11631c;
+    background-color: rgb(37,153,118);*/
+    
+    background-color: rgb(57,123,108);
+}

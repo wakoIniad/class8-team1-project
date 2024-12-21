@@ -1,14 +1,21 @@
 {% load static %}
-<link rel='stylesheet' href='{% static "note/style/header.css" %}'>
+{% load sass_tags %}
+<link rel='stylesheet' href='{% sass_src "note/style/header.scss" %}'>
+<link rel='stylesheet' href='{% static "compiled/note/style/header.css" %}'>
+
+
 <header class="header">
-    <div>{{note.name}}({{note.id}})</div>
+
+    <div class="note-logo-ber">
+        <h1 class="poiret-one-regular d-inline-block">Memolive</h1>
+        <p class="d-inline-block jost-400">{{note.name}}__({{note.id}})</p>
+    </div>
+    <div class="note-info"></div>
     
-    <br>
-    
-    <select id="ui">
-        <option value="">--the type of box--</option>
-        <option value="image">image</option>
-        <option value="text">text</option>
-        <option value="canvas">canvas</option>
-    </select>      
+    <select id="ui" class="jost-400">
+        <option class="ui-block-option" value="">--the type of box--</option>
+        <option class="ui-block-option" value="image">image</option>
+        <option class="ui-block-option" value="text">text</option>
+        <option class="ui-block-option" value="canvas">canvas</option>
+    </select>
 </header>

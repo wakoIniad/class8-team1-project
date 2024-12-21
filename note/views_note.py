@@ -1,3 +1,4 @@
+from django.views.decorators.cache import never_cache
 from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from .default_api_handler import DefaultApiHandler
@@ -11,15 +12,25 @@ import requests
 
 # Create your views here.
 #テスト用
+
+@never_cache
 def test(request, note_id):
     #data = json.loads(request.body)
     return render(request, 'note/make_note_test.html')
 def new_note(request):
-    return render(request, 'note/new_note.html')
+    context = {
+        'title': '新規ノート作成'
+    }
+    return render(request, 'note/new_note.html', context)
 
-def be_made_note(request):
-    return render(request, 'note/be_made_note.html')
+@never_cache
+def note_list(request):
+    context = {
+        'title': '過去ノート一覧'
+    }
+    return render(request, 'note/note_list.html', context)
 
+@never_cache
 def editor(request, note_id):
     try:
         note = Note.objects.get(pk = note_id)
@@ -37,7 +48,12 @@ def editor(request, note_id):
             }
         }
     }
+    
     return render(request, 'note/editor.html', context)
 
+@never_cache
 def home(request):
-    return render(request, 'note/home.html')
+    context = {
+        'title': 'ホーム画面'
+    }
+    return render(request, 'note/home.html', context)

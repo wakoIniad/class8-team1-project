@@ -17,5 +17,11 @@ class ShareApiHandler(DefaultApiHandler):
         result['short_url'] = short_url
         return result
     
+    def get_processer(self, process, **kwargs):
+        result = process()
+        short_url = f"{my_utils.get_top_page_url(kwargs['request'])}/share/{result['path']}/"
+        result['short_url'] = short_url
+        return result
+    
 
 Interface = ShareApiHandler()
