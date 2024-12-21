@@ -6,7 +6,7 @@ import json
 import random
 
 class DefaultApiHandler:
-    usingModels = [ models.Model ]
+    usingModels = { 'id': models.Model }
     usingQueries = {
         'PUT': [],
         'POST': ['id'],
@@ -31,21 +31,23 @@ class DefaultApiHandler:
         model.save()
 
     @staticmethod
-    def handle(self, request, **ids):
-        models = { q: self.models_get(self.Model, pk = q) for q in self.usingQueries[request.method]}
+    def handle(self, request, **kwargs):
+        models = { q: self.usingModels[q] and self.models_get(self.usingModels[q], pk = kwargs[q]) 
+                  for q in self.usingQueries[request.method]}
+        queries = { kwargs[q] for q in self.usingQueries[request.method]}
         if None in models.values(): return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
 
         if request.method in ["POST","PUT"]:
             data = json.loads(request.body)
 
         if request.method == "GET":
-            return self.on_get(model=models[0], models=)
+            return self.on_get(model=models[-1], models=models)
         elif request.method == "POST":
-            return self.on_post(model=models[0], data=data)
+            return self.on_post(model=models[-1], models=models, data=data)
         elif request.method == "PUT":
             return self.on_put(data=data)
         elif request.method == "DELETE":
-            return self.on_delete(model=models[0])
+            return self.on_delete(model=models[-1], models=models)
     
     @staticmethod
     def get_model_initialization(data):
