@@ -6,8 +6,13 @@
     <title>ホーム画面</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <script src="{% static 'note/lib/apicall-lib.js' %}"></script>
+    <script src="{% static 'note/lib/cookie-lib.js' %}"></script>
+    <script src="{% static 'note/lib/csrf-lib.js' %}"></script>
 </head>
 <body>
+    {% csrf_token %}
     <h1>web note qpp</h1>
     <p>
         <img src="https://illustimage.com/photo/dl/2507.png?20161226" width="200px" height="200px">
