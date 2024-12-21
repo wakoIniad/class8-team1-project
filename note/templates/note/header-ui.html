@@ -1,8 +1,7 @@
 {% load static %}
-{% load compress %}
-{% compress css %}
-<link rel='stylesheet' type="text/x-scss" href='{% static "note/style/header.scss" %}'>
-{% endcompress %}
+{% load sass_tags %}
+<link rel='stylesheet' type="text/x-scss" href='{% sass_src "note/style/header.scss" %}'>
+
 
 <header class="header">
 

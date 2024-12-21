@@ -1,13 +1,11 @@
 {% extends 'note/base.html' %}
 {% load static %}
+{% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
     
-    {% load compress %}
-    {% compress css %}
-    <link rel='stylesheet' type="text/x-scss" href='{% static "note/style/editor.scss" %}'>
-    {% endcompress %}
-    
+    <link rel='stylesheet' type="text/x-scss" href='{% sass_src "note/style/editor.scss" %}'>
+
     <div id="container">
     </div>
     {% csrf_token %}
