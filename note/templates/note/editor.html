@@ -4,7 +4,8 @@
 {% block content %}
     {% include 'note/header-ui.html' %}
     
-    <link rel='stylesheet' type="text/x-scss" href='{% sass_src "note/style/editor.scss" %}'>
+    <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
+    <link rel='stylesheet' href='{% static "note/style/editor.css" %}'>
 
     <div id="container">
     </div>
