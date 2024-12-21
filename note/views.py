@@ -1,5 +1,5 @@
-from django.shortcuts import render
-from .models import Note, Box
+from django.shortcuts import render, redirect
+from .models import Note, Box, ShortURL
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 import random
 
@@ -30,7 +30,7 @@ def make_id(ref=[]):
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる
 #PUTは２重で実行されないため、何かのミスで２回送信されて同じものが二つ作られたりするのを防げる
 def box_api_handler(request, note_id, box_id):
-    print("BoxAPI",note_id,request.method)
+    print("BoxAPI",note_id,'/',box_id,request.method)
     if request.method == "GET":
         try:
             box = Box.objects.get(pk = box_id)
@@ -77,14 +77,19 @@ def note_api_handler(request, note_id):
         noteData["children"] = [ child.json() for child in childrenData ]
         return JsonResponse(noteData)
     elif request.method == "POST":
-        note = Note.objects.get(pk = note_id)
-        data = request.POST
-        for key in data["update_keys"]:
-            note[key] = data["update_values"]
+        note = Note.objects.get(pk = note_id)    
+        data = json.loads(request.body)
+        
+        for i, key in enumerate(data["update_keys"]):
+            setattr(note, key, data["update_values"][i])
         note.save()
     elif request.method == "PUT":
+        data = json.loads(request.body)
         note = Note(id=make_id(ref=[]))
+        shortURL = ShortURL(target=note.id,path=make_id(ref=[]))
+        if data["name"]: note.name = data["name"]
         note.save()
+        shortURL.save()
         return HttpResponse(note.id)
     elif request.method == "DELETE":
         note = Note.objects.get(pk = note_id)
@@ -95,19 +100,38 @@ def new_note(request):
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
 
-def note(request, note_id):
-    context = { #テストデータ
-        "note": [
-            { "title": "",
-              "posted_at": "",
-              },
-            { "title": "",
-              "posted_at": "",
-              },
+def shortURL_redirect(request, short_url):
+    try:
+        ShortURL.objects.get(pk=short_url)
+        return redirect(f"{ShortURL.target}/editor")
+    except ShortURL.DoesNotExist:
+        return Http404()
 
-        ]
+def editor(request, note_id):
+    try:
+        note = Note.objects.get(pk = note_id)
+    except Note.DoesNotExist: 
+        return Http404()
+    
+    initialPageObjects = []
+    try:
+        initialPageObjects = Box.objects.filter(parent_id=note_id)
+        initialPageObjects = [ box.json() for box in initialPageObjects ]
+    except Box.DoesNotExist:
+        print( Http404("Article does not exist"))
+
+    context = {
+        "note": { 
+            "name": note.name,
+            "posted_at": note.created_at,
+            "updated_at": note.updated_at,
+            "id": note.id,
+            "editor": {
+               "initialPageObjects": initialPageObjects 
+            }
+        }
     }
-    return render(request, 'note/note.html')
+    return render(request, 'note/note_editor.html', context)
 
 def home(request):
     return render(request, 'note/home.html')

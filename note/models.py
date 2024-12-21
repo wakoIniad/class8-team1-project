@@ -28,6 +28,7 @@ class Box(models.Model):
         }
 
 class Note(models.Model):
+    name = models.CharField(max_length=128, default="untitled")
     id = models.TextField(primary_key=True)
     updated_at = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(default=timezone.now)
@@ -40,3 +41,8 @@ class Note(models.Model):
         return {
             "id": self.id
         }
+
+class ShortURL(models.Model):
+    target = models.CharField(max_length=16)
+    path = models.CharField(max_length=32, primary_key=True)
+    dumped = models.BooleanField(default=False)
