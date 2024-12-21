@@ -7,16 +7,15 @@
 <header class="header">
 
     <div class="note-logo-ber">
-        <h1 class="poiret-one-regular">Memolive</h1>
+        <h1 class="poiret-one-regular d-inline-block">Memolive</h1>
+        <p class="d-inline-block jost-400">{{note.name}}__({{note.id}})</p>
     </div>
-    <div class="d-inline-block jura-400 note-info">{{note.name}}({{note.id}})</div>
+    <div class="note-info"></div>
     
-    <br>
-    
-    <select id="ui">
-        <option value="">--the type of box--</option>
-        <option value="image">image</option>
-        <option value="text">text</option>
-        <option value="canvas">canvas</option>
+    <select id="ui" class="jost-400">
+        <option class="ui-block-option" value="">--the type of box--</option>
+        <option class="ui-block-option" value="image">image</option>
+        <option class="ui-block-option" value="text">text</option>
+        <option class="ui-block-option" value="canvas">canvas</option>
     </select>
 </header>
