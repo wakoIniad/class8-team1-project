@@ -17,8 +17,8 @@ def test(request, note_id):
 def new_note(request):
     return render(request, 'note/new_note.html')
 
-def be_made_note(request):
-    return render(request, 'note/be_made_note.html')
+def note_list(request):
+    return render(request, 'note/note_list.html')
 
 def editor(request, note_id):
     try:
