@@ -19,7 +19,8 @@
     <script async type="module">
         import {transpile, ScriptTarget} from "https://esm.sh/typescript@5.6.3?target=esnext";
         import {minify} from "https://esm.sh/terser@5.36.0?target=esnext";
-        (async()=>{
+        
+        const tsExcuter = async()=>{
             // esnext-polyfill
             Uint8Array.prototype.toBase64 ??= function() {
                 return btoa(Array.from(this, (v) => String.fromCharCode(v)).join(""));
@@ -44,7 +45,20 @@
             
                 await import(`data:text/javascript;base64,${new TextEncoder().encode(code).toBase64()}`);
             }
-        })();
+        };
+        /**
+         * DOMContentLoaded 
+         * はスクリプト実行の機会がある前に発生することがあるため、
+         * リスナーを追加する前にチェックするのが賢明です。
+         * https://developer.mozilla.org/ja/docs/Web/API/Document/DOMContentLoaded_event
+        */
+        if (document.readyState === "loading") {
+            // Loading hasn't finished yet
+            document.addEventListener("DOMContentLoaded", tsExcuter);
+        } else {
+            // `DOMContentLoaded` has already fired
+            tsExcuter();
+        }
     </script>
     {% bootstrap_javascript %}
 </body>

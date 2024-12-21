@@ -1,24 +1,24 @@
   // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
   // CSRF対策
-  const getCookie = (name) => {
+  const getCookie = (name): string => {
     if (document.cookie && document.cookie !== '') {
       for (const cookie of document.cookie.split(';')) {
         const [key, value] = cookie.trim().split('=')
         if (key === name) {
-          return decodeURIComponent(value)
+          return decodeURIComponent(value);
         }
       }
     }
+    return '';
   }
-  const csrftoken = getCookie('csrftoken')
+  const csrftoken: string = getCookie('csrftoken');
 
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
-const NOTE_ID: string = '111'
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-const NOTE_API_URL: string = window.location.origin + '/note/api/';
+const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
 const pageObjects: Block<any,any>[] = [];
 
@@ -66,17 +66,24 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
     value: string;
-    id: string;
-    type: string | null;
+    id: string | Promise<string>;
+    type?: string;
+    pendingRequest?: Promise<any>;
+    pendingSync: boolean;
+    dumped: boolean;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
-        value?: string, type?: string, id?: string,
+        id: string | Promise<string>, value?: string, type?: string,
     ) {
-        this.loaderId = 0;
+        this.dumped = false;
 
-        this.id = id || String(Date.now());
-        this.type = type || null;
+        this.loaderId = 0;
+        this.pendingRequest = undefined;
+        this.pendingSync = false;
+
+        this.id = id;
+        this.type = type || undefined;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -90,8 +97,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('box-view');
 
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
-        this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('draggable', 'true');
+        this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             const callback = (e: DragEvent) => {
@@ -105,23 +112,81 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const sy: number = e.clientY;
         })
 
+        this.boxFrameElement.addEventListener("keydown", (function(e) {
+            /**
+             * キー属性値≒入力された文字を取得する
+             * 例えば、フルキーボードの5でもNumPadの5でもevent.keyで取得されるのは"5"
+             * ロケールやシステムレベルキーマップの影響を受ける
+             * https://qiita.com/riversun/items/3ff4f5ecf5c21b0548a4
+             * ※keyCodeは非推奨になった!!
+             */
+            if(e.key == 'Delete') {
+//                this.boxFrameElement.removeEventListener("keydown", this);
+                this.dump();
+            }
+            console.log(this.id, e.key);
+        }).bind(this));
+        
+
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
 
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.width = entries[0].contentRect.width;
-            this.height = entries[0].contentRect.height;
-            //this.resize(this.width, this.height);
+            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
         });
         resizeObserver.observe(this.boxFrameElement);
 
-        this?.init();
+        this.init();
 
         appendToContainer(this.boxFrameElement);
         this.asign(this.editorElement, this.displayElement);
-        this?.applyValue();//初期値の反映
+        this.applyValue();//初期値の反映
         this.toggleToView();
+    }
+
+    async getId() {
+        return await Promise.any([this.id]);
+    }
+
+    async callAPI(method: string, option?: { body?: {} , force?: boolean }) {
+        
+        const TARGET_URL = NOTE_API_URL+ NOTE_ID + '/' + await this.getId() + '/';
+        console.log(TARGET_URL);
+        const config = {
+            method: method,
+            headers: {
+                'X-CSRFToken': csrftoken,
+            }
+        }
+        if(option?.body) {
+            config['body'] = JSON.stringify(option.body);
+            config.headers['Content-Type'] = 'application/json; charset=utf-8';
+        }
+
+        if(this.pendingRequest) {
+            if(option?.force === true) {
+                /**
+                 * これは、削除リクエストなどに使われるため、
+                 * 前のリクエスト（値の更新など)が終わってから行う
+                 */
+                while(this.pendingRequest) await this.pendingRequest; //forceが複数あった時用
+            } else {
+                //全ての情報を同期するので、更新だけなら送信順の逆転は気にしなくてOK
+                this.pendingSync = true;
+                return;
+            }
+        }
+
+        if(this.dumped) return; //廃棄している場合リクエストは送らない。
+        this.pendingRequest = fetch(TARGET_URL, config);
+        this.pendingRequest.then(() => {
+            this.pendingRequest = undefined;
+            if(this.pendingSync) {
+                this.pendingSync = false;
+                this.syncServer();
+            }
+        });
     }
 
     coordToString(coord: number): string {
@@ -167,12 +232,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('visible');
         //this.asign(this.displayElement);
     }
-    makeData(): blockData {
+    async makeData(): Promise<blockData> {
         return {
             range: {
                 x:this.x, y:this.y, width: this.width, height: this.height,
             },
-            id: this.id,
+            id: await this.getId(),
             type: this.type,
             value: this.value,
         }
@@ -188,56 +253,47 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.relayout();
         })
     }
-    init(): void {
-        
+
+    async init(): Promise<void> {
+        this.id = await this.getId();
+        this.boxFrameElement.setAttribute('id', this.id);
     }
+
     getValue(): string | Promise<string> {
         return ''
     }
-    applyValue(): void {
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["value"],
-                update_values: [this.value]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
-        });
+
+    async syncServer() {
+        this.callAPI('POST', { body: {
+            update_keys: ["X", "y", "width", "height", "value"],
+            update_values: [this.x, this.y, this.width, this.height, this.value]
+        }});
     }
-    resize(width: number, height: number) {
-        this.boxFrameElement.style.width =  this.coordToString(this.width = width);
-        this.boxFrameElement.style.height = this.coordToString(this.height = height);
-        
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["width","height"],
-                update_values: [this.width, this.height]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
-        });
+
+    async applyValue(): Promise<void> {
+        await this.callAPI('POST', { body: {
+            update_keys: ["value"],
+            update_values: [this.value]
+        }});
     }
-    relocate(x: number, y: number) {
+
+    async resize(width: number, height: number): Promise<void> {
+        //this.boxFrameElement.style.width =  
+            this.coordToString(this.width = width);
+        //this.boxFrameElement.style.height = 
+            this.coordToString(this.height = height);
+        await this.callAPI('POST', { body: {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        }});
+    }
+    async relocate(x: number, y: number): Promise<void> {
         this.boxFrameElement.style.left = this.coordToString(this.x = x);
         this.boxFrameElement.style.top =  this.coordToString(this.y = y);
-        console.log(NOTE_API_URL+ NOTE_ID + '/' + this.id)
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
-            method: 'POST',
-            body: JSON.stringify({
-                update_keys: ["x","y"],
-                update_values: [this.x, this.y]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
-        });
+        await this.callAPI('POST', { body: {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        }});
     }
     relayout() {
 
@@ -247,18 +303,28 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         element.replaceWith(clone);
         clone.remove();
     }
-    dump() {
+    async dump(): Promise<void> {
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
+        /**
+         * データベースから削除されているが通知が届いていない場合に、
+         * 値の更新をリクエストしてしまうことを防止するためawaitしない。
+         * (あとで削除失敗した場合のリカバリーも追加する必要あり)
+         * 
+         * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
+         */ 
+        this.callAPI('DELETE', { force: true } );
+        this.dumped = true;
     }
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor( range: rangeData, text: string = '' ) {
-        super({ EditorType: 'textarea', DisplayType: 'p' }, range, text, 'text', );
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> ) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id,  text, 'text', );
     }
-    init() {
+    async init() {
+        super.init();
         this.editorElement.value = this.value;
         this.editorElement.classList.add('text-editor');
 
@@ -275,18 +341,19 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     getValue() {
         return this.editorElement.value;
     }
-    applyValue() {
+    async applyValue() {
         this.displayElement.textContent = this.value;
-        super.applyValue();
+        await super.applyValue();
     }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, URI, 'image');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, URI, 'image');
     }
 
-    init() {
+    async init() {
+        super.init();
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -326,9 +393,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    applyValue() {
+    async applyValue() {
         this.displayElement.setAttribute('src', this.value);
-        super.applyValue();
+        await super.applyValue();
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
@@ -345,8 +412,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor( range: rangeData, URI: string = SPACER_URI ) {
-        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, URI, 'canvas');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -358,7 +425,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         this.bindedEvents = [];
     }
-    init() {
+    async init() {
+        super.init();
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
@@ -432,10 +500,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-    applyValue() {
-        console.log(this.value)
+    async applyValue() {
+        console.log(this.value);
         this.displayElement.setAttribute('src', this.value);
-        super.applyValue();
+        await super.applyValue();
     }
 }
 
@@ -475,41 +543,47 @@ function putBox(type: string) {
         const putData = {
             range: range, type: type
         }
-        const block = makeBlockObject(range, type);
-        fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
-            method: 'PUT',
-            body: JSON.stringify(putData),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'X-CSRFToken': csrftoken,
-            },
-        })
-        .then(res=>res.text())
-        .then(res=>{
-            block.id = res;
-            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-        });
+        const idPromise = (async function() {
+            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+            const response = await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify(putData),
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'X-CSRFToken': csrftoken,
+                },
+            });
+            //try {
+                return await response.text();
+            //} catch(e) {
+            
+            //}
+        })();
+        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+        
+        
+        const block = makeBlockObject(range, type, idPromise);
+        pageObjects.push(block);
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
-        pageObjects.push(block);
-        console.log(makePageData());
+        makePageData().then(console.log);
     }
 
     container.addEventListener('mousedown', onmousedown);
     container.addEventListener('mouseup', onmouseup);
 }
-function makeBlockObject(range: rangeData, type, value?: string, id?: string) {
+function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
     switch(type) {
         case 'text':
-            res = new TextBlock(range, value);
+            res = new TextBlock(range, value, id);
             break;
         case 'image':
-            res = new ImageBlock(range, value);
+            res = new ImageBlock(range, value, id);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value);
+            res = new canvasBlock(range, value, id);
             break;
     }
     if(id) {
@@ -518,14 +592,14 @@ function makeBlockObject(range: rangeData, type, value?: string, id?: string) {
     return res;
 }
 
-function makePageData(): blockData[] {
-  return pageObjects.map(object=>object.makeData());
+async function makePageData(): Promise<blockData[]> {
+  return await Promise.all(pageObjects.map(object=>object.makeData()));
 }
 
-function applyPageData(pageData: blockData[]): void {
+function applyPageData(...pageData: blockData[]): void {
     for( const boxData of pageData ) {
         const { range, id, type, value } = boxData;
-        pageObjects.push(makeBlockObject(range, type, value, id));
+        pageObjects.push(makeBlockObject(range, type, id, value));
     }
 }
 /*applyPageData(initialPageObjects);
@@ -535,8 +609,7 @@ fetch(NOTE_API_URL+NOTE_ID)
 .then(result=>result.json())
 .then(pageData=>{
     const initialPageObjects = pageData.children;
-    applyPageData(initialPageObjects);
-    pageObjects.push(...initialPageObjects);
+    applyPageData(...initialPageObjects);
 });
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
