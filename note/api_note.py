@@ -21,9 +21,16 @@ class NoteApiHandler(DefaultApiHandler):
     
     def put_processer(self, process, **kwargs):
         note_id = process()
-        data = { 'target': note_id }
-        share_api_url = f"{my_utils.get_top_page_url(kwargs['request'])}/api/share/"
-        short_url = requests.request('PUT', share_api_url, data=data)
+        data = { 
+            'target': note_id
+        }
+        
+        short_url = DefaultApiHandler.callAPI(
+            kwargs['request'], method='PUT', 
+            url='share/', 
+            data=data 
+        )
+        print(kwargs)
         return { id: note_id, short_url: short_url }
     
     def put_response(self, response, **kwargs):

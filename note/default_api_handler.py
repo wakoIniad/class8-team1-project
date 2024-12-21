@@ -4,9 +4,8 @@ logger = logging.getLogger('development')
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from django.db import models
 
-from . import constants
-import json
-import random
+from . import constants, my_utils
+import json, random, requests
 
 from functools import partial
 
@@ -21,6 +20,19 @@ class DefaultApiHandler:
         'DELETE': [],
     }
     constants = constants
+
+    @staticmethod
+    def callAPI(self, request, method, url, data):
+        url = f"{my_utils.get_top_page_url(request)}/api/note/{url}"
+        print(url)
+        data = {
+            **data,
+            'headers': {
+                'X-CSRFToken': my_utils.get_csrftoken(request),
+            }
+        }
+        result = requests.request(method, url, data=data)
+        print(result)
 
     def models_get(self, model, **args):
         try:

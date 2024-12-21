@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
+from .default_api_handler import DefaultApiHandler
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from . import my_utils
 from .constants import API_RESPONSES, SYSTEM_API_PATH_SEGMENT
@@ -17,9 +18,14 @@ def test(request, note_id):
     data = {
         'name': note_id
     }
-    result = requests.request('PUT', url, data=data)
+    result = DefaultApiHandler.callAPI(
+        request, method='PUT', 
+        url=SYSTEM_API_PATH_SEGMENT+'/', 
+        data=data 
+    )
+    
     print(result)
-    result = json.load(result)
+    result = result.json()
     return HttpResponse(f"id:{result.id}, name:{data.name} でテスト用ノートを作りました\n"+
                         F"shareURL: {result.short_url}")
 

@@ -1,6 +1,9 @@
 from django.http import HttpResponse, Http404, JsonResponse
 from .constants import UNEXPECTED_ERROR_MESSAGE
+from . import my_utils
 import random
+import requests
+
 
 def make_id(ref=[]):
     return random.randint(0,100000000)
@@ -19,3 +22,23 @@ def get_top_page_url(request):
         top_page_url = f"{request.scheme}://{default_host}/"
 
     return top_page_url
+
+
+
+#https://stackoverflow.com/questions/13567507/passing-csrftoken-with-python-requests
+#def get_csrftoken(request):
+#    URL = my_utils.get_top_page_url(request)
+#    client = requests.session()
+#
+#    # Retrieve the CSRF token first
+#    client.get(URL)  # sets cookie
+#    if 'csrftoken' in client.cookies:
+#        # Django 1.6 and up
+#        csrftoken = client.cookies['csrftoken']
+#    else:
+#        # older versions
+#        csrftoken = client.cookies['csrf']
+#    return csrftoken
+
+def get_csrftoken(request):
+    return request.META.get('HTTP_X_CSRFTOKEN', '')
