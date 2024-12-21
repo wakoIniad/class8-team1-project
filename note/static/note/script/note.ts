@@ -91,8 +91,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('box-view');
 
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
-        this.boxFrameElement.setAttribute('id', this.id);
         this.boxFrameElement.setAttribute('draggable', 'true');
+        this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             const callback = (e: DragEvent) => {
@@ -108,7 +108,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement.addEventListener("keydown", (e)=> {
             e.preventDefault();
-            console.log(this.id,e.key);
+            console.log(this.id, e.key);
             this.dump();
         });
         
@@ -124,11 +124,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         });
         resizeObserver.observe(this.boxFrameElement);
 
-        this?.init();
+        this.init();
 
         appendToContainer(this.boxFrameElement);
         this.asign(this.editorElement, this.displayElement);
-        this?.applyValue();//初期値の反映
+        this.applyValue();//初期値の反映
         this.toggleToView();
     }
 
@@ -138,6 +138,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async callAPI(method: string, body?: {}) {
         const TARGET_URL = NOTE_API_URL+ NOTE_ID + '/' + await this.getId() + '/';
+        console.log(TARGET_URL);
         const config = {
             method: method,
             headers: {
@@ -194,12 +195,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('visible');
         //this.asign(this.displayElement);
     }
-    makeData(): blockData {
+    async makeData(): Promise<blockData> {
         return {
             range: {
                 x:this.x, y:this.y, width: this.width, height: this.height,
             },
-            id: this.id,
+            id: await this.getId(),
             type: this.type,
             value: this.value,
         }
@@ -215,8 +216,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.relayout();
         })
     }
-    init(): void {
-        
+    async init(): Promise<void> {
+        this.id = await this.getId();
+        this.boxFrameElement.setAttribute('id', this.id);
     }
     getValue(): string | Promise<string> {
         return ''
@@ -263,7 +265,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     constructor( range: rangeData, text: string = '', id: string|Promise<string> ) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id,  text, 'text', );
     }
-    init() {
+    async init() {
+        super.init();
         this.editorElement.value = this.value;
         this.editorElement.classList.add('text-editor');
 
@@ -280,9 +283,9 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     getValue() {
         return this.editorElement.value;
     }
-    applyValue() {
+    async applyValue() {
         this.displayElement.textContent = this.value;
-        super.applyValue();
+        await super.applyValue();
     }
 }
 
@@ -291,7 +294,8 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, URI, 'image');
     }
 
-    init() {
+    async init() {
+        super.init();
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -331,9 +335,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    applyValue() {
+    async applyValue() {
         this.displayElement.setAttribute('src', this.value);
-        super.applyValue();
+        await super.applyValue();
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
@@ -363,7 +367,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         this.bindedEvents = [];
     }
-    init() {
+    async init() {
+        super.init();
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
@@ -437,10 +442,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-    applyValue() {
+    async applyValue() {
         console.log(this.value);
         this.displayElement.setAttribute('src', this.value);
-        super.applyValue();
+        await super.applyValue();
     }
 }
 
@@ -496,7 +501,7 @@ function putBox(type: string) {
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
-        console.log(makePageData());
+        makePageData().then(console.log);
     }
 
     container.addEventListener('mousedown', onmousedown);
@@ -521,14 +526,14 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
     return res;
 }
 
-function makePageData(): blockData[] {
-  return pageObjects.map(object=>object.makeData());
+async function makePageData(): Promise<blockData[]> {
+  return await Promise.all(pageObjects.map(object=>object.makeData()));
 }
 
 function applyPageData(pageData: blockData[]): void {
     for( const boxData of pageData ) {
         const { range, id, type, value } = boxData;
-        pageObjects.push(makeBlockObject(range, type, value, id));
+        pageObjects.push(makeBlockObject(range, type, id, value));
     }
 }
 /*applyPageData(initialPageObjects);
