@@ -68,16 +68,23 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     resizerElement: HTMLSpanElement;
     value: string;
     id: string | Promise<string>;
-    type: string | null;
+    type?: string;
+    pendingRequest?: Promise<any>;
+    pendingSync: boolean;
+    dumped: boolean;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
         id: string | Promise<string>, value?: string, type?: string,
     ) {
+        this.dumped = false;
+
         this.loaderId = 0;
+        this.pendingRequest = undefined;
+        this.pendingSync = false;
 
         this.id = id;
-        this.type = type || null;
+        this.type = type || undefined;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -106,8 +113,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const sy: number = e.clientY;
         })
 
-        this.boxFrameElement.addEventListener("keydown", (e)=> {
-            e.preventDefault();
+        this.boxFrameElement.addEventListener("keydown", (function(e) {
             /**
              * キー属性値≒入力された文字を取得する
              * 例えば、フルキーボードの5でもNumPadの5でもevent.keyで取得されるのは"5"
@@ -115,9 +121,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
              * https://qiita.com/riversun/items/3ff4f5ecf5c21b0548a4
              * ※keyCodeは非推奨になった!!
              */
+            if(e.key == 'Delete') {
+//                this.boxFrameElement.removeEventListener("keydown", this);
+                this.dump();
+            }
             console.log(this.id, e.key);
-            if(e.key == 'Delete') this.dump();
-        });
+        }).bind(this));
         
 
         /** フォーカスを受け取れるようにする 
@@ -125,9 +134,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
 
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.width = entries[0].contentRect.width;
-            this.height = entries[0].contentRect.height;
-            //this.resize(this.width, this.height);
+            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
         });
         resizeObserver.observe(this.boxFrameElement);
 
@@ -143,7 +150,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return await Promise.any([this.id]);
     }
 
-    async callAPI(method: string, body?: {}) {
+    async callAPI(method: string, option?: { body?: {} , force?: boolean }) {
+        
         const TARGET_URL = NOTE_API_URL+ NOTE_ID + '/' + await this.getId() + '/';
         console.log(TARGET_URL);
         const config = {
@@ -152,11 +160,34 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 'X-CSRFToken': csrftoken,
             }
         }
-        if(body) {
-            config['body'] = JSON.stringify(body);
+        if(option?.body) {
+            config['body'] = JSON.stringify(option.body);
             config.headers['Content-Type'] = 'application/json; charset=utf-8';
         }
-        await fetch(TARGET_URL, config);
+
+        if(this.pendingRequest) {
+            if(option?.force === true) {
+                /**
+                 * これは、削除リクエストなどに使われるため、
+                 * 前のリクエスト（値の更新など)が終わってから行う
+                 */
+                while(this.pendingRequest) await this.pendingRequest; //forceが複数あった時用
+            } else {
+                //全ての情報を同期するので、更新だけなら送信順の逆転は気にしなくてOK
+                this.pendingSync = true;
+                return;
+            }
+        }
+
+        if(this.dumped) return; //廃棄している場合リクエストは送らない。
+        this.pendingRequest = fetch(TARGET_URL, config);
+        this.pendingRequest.then(() => {
+            this.pendingRequest = undefined;
+            if(this.pendingSync) {
+                this.pendingSync = false;
+                this.syncServer();
+            }
+        });
     }
 
     coordToString(coord: number): string {
@@ -223,34 +254,47 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.relayout();
         })
     }
+
     async init(): Promise<void> {
         this.id = await this.getId();
         this.boxFrameElement.setAttribute('id', this.id);
     }
+
     getValue(): string | Promise<string> {
         return ''
     }
+
+    async syncServer() {
+        this.callAPI('POST', { body: {
+            update_keys: ["X", "y", "width", "height", "value"],
+            update_values: [this.x, this.y, this.width, this.height, this.value]
+        }});
+    }
+
     async applyValue(): Promise<void> {
-        await this.callAPI('POST', {
+        await this.callAPI('POST', { body: {
             update_keys: ["value"],
             update_values: [this.value]
-        });
+        }});
     }
+
     async resize(width: number, height: number): Promise<void> {
-        this.boxFrameElement.style.width =  this.coordToString(this.width = width);
-        this.boxFrameElement.style.height = this.coordToString(this.height = height);
-        await this.callAPI('POST', {
+        //this.boxFrameElement.style.width =  
+            this.coordToString(this.width = width);
+        //this.boxFrameElement.style.height = 
+            this.coordToString(this.height = height);
+        await this.callAPI('POST', { body: {
             update_keys: ["width","height"],
             update_values: [this.width, this.height]
-        });
+        }});
     }
     async relocate(x: number, y: number): Promise<void> {
         this.boxFrameElement.style.left = this.coordToString(this.x = x);
         this.boxFrameElement.style.top =  this.coordToString(this.y = y);
-        await this.callAPI('POST', {
+        await this.callAPI('POST', { body: {
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
-        });
+        }});
     }
     relayout() {
 
@@ -264,7 +308,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
-        await this.callAPI('DELETE');
+        /**
+         * データベースから削除されているが通知が届いていない場合に、
+         * 値の更新をリクエストしてしまうことを防止するためawaitしない。
+         * (あとで削除失敗した場合のリカバリーも追加する必要あり)
+         * 
+         * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
+         */ 
+        this.callAPI('DELETE', { force: true } );
+        this.dumped = true;
     }
 }
 
@@ -537,7 +589,7 @@ async function makePageData(): Promise<blockData[]> {
   return await Promise.all(pageObjects.map(object=>object.makeData()));
 }
 
-function applyPageData(pageData: blockData[]): void {
+function applyPageData(...pageData: blockData[]): void {
     for( const boxData of pageData ) {
         const { range, id, type, value } = boxData;
         pageObjects.push(makeBlockObject(range, type, id, value));
@@ -550,8 +602,7 @@ fetch(NOTE_API_URL+NOTE_ID)
 .then(result=>result.json())
 .then(pageData=>{
     const initialPageObjects = pageData.children;
-    applyPageData(initialPageObjects);
-    pageObjects.push(...initialPageObjects);
+    applyPageData(...initialPageObjects);
 });
 
 const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
