@@ -17,7 +17,6 @@
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
-const NOTE_ID: string = '111'
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/note/api/';
 

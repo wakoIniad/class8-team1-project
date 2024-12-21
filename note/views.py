@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from . import my_lib
-import random
 
 import json
 
@@ -10,12 +9,13 @@ import json
 # Create your views here.
 #テスト用
 def test(request, note_id):
-    data = json.loads(request.body)
+    #data = json.loads(request.body)
     note = Note(id=my_lib.make_id(ref=[]))
     short_url = ShortURL(target=note.id,path=my_lib.make_id(ref=[]))
-    if data["name"]: note.name = note_id
+    note.name = note_id
     note.save()
     short_url.save()    
+    return HttpResponse(f"id:{note.id}, name:${note.name} でテスト用ノートを作りました")
 
 
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる
@@ -95,14 +95,14 @@ def shortURL_redirect(request, short_url):
     try:
         short_url = ShortURL.objects.get(pk=short_url)
         return redirect(f"{short_url.target}/editor")
-    except ShortURL.DoesNotExist:
-        return Http404()
+    except ShortURL.DoesNotExist: 
+        raise Http404("404")
 
 def editor(request, note_id):
     try:
         note = Note.objects.get(pk = note_id)
     except Note.DoesNotExist: 
-        return Http404()
+        raise Http404("404")
     
     initialPageObjects = []
     try:

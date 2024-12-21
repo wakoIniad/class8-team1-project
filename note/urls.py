@@ -3,14 +3,14 @@ from . import views, converters
 
 register_converter(converters.NoteID, "noteid")
 register_converter(converters.BoxID, "boxid")
-register_converter(converters.ShortURL, "shortlink")
+register_converter(converters.ShortURL, "shorturl")
 # note/ のurlにアクセスしたときここに転送するようにしているので、
 # ここでpathを new/ と指定したら、 note/new にアクセスしたときに表示されるようになる
 
 urlpatterns = [
     path('test/<noteid:note_id>', views.test),
     path('<noteid:note_id>/editor', views.editor, name="editor"),
-    path('<shorturl:short_url>/share', views.ShortURL),
+    path('<shorturl:short_url>/share', views.shortURL_redirect),
 
     path('api/<noteid:note_id>/<boxid:box_id>/', views.box_api_handler, name="box_api"),
     path('api/<noteid:note_id>/', views.note_api_handler, name="note_api"),
