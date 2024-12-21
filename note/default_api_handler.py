@@ -1,11 +1,18 @@
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
+from django.db import models
 
 from . import constants
 import json
 import random
 
 class DefaultApiHandler:
-    Model = None
+    usingModels = [ models.Model ]
+    usingQueries = {
+        'PUT': [],
+        'POST': ['id'],
+        'GET': ['id'],
+        'DELETE': ['id'],
+    }
     constants = constants
 
     @staticmethod
@@ -24,22 +31,21 @@ class DefaultApiHandler:
         model.save()
 
     @staticmethod
-    def handle(self, request, id):
-        if request.method != "PUT":
-            model = self.models_get(self.Model, pk = id)
-            if model is None: return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
+    def handle(self, request, **ids):
+        models = { q: self.models_get(self.Model, pk = q) for q in self.usingQueries[request.method]}
+        if None in models.values(): return self.constants.API_RESPONSES["MODEL_NOT_FOUND"]
 
         if request.method in ["POST","PUT"]:
             data = json.loads(request.body)
 
         if request.method == "GET":
-            return self.on_get(model=model)
+            return self.on_get(model=models[0], models=)
         elif request.method == "POST":
-            return self.on_post(model=model, data=data)
+            return self.on_post(model=models[0], data=data)
         elif request.method == "PUT":
             return self.on_put(data=data)
         elif request.method == "DELETE":
-            return self.on_delete(model=model)
+            return self.on_delete(model=models[0])
     
     @staticmethod
     def get_model_initialization(data):
