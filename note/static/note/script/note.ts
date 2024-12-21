@@ -195,11 +195,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return ''
     }
     applyValue(): void {
-        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id, {
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
             method: 'POST',
             body: JSON.stringify({
-                update_keys: ["x","y","width","height","value"],
-                update_values: [this.x,this.y,this.width,this.height,this.value]
+                update_keys: ["value"],
+                update_values: [this.value]
             }),
             headers: {
               'Content-Type': 'application/json; charset=utf-8',
@@ -210,10 +210,34 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     resize(width: number, height: number) {
         this.boxFrameElement.style.width =  this.coordToString(this.width = width);
         this.boxFrameElement.style.height = this.coordToString(this.height = height);
+        
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
+            method: 'POST',
+            body: JSON.stringify({
+                update_keys: ["width","height"],
+                update_values: [this.width, this.height]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     relocate(x: number, y: number) {
         this.boxFrameElement.style.left = this.coordToString(this.x = x);
         this.boxFrameElement.style.top =  this.coordToString(this.y = y);
+        console.log(NOTE_API_URL+ NOTE_ID + '/' + this.id)
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
+            method: 'POST',
+            body: JSON.stringify({
+                update_keys: ["x","y"],
+                update_values: [this.x, this.y]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     relayout() {
 
@@ -253,6 +277,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     applyValue() {
         this.displayElement.textContent = this.value;
+        super.applyValue();
     }
 }
 
@@ -303,6 +328,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     applyValue() {
         this.displayElement.setAttribute('src', this.value);
+        super.applyValue();
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
@@ -409,6 +435,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     applyValue() {
         console.log(this.value)
         this.displayElement.setAttribute('src', this.value);
+        super.applyValue();
     }
 }
 
@@ -449,7 +476,7 @@ function putBox(type: string) {
             range: range, type: type
         }
         const block = makeBlockObject(range, type);
-        fetch(NOTE_API_URL+NOTE_ID+'/forput/', {
+        fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
             method: 'PUT',
             body: JSON.stringify(putData),
             headers: {

@@ -4,10 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ホーム画面</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
-    <img src="https://illustimage.com/photo/dl/2507.png?20161226" width="10" height="10">
-    <a href="{% url 'new_note' %}">新規ノート作成</a>
-    <a href="{% url 'be_made_note' %}">過去ノート一覧</a>
+    <h1>web note qpp</h1>
+    <p>
+        <img src="https://illustimage.com/photo/dl/2507.png?20161226" width="200px" height="200px">
+        <p><a href="{% url 'new_note' %}">新規ノート作成</a></p>
+    </p>
+    <p>
+        <img src="https://media.gettyimages.com/id/165767004/ja/%E3%83%99%E3%82%AF%E3%82%BF%E3%83%BC/%E3%83%96%E3%83%83%E3%82%AF%E3%82%B7%E3%82%A7%E3%83%AB%E3%83%95.jpg?s=612x612&w=0&k=20&c=hkgLkJh0xZAmfThqCLVk1o4X9ccjcfKua6MFAmk5ri4=" width="200px" height="150px"></p>
+        <p><a href="{% url 'be_made_note' %}">過去ノート一覧</a></p>
+    </p>
 </body>
 </html>
