@@ -1,18 +1,10 @@
-  // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
+// https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
-  // CSRF対策
-  const getCookie = (name): string => {
-    if (document.cookie && document.cookie !== '') {
-      for (const cookie of document.cookie.split(';')) {
-        const [key, value] = cookie.trim().split('=')
-        if (key === name) {
-          return decodeURIComponent(value);
-        }
-      }
-    }
-    return '';
-  }
-  const csrftoken: string = getCookie('csrftoken');
+// CSRF対策
+
+import { getCsrfToken } from '../lib/csrf-lib.js'
+
+const csrftoken: string = getCsrfToken();
 
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
@@ -550,8 +542,9 @@ function putBox(type: string) {
                   'X-CSRFToken': csrftoken,
                 },
             });
-            //try {
-                return await response.text();
+            //try
+            const parsed = await response.json()
+            return parsed['generated_id'];
             //} catch(e) {
             
             //}

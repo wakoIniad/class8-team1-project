@@ -24,10 +24,10 @@ def test(request, note_id):
         data=data 
     )
     
-    print(result)
-    result = result.json()
-    return HttpResponse(f"id:{result.id}, name:{data.name} でテスト用ノートを作りました\n"+
-                        F"shareURL: {result.short_url}")
+    print('test(){}', result)
+    #result = result.json()
+    return HttpResponse(f"{result}") #HttpResponse(f"id:{result.id}, name:{data.name} でテスト用ノートを作りました\n"+
+                  #      F"shareURL: {result.short_url}")
 
 def new_note(request):
     return render(request, 'note/new_note.html')

@@ -22,9 +22,9 @@ class DefaultApiHandler:
     constants = constants
 
     @staticmethod
-    def callAPI(self, request, method, url, data):
+    def callAPI(request, method, url, data):
         url = f"{my_utils.get_top_page_url(request)}/api/note/{url}"
-        print(url)
+        print("csrf",my_utils.get_csrftoken(request))
         data = {
             **data,
             'headers': {
@@ -32,7 +32,7 @@ class DefaultApiHandler:
             }
         }
         result = requests.request(method, url, data=data)
-        print(result)
+        return result
 
     def models_get(self, model, **args):
         try:
@@ -83,7 +83,7 @@ class DefaultApiHandler:
         def process():
             model = self.KeyModel( pk=self.make_id(ref=[]), **self.get_model_initialization(kwargs["data"], kwargs["queries"]))
             model.save()
-            return model.pk
+            return { 'assigned_id': model.pk }
         
         result = self.put_processer(process, **kwargs)
         response = self.put_response(result, **kwargs)
@@ -108,7 +108,7 @@ class DefaultApiHandler:
         return response
     
     def put_response(self, response, **kwargs):
-        return HttpResponse(response)
+        return JsonResponse(response)
 
     def post_response(self, response, **kwargs):
         return self.constants.API_RESPONSES["SUCCESS"]

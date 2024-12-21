@@ -17,25 +17,25 @@ class NoteApiHandler(DefaultApiHandler):
     constants = constants
     
     def get_model_initialization(self, data, queries):
-        return { 'name': data['name'] } if data['name'] else {}
+        return { 'name': data['name'] } if 'name' in data else ({})
     
     def put_processer(self, process, **kwargs):
         note_id = process()
-        data = { 
-            'target': note_id
-        }
-        
-        short_url = DefaultApiHandler.callAPI(
-            kwargs['request'], method='PUT', 
-            url='share/', 
-            data=data 
-        )
-        print(kwargs)
-        return { id: note_id, short_url: short_url }
+        #data = { 
+        #    'target': note_id
+        #}
+        #
+        #print('note-put-processer',kwargs, note_id)
+        #short_url = DefaultApiHandler.callAPI(
+        #    kwargs['request'], method='PUT', 
+        #    url='share/', 
+        #    data=data 
+        #)
+        return { id: note_id }
     
     def put_response(self, response, **kwargs):
+        
         return JsonResponse(response)
-
     
     def get_processer(self, process, **kwargs):        
         result = process()

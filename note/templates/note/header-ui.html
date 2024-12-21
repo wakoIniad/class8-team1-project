@@ -1,10 +1,14 @@
 {% load static %}
 <link rel='stylesheet' href='{% static "note/style/header.css" %}'>
 <header class="header">
+    <div>{{note.name}}({{note.id}})</div>
+    
+    <br>
+    
     <select id="ui">
         <option value="">--the type of box--</option>
         <option value="image">image</option>
         <option value="text">text</option>
         <option value="canvas">canvas</option>
-      </select>      
+    </select>      
 </header>

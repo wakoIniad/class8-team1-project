@@ -11,5 +11,8 @@ class ShareApiHandler(DefaultApiHandler):
     def get_model_initialization(self, data, queries):
         return { 'target': data.target }
     
+    def put_processer(self, process, **kwargs):
+        result = process()
+    
 
 Interface = ShareApiHandler()
