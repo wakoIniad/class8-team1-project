@@ -105,6 +105,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const sy: number = e.clientY;
         })
 
+        this.boxFrameElement.addEventListener("keydown", (e)=> {
+            e.preventDefault();
+            console.log(this.id,e.key);
+            this.deleteElement(this.boxFrameElement);
+        });
+        
+
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
@@ -226,7 +233,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     relocate(x: number, y: number) {
         this.boxFrameElement.style.left = this.coordToString(this.x = x);
         this.boxFrameElement.style.top =  this.coordToString(this.y = y);
-        console.log(NOTE_API_URL+ NOTE_ID + '/' + this.id)
         fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
             method: 'POST',
             body: JSON.stringify({
@@ -246,6 +252,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         const clone = element.cloneNode(true) as HTMLElement; // true: 子要素も複製
         element.replaceWith(clone);
         clone.remove();
+        fetch(NOTE_API_URL+ NOTE_ID + '/' + this.id + '/', {
+            method: 'DELETE',
+            headers: {
+              'X-CSRFToken': csrftoken,
+            },
+        });
     }
     dump() {
         this.deleteElement(this.editorElement);
@@ -433,7 +445,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         return this.editorElement.toDataURL();
     }
     applyValue() {
-        console.log(this.value)
+        console.log(this.value);
         this.displayElement.setAttribute('src', this.value);
         super.applyValue();
     }

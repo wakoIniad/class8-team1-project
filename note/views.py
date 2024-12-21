@@ -35,21 +35,23 @@ def box_api_handler(request, note_id, box_id):
         try:
             box = Box.objects.get(pk = box_id)
             return JsonResponse(box.json())
-        except: 
-            print("ERROR")
+        except Box.DoesNotExist:
+            print('Boxが存在しない')
+            return HttpResponse("BoxDoesNotExist",status=500)
+        except Exception as e:
+            print('予期しないエラー',e)
+            return HttpResponse("予期しないエラー",status=500)
     elif request.method == "POST":
-        print(box_id)
         try:
             box = Box.objects.get(pk = box_id)    
             data = json.loads(request.body)
-            print(data)
             for i, key in enumerate(data["update_keys"]):
                 setattr(box, key, data["update_values"][i])
             box.save()
-            return HttpResponse("OK",status=200)
+            return HttpResponse(status=200)
         except Box.DoesNotExist:
             print('Boxが存在しない')
-            return HttpResponse("Boxが存在しない",status=500)
+            return HttpResponse("BoxDoesNotExist",status=500)
         except Exception as e:
             print('予期しないエラー',e)
             return HttpResponse("予期しないエラー",status=500)
@@ -62,8 +64,9 @@ def box_api_handler(request, note_id, box_id):
         box.save()
         return HttpResponse(box.id)
     elif request.method == "DELETE":
-        box = Box.objects.get(pk = note_id)
+        box = Box.objects.get(pk = box_id)
         box.delete()
+        return HttpResponse(status=200)
 
 def note_api_handler(request, note_id):
     print("noteAPI",note_id)
