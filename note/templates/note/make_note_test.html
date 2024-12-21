@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+
+    <script src="{% static 'note/lib/apicall-lib.js' %}"></script>
+    <script src="{% static 'note/lib/cookie-lib.js' %}"></script>
+    <script src="{% static 'note/lib/csrf-lib.js' %}"></script>
 </head>
 <body>
     {% csrf_token %}
     <input type="text" id="name">
     <input type="button" id="submit">
-    <script src="{% static 'script/make_note_test.js' %}"></script>'
+    <script src="{% static 'note/script/make_note_test.js' %}"></script>
 </body>
 </html>

@@ -544,7 +544,7 @@ function putBox(type: string) {
             });
             //try
             const parsed = await response.json()
-            return parsed['generated_id'];
+            return parsed['assigned_id'];
             //} catch(e) {
             
             //}

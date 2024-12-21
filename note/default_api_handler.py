@@ -21,18 +21,18 @@ class DefaultApiHandler:
     }
     constants = constants
 
-    @staticmethod
-    def callAPI(request, method, url, data):
-        url = f"{my_utils.get_top_page_url(request)}/api/note/{url}"
-        print("csrf",my_utils.get_csrftoken(request))
-        data = {
-            **data,
-            'headers': {
-                'X-CSRFToken': my_utils.get_csrftoken(request),
-            }
-        }
-        result = requests.request(method, url, data=data)
-        return result
+    #@staticmethod
+    #def callAPI(request, method, url, data):
+    #    url = f"{my_utils.get_top_page_url(request)}/api/note/{url}"
+    #    print("csrf",my_utils.get_csrftoken(request))
+    #    data = {
+    #        **data,
+    #        'headers': {
+    #            'X-CSRFToken': my_utils.get_csrftoken(request),
+    #        }
+    #    }
+    #    result = requests.request(method, url, data=data)
+    #    return result
 
     def models_get(self, model, **args):
         try:

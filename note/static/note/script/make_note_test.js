@@ -3,9 +3,9 @@
 //注: 下でインポートしているものは、JavaScriptに元からあるものではないので、
 //どういう操作をやってるか知りたければ、static/note/libの中に入ってるファイルを見て
 
-import { getCookie, setCookie } from '../lib/cookie-lib.js'
-import { getCsrfToken } from '../lib/csrf-lib.js'
-import { makeApiUrl, callNoteApi } from '../lib/apicall-lib.js';
+//import { getCookie, setCookie } from '../lib/cookie-lib.js'
+//import { getCsrfToken } from '../lib/csrf-lib.js'
+//import { makeApiUrl, callNoteApi, getTopUrl } from '../lib/apicall-lib.js';
 
 // 注：constはconstant(定数)の略。再代入はできない。(正確には値が変わる場合があるので定数ではない)
 // let: 再代入可、再宣言不可
@@ -21,9 +21,6 @@ function Submit_button_was_clicked(e) {
     e.preventDefault();
     const inputted_name_by_user = inputTextElement.value;
 
-    //urlを作る関数を作りました
-    const url_for_api_calling = makeApiUrl('note');
-
     //下で実際にAPIを使っています
     //注: APIを呼んでから、結果が返ってくるまでに時間がかかります
     //Javascriptは同時に一つの処理しかできない言語なので、普通に実行すると
@@ -38,14 +35,28 @@ function Submit_button_was_clicked(e) {
     //callbackの実行にはthenを使っているので、lib/apicall-lib.jsのcallNoteApiを見てみてください
 
     function callback(result) {
-        const generatedId = result['id-generated'];
-        
+        const id = result['assigned_id'];
+
+        function callback(result) {
+            alert(result['short_url'])
+        }
+        //alert(getTopUrl()+'note/'+id+'/'+'editor/');
+        callNoteApi({
+            'url': makeApiUrl('share/SYSTEM/'),
+            'method': 'PUT',
+            'data': {
+                'target': id
+            },
+            'callback': callback
+        })
     }
 
     callNoteApi({
-        'url': url_for_api_calling,
+        'url': makeApiUrl('note/SYSTEM/'),
         'method': 'PUT',
-        'name': inputted_name_by_user,
+        'data': {
+            'name': inputted_name_by_user
+        },
         'callback': callback
     });
     
