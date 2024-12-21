@@ -43,7 +43,7 @@ class DefaultApiHandler:
     
     @staticmethod
     def get_model_initialization(data):
-        return { 'target': data.target }
+        return {}
     
     @staticmethod
     def make_id(ref):
