@@ -92,13 +92,6 @@ def new_note(request):
 def be_made_note(request):
     return render(request, 'note/be_made_note.html')
 
-def shortURL_redirect(request, short_url):
-    try:
-        short_url = ShortURL.objects.get(pk=short_url)
-        return redirect(f"{short_url.target}/editor")
-    except ShortURL.DoesNotExist: 
-        raise Http404("404")
-
 def editor(request, note_id):
     try:
         note = Note.objects.get(pk = note_id)
