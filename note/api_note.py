@@ -1,12 +1,13 @@
 from .default_api_handler import DefaultApiHandler
-from .models import Note, Box
-from . import constants
+from .models import Note, Box, ShortURL
+from . import constants, my_utils
+import requests
 
 class NoteApiHandler(DefaultApiHandler):
     KeyModel = Note
     KeyQuery = 'note_id'
     RefModels = { 'note_id': Box }
-    usingQueries = {
+    usingRefs = {
         'PUT': [],
         'POST': [],
         'GET': ['note_id'],
@@ -15,17 +16,17 @@ class NoteApiHandler(DefaultApiHandler):
     constants = constants
     
     def get_model_initialization(self, data, queries):
-        range = data["range"]
-        return {
-            **range,
-            "type": data["type"], 
-            "parent_id": queries["note_id"]
-        }
+        return { 'name': data["name"] } if data["name"] else {}
     
-    def get_processer(self, process, **kwargs):
-        result = super().get_processer(process, **kwargs)
+    def put_processer(self, process, **kwargs):
+        result = process
+        requests('PUT', f"{my_utils.get_top_page_url()}/api/share/")
+
+    
+    def get_processer(self, process, **kwargs):        
+        result = process()
         print(kwargs)
-        result["child"] = kwargs["refs"]
+        result["children"] = [ child.json() for child in kwargs["refs"]["note_id"] ]
         return result
     
 Interface = NoteApiHandler()

@@ -18,7 +18,7 @@ console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-const NOTE_API_URL: string = window.location.origin + '/note/api/';
+const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
 const pageObjects: Block<any,any>[] = [];
 
@@ -541,7 +541,8 @@ function putBox(type: string) {
             range: range, type: type
         }
         const idPromise = (async function() {
-            const response = await fetch(NOTE_API_URL+NOTE_ID+'/FORAPI/', {
+            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+            const response = await fetch(url, {
                 method: 'PUT',
                 body: JSON.stringify(putData),
                 headers: {

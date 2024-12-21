@@ -21,3 +21,5 @@ API_RESPONSES = {
     ),
     "SUCCESS": HttpResponse(status=200),
 }
+
+SYSTEM_API_PATH_SEGMENT = 'SYSTEM'

@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('note/', include('note.urls_note')),
     path('share/', include('note.urls_share')),
+    path('api/', include('note.urls_api')),
 ]

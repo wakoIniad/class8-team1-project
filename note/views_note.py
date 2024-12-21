@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from . import my_utils
-from .constants import API_RESPONSES
+from .constants import API_RESPONSES, SYSTEM_API_PATH_SEGMENT
 
 import json
 
@@ -69,6 +69,7 @@ def editor(request, note_id):
         print( Http404("Article does not exist"))
 
     context = {
+        "SYSTEM_API_PATH_SEGMENT": SYSTEM_API_PATH_SEGMENT,
         "note": { 
             "name": note.name,
             "posted_at": note.created_at,
