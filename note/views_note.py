@@ -22,44 +22,6 @@ def test(request, note_id):
 
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる
 #PUTは２重で実行されないため、何かのミスで２回送信されて同じものが二つ作られたりするのを防げる
-def box_api_handler(request, note_id, box_id):
-    print("BoxAPI",note_id,'/',box_id,request.method)
-    if request.method == "GET":
-        try:
-            box = Box.objects.get(pk = box_id)
-            return JsonResponse(box.json())
-        except Box.DoesNotExist:
-            print('Boxが存在しない')
-            return HttpResponse("BoxDoesNotExist",status=500)
-        except Exception as e:
-            print('予期しないエラー',e)
-            return HttpResponse("予期しないエラー",status=500)
-    elif request.method == "POST":
-        try:
-            box = Box.objects.get(pk = box_id)    
-            data = json.loads(request.body)
-            for i, key in enumerate(data["update_keys"]):
-                setattr(box, key, data["update_values"][i])
-            box.save()
-            return HttpResponse(status=200)
-        except Box.DoesNotExist:
-            print('Boxが存在しない')
-            return HttpResponse("BoxDoesNotExist",status=500)
-        except Exception as e:
-            print('予期しないエラー',e)
-            return HttpResponse("ErrorUnexpected",status=500)
-    elif request.method == "PUT":
-        data = json.loads(request.body)
-        print(note_id)
-        range = data["range"]
-        box = Box(x=range["x"], y=range["y"], width=range["width"], height=range["height"],
-                    id=my_utils.make_id(ref=[]), type=data["type"], parent_id=note_id)
-        box.save()
-        return HttpResponse(box.id)
-    elif request.method == "DELETE":
-        box = Box.objects.get(pk = box_id)
-        box.delete()
-        return HttpResponse(status=200)
 
 def note_api_handler(request, note_id):
     print("noteAPI",note_id)
