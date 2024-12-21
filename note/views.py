@@ -15,7 +15,8 @@ def test(request, note_id):
     note.name = note_id
     note.save()
     short_url.save()    
-    return HttpResponse(f"id:{note.id}, name:${note.name} でテスト用ノートを作りました")
+    return HttpResponse(f"id:{note.id}, name:{note.name} でテスト用ノートを作りました\n"+
+                        F"shareURL: {short_url.path}")
 
 
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる

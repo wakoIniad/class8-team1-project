@@ -21,6 +21,5 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('note/', include('note.urls')),
-    path('', views.redirect_view, name=''),
-    path('note/', views.new_view, name='note'),
+    path('share/', views.redirect_view, name=''),
 ]
