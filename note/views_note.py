@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
+from .default_api_handler import DefaultApiHandler
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from . import my_utils
 from .constants import API_RESPONSES, SYSTEM_API_PATH_SEGMENT
@@ -12,17 +13,7 @@ import requests
 #テスト用
 def test(request, note_id):
     #data = json.loads(request.body)
-    url = f"{my_utils.get_top_page_url(request)}/api/note/{SYSTEM_API_PATH_SEGMENT}/"
-    print(url)
-    data = {
-        'name': note_id
-    }
-    result = requests.request('PUT', url, data=data)
-    print(result)
-    result = json.load(result)
-    return HttpResponse(f"id:{result.id}, name:{data.name} でテスト用ノートを作りました\n"+
-                        F"shareURL: {result.short_url}")
-
+    return render(request, 'note/make_note_test.html')
 def new_note(request):
     return render(request, 'note/new_note.html')
 
