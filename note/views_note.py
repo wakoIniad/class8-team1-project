@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
-from . import my_lib
+from . import my_utils
+from .constants import API_Responses
 
 import json
 
@@ -10,8 +11,8 @@ import json
 #テスト用
 def test(request, note_id):
     #data = json.loads(request.body)
-    note = Note(id=my_lib.make_id(ref=[]))
-    short_url = ShortURL(target=note.id,path=my_lib.make_id(ref=[]))
+    note = Note(id=my_utils.make_id(ref=[]))
+    short_url = ShortURL(target=note.id,path=my_utils.make_id(ref=[]))
     note.name = note_id
     note.save()
     short_url.save()    
@@ -46,13 +47,13 @@ def box_api_handler(request, note_id, box_id):
             return HttpResponse("BoxDoesNotExist",status=500)
         except Exception as e:
             print('予期しないエラー',e)
-            return HttpResponse("予期しないエラー",status=500)
+            return HttpResponse("ErrorUnexpected",status=500)
     elif request.method == "PUT":
         data = json.loads(request.body)
         print(note_id)
         range = data["range"]
         box = Box(x=range["x"], y=range["y"], width=range["width"], height=range["height"],
-                    id=my_lib.make_id(ref=[]), type=data["type"], parent_id=note_id)
+                    id=my_utils.make_id(ref=[]), type=data["type"], parent_id=note_id)
         box.save()
         return HttpResponse(box.id)
     elif request.method == "DELETE":
@@ -77,8 +78,8 @@ def note_api_handler(request, note_id):
         note.save()
     elif request.method == "PUT":
         data = json.loads(request.body)
-        note = Note(id=my_lib.make_id(ref=[]))
-        short_url = ShortURL(target=note.id,path=my_lib.make_id(ref=[]))
+        note = Note(id=my_utils.make_id(ref=[]))
+        short_url = ShortURL(target=note.id,path=my_utils.make_id(ref=[]))
         if data["name"]: note.name = data["name"]
         note.save()
         short_url.save()

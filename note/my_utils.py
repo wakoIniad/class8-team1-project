@@ -1,3 +1,5 @@
+from django.http import HttpResponse, Http404, JsonResponse
+from .constants import UNEXPECTED_ERROR_MESSAGE
 import random
 
 def make_id(ref=[]):
@@ -17,3 +19,17 @@ def get_top_page_url(request):
         top_page_url = f"{request.scheme}://{default_host}/"
 
     return top_page_url
+
+def models_get(model, **args):
+    try:
+        return model.objects.get(**args)
+    except model.DoesNotExist:
+        return None
+    except Exception as e:
+        print(UNEXPECTED_ERROR_MESSAGE)
+        raise e
+    
+def api_update_handler(model, data):
+    for i, key in enumerate(data["update_keys"]):
+        setattr(model, key, data["update_values"][i])
+    model.save()

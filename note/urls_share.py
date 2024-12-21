@@ -8,4 +8,5 @@ register_converter(converters.ShortURL, "shorturl")
 ## (class8-team1-project/config/urls.py を見て)
 urlpatterns = [
     path('<shorturl:short_url>/', views_share.shortURL_redirect, name='share'),
+    path('api/<shorturl:short_url>/', views_share.share_api_handler, name="share_api"),
 ]

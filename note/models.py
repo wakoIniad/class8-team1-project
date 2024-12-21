@@ -46,3 +46,10 @@ class ShortURL(models.Model):
     target = models.CharField(max_length=16)
     path = models.CharField(max_length=32, primary_key=True)
     dumped = models.BooleanField(default=False)
+
+    def json(self):
+        return {
+            "target": self.target,
+            "path": self.path,
+            "dumped": self.dumped,
+        }
