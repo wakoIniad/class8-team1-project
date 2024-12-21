@@ -1,7 +1,8 @@
 {% load static %}
-<link rel='stylesheet' href='{% static "note/style/header.css" %}'>
+<link rel='stylesheet' href='{% static "note/style/header.css" ?v=<?php echo filemtime("img/bird/bird-1.jpg"); ?> %}'>
 <header class="header">
-    <div>{{note.name}}({{note.id}})</div>
+    <h1 class="poiret-one-regular">Memolive</h1>
+    <div class="d-inline-block note-info">{{note.name}}({{note.id}})</div>
     
     <br>
     

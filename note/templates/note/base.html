@@ -12,12 +12,15 @@
     <!-- ブラウザによる表示の違いを少なくする: https://unpkg.com/ress/dist/ress.min.css -->
     <link rel='stylesheet' href='{% static "note/style/ress.css" %}'>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&family=Jura:wght@300..700&family=Mochiy+Pop+One&family=Noto+Sans+JP:wght@100..900&family=Outfit:wght@100..900&family=Poiret+One&family=Zen+Antique&family=Zen+Kaku+Gothic+New&display=swap" rel="stylesheet">
+    
+    <script src="{% static 'note/lib/apicall-lib.js' %}"></script>
     <script src="{% static 'note/lib/cookie-lib.js' %}"></script>
     <script src="{% static 'note/lib/csrf-lib.js' %}"></script>
-</head>
-<body>
-    {% block content %}
-    {% endblock content %}
+
+    {% bootstrap_javascript %}
     <!-- thanks: https://qiita.com/dojyorin/items/00c167d0b4b41872b4a2 -->
     <script async type="module">
         import {transpile, ScriptTarget} from "https://esm.sh/typescript@5.6.3?target=esnext";
@@ -63,6 +66,8 @@
             tsExcuter();
         }
     </script>
-    {% bootstrap_javascript %}
-</body>
+    {% csrf_token %}
+</head>
+    {% block content %}
+    {% endblock content %}
 </html>
