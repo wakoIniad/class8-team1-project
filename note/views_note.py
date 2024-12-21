@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
 from . import my_utils
-from .constants import API_Responses
+from .constants import API_RESPONSES
 
 import json
 
@@ -17,7 +17,7 @@ def test(request, note_id):
     note.save()
     short_url.save()    
     return HttpResponse(f"id:{note.id}, name:{note.name} でテスト用ノートを作りました\n"+
-                        F"shareURL: {short_url.path}")
+                        F"shareURL: {short_url.pk}")
 
 
 #HTTPメソッドにはPOST, GETのほかに PUTとDELETEもあるので、別でURLを用意しなくても分けられる

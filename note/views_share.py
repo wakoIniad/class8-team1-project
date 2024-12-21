@@ -19,12 +19,13 @@ def share_api_handler(request, short_url):
     if request.method != "PUT":
         short_url = my_utils.models_get(ShortURL, pk = short_url)
         if short_url is None: return API_RESPONSES["MODEL_NOT_FOUND"]
-
+        
     print("shortAPI",short_url)
     if request.method == "GET":
         return JsonResponse(short_url.json())
     
     elif request.method == "POST":
+        data = json.loads(request.body)
         my_utils.api_update_handler(short_url, data)
         return API_RESPONSES["SUCCESS"]
     
