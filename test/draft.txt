@@ -63,3 +63,6 @@ function Submit_button_was_clicked(e) {
 }
 
 buttonElement.onclick = Submit_button_was_clicked;
+
+ランダム関数
+APIパスの設定

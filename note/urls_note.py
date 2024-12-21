@@ -7,7 +7,7 @@ register_converter(converters.BoxID, "boxid")
 # ここでpathを new/ と指定したら、 note/new にアクセスしたときに表示されるようになる
 
 urlpatterns = [
-    path('test/<noteid:note_id>', views_note.test),
+    path('test/', views_note.test),
     path('<noteid:note_id>/editor', views_note.editor, name="editor"),
 
 #(?P<note_id>[a-zA-Z0-9]*)

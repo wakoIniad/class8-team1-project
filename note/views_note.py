@@ -14,9 +14,10 @@ import requests
 #テスト用
 
 @never_cache
-def test(request, note_id):
-    #data = json.loads(request.body)
-    return render(request, 'note/make_note_test.html')
+def test(request):
+    #新しいノートを作成するテスト
+    return render(request, 'note/test.html')
+
 def new_note(request):
     context = {
         'title': '新規ノート作成'
