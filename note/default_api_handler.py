@@ -51,7 +51,7 @@ class DefaultApiHandler:
         if request.method in ["POST","PUT"]:
             data = json.loads(request.body)
 
-        kwargs = { 'model': key_model, 'data': data, 'queries': queries, 'refs': ref_models }
+        kwargs = { 'model': key_model, 'data': data, 'queries': queries, 'refs': ref_models, 'request': request }
         if request.method == "PUT":
             return self.on_put(**kwargs)
         elif request.method == "POST":
