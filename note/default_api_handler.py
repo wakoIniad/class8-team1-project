@@ -68,9 +68,8 @@ class DefaultApiHandler:
         return random.randint(0,100000000)
     
     def on_put(self, **kwargs):
-        data, queries, *_ = kwargs
         def process():
-            model = self.KeyModel( pk=self.make_id(ref=[]), **self.get_model_initialization(data, queries))
+            model = self.KeyModel( pk=self.make_id(ref=[]), **self.get_model_initialization(kwargs["data"], kwargs["queries"]))
             model.save()
             return model.pk
         
@@ -79,23 +78,20 @@ class DefaultApiHandler:
         return response
 
     def on_post(self, **kwargs):
-        { model: model, data: data } = kwargs
         def process():
-            return self.update_model(model, data)
+            return self.update_model(kwargs["model"], kwargs["data"])
 
         result = self.post_processer(process, **kwargs)
         response = self.post_response(result, **kwargs)
         return response
 
     def on_get(self, **kwargs):
-        model, *_ = kwargs
-        result = self.get_processer(model.json, **kwargs)
+        result = self.get_processer(kwargs["model"].json, **kwargs)
         response = self.get_response(result, **kwargs)
         return response
     
     def on_delete(self, **kwargs):
-        model, *_ = kwargs
-        result = self.delete_processer(model.delete, **kwargs)
+        result = self.delete_processer(kwargs["model"].delete, **kwargs)
         response = self.get_response(result, **kwargs)
         return response
     

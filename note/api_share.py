@@ -2,7 +2,7 @@ from .default_api_handler import DefaultApiHandler
 from .models import ShortURL
 from . import constants
 
-class Interface(DefaultApiHandler):
+class ShareApiHandler(DefaultApiHandler):
     KeyModel = ShortURL
     KeyQuery = 'short_url'
     
@@ -10,3 +10,6 @@ class Interface(DefaultApiHandler):
 
     def get_model_initialization(self, data, queries):
         return { 'target': data.target }
+    
+
+Interface = ShareApiHandler()

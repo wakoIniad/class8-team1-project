@@ -2,7 +2,7 @@ from .default_api_handler import DefaultApiHandler
 from .models import Note, Box
 from . import constants
 
-class BoxApiHandler(DefaultApiHandler):
+class NoteApiHandler(DefaultApiHandler):
     KeyModel = Note
     KeyQuery = 'note_id'
     RefModels = { 'note_id': Box }
@@ -22,4 +22,10 @@ class BoxApiHandler(DefaultApiHandler):
             "parent_id": queries["note_id"]
         }
     
-Interface = BoxApiHandler()
+    def get_processer(self, process, **kwargs):
+        result = super().get_processer(process, **kwargs)
+        print(kwargs)
+        result["child"] = kwargs["refs"]
+        return result
+    
+Interface = NoteApiHandler()

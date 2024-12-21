@@ -11,7 +11,7 @@ urlpatterns = [
     path('<noteid:note_id>/editor', views_note.editor, name="editor"),
 
     path('api/<noteid:note_id>/<boxid:box_id>/', api_box.Interface.handle, name="box_api"),
-    path('api/<noteid:note_id>/', views_note.note_api_handler, name="note_api"),
+    path('api/<noteid:note_id>/', api_note.Interface.handle, name="note_api"),
 #(?P<note_id>[a-zA-Z0-9]*)
 
     path('new/', views_note.new_note, name='new_note'),
