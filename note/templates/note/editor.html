@@ -2,7 +2,12 @@
 {% load static %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    <link rel='stylesheet' href='{% static "note/style/editor.css" %}'>
+    
+    {% load compress %}
+    {% compress css %}
+    <link rel='stylesheet' type="text/x-scss" href='{% static "note/style/editor.scss" %}'>
+    {% endcompress %}
+    
     <div id="container">
     </div>
     {% csrf_token %}

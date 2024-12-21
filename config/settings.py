@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_bootstrap5',
     'note',
+    'compressor',
 ]
 
 MIDDLEWARE = [
@@ -125,3 +126,19 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+STATICFILES_FINDERS = [
+    #'django.contrib.staticfiles.finders.FileSystemFinder',
+    #'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+]
+
+COMPRESS_PRECOMPILERS = (
+    ('text/x-scss', 'django_libsass.SassCompiler'),
+)
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'note' / 'static',  # 'note/static' を指定
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+COMPRESS_ROOT = STATIC_ROOT

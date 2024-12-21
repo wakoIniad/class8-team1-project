@@ -7,7 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <title>{{title}}</title>
-    <link rel='stylesheet' href='{% static "note/style/global.css" %}'>
+    
+    {% load compress %}
+    {% compress css %}
+    <link rel='stylesheet' type="text/x-scss" href='{% static "note/style/global.scss" %}'>
+    {% endcompress %}
+
     {% bootstrap_css %}
     <!-- ブラウザによる表示の違いを少なくする: https://unpkg.com/ress/dist/ress.min.css -->
     <link rel='stylesheet' href='{% static "note/style/ress.css" %}'>
