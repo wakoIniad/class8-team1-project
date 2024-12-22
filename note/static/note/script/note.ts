@@ -4,6 +4,22 @@
 
 const csrftoken: string = getCsrfToken();
 
+const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
+function animateLoadingBar() {
+    if(contentLoadingDisplay) {
+        contentLoadingDisplay.classList.add('animate-bar');
+    }
+}
+function endLoadingAnimation() {
+    console.log('END_LOADING_ANIMATION')
+    if(contentLoadingDisplay) {
+        contentLoadingDisplay.classList.remove('animate-bar');
+        contentLoadingDisplay.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+        contentLoadingDisplay.style.width = '100%'; // 最後にバーを100%に設定
+        contentLoadingDisplay.style.transition = 'width 1s'
+    }
+}
+
 console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
@@ -34,7 +50,7 @@ interface BlockInterface {
     id: string;
     boxFrameElement: HTMLSpanElement;
     makeBoxElement<T>(tagName: string):T;
-    asign(element: HTMLElement):void;
+    assign(element: HTMLElement):void;
     toggleToEditor():void;
     toggleToView():void;
     getValue: () => string | Promise<string>;
@@ -61,6 +77,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     pendingRequest?: Promise<any>;
     pendingSync: boolean;
     dumped: boolean;
+    maskElement: HTMLDivElement;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
@@ -89,6 +106,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
         this.boxFrameElement.setAttribute('draggable', 'true');
         this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
+
+        this.maskElement = this.makeBoxContent<HTMLDivElement>('div');
+        this.maskElement.classList.add('box-mask');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             const callback = (e: DragEvent) => {
@@ -131,7 +151,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.init();
 
         appendToContainer(this.boxFrameElement);
-        this.asign(this.editorElement, this.displayElement);
+        this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
     }
@@ -171,11 +191,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
         this.pendingRequest = fetch(TARGET_URL, config);
+        this.maskElement.classList.add('loading');
         this.pendingRequest.then(() => {
             this.pendingRequest = undefined;
             if(this.pendingSync) {
                 this.pendingSync = false;
                 this.syncServer();
+            } else {
+                this.maskElement.classList.remove('loading');
             }
         });
     }
@@ -210,18 +233,18 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         content.classList.add('resizer');
         return content as T;
     }
-    asign(...element: HTMLElement[]) {
+    assign(...element: HTMLElement[]) {
         this.boxFrameElement.replaceChildren(...element);
     }
     toggleToEditor() {
         this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
-        //this.asign(this.editorElment);
+        //this.assign(this.editorElment);
     }
     toggleToView() {
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
-        //this.asign(this.displayElement);
+        //this.assign(this.displayElement);
     }
     async makeData(): Promise<blockData> {
         return {
@@ -543,6 +566,7 @@ function putBox(type: string) {
             });
             //try
             const parsed = await response.json()
+
             return parsed['assigned_id'];
             //} catch(e) {
             
@@ -590,6 +614,7 @@ function applyPageData(...pageData: blockData[]): void {
         const { range, id, type, value } = boxData;
         pageObjects.push(makeBlockObject(range, type, id, value));
     }
+    endLoadingAnimation();
 }
 /*applyPageData(initialPageObjects);
 pageObjects.push(...initialPageObjects);*/

@@ -32,3 +32,22 @@ body {
     padding: auto;
     border: none;
 }
+
+@keyframes content-loading {
+    0% {
+      width: 0;
+    } 100% {
+      width: 100%;
+    }
+}
+
+.animation-bar {
+    //background-color: rgb(235, 195, 85);
+    width: 0px;
+    height: 90%;
+    background-color: rgba(255, 205, 67, 0.9);
+}
+
+.animate-bar {
+    animation: content-loading 5s linear;
+}
