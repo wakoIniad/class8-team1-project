@@ -20,7 +20,6 @@ function endLoadingAnimation() {
     }
 }
 
-console.log(csrftoken)
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
@@ -163,7 +162,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     async callAPI(method: string, option?: { body?: {} , force?: boolean }) {
         
         const TARGET_URL = NOTE_API_URL+ NOTE_ID + '/' + await this.getId() + '/';
-        console.log(TARGET_URL);
         const config = {
             method: method,
             headers: {
@@ -190,6 +188,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
+        
+        console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
         this.maskElement.classList.add('loading');
         this.pendingRequest.then(() => {
