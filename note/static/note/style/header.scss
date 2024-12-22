@@ -1,22 +1,53 @@
-@use 'global.scss';
+/*@use 'global.scss';
 body {
     @extend .jura-400 !optional;
-}
+}*/
+
 .note-info {
     width: 100%;
-    height: 3em;
-/*    background: #11631c;
-    background-color: rgb(37,153,118);*/
+    height: 2em;
+/*    background: #11631c;*/
+    //background-color: rgb(37,153,118);
+//    background-color: rgb(37,118,153);
+//    background-color: rgb(143, 111, 16);
+    background-color: rgb(57, 43, 5);
     
-    background-color: rgb(57,123,108);
-    margin-top: 1px;
+ //   background-color: rgb(57,123,108);
 }
 
 .note-logo-ber {
     width: 100%;
-    height: 3em;
+    height: 5em;
+    padding: 0;
 /*    background: #11631c;
     background-color: rgb(37,153,118);*/
     
     background-color: rgb(57,123,108);
+    border-bottom: 1px white solid;
+}
+
+.app-icon {
+    height: 100%;
+    margin: auto;
+    padding: auto;
+    border: none;
+}
+
+@keyframes content-loading {
+    0% {
+      width: 0;
+    } 100% {
+      width: 100%;
+    }
+}
+
+.animation-bar {
+    //background-color: rgb(235, 195, 85);
+    width: 0px;
+    height: 90%;
+    background-color: rgba(255, 205, 67, 0.9);
+}
+
+.animate-bar {
+    animation: content-loading 5s linear;
 }

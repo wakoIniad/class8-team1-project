@@ -7,10 +7,13 @@
 <header class="header">
 
     <div class="note-logo-ber">
-        <h1 class="poiret-one-regular d-inline-block">Memolive</h1>
+        <image class="app-icon d-inline" src="{% static 'note/image/memolive_icon.jpg' %}">
+        <h1 class="poiret-one-regular d-inline-block app-name">
+            Memolive
+        </h1>
         <p class="d-inline-block jost-400">{{note.name}}__({{note.id}})</p>
     </div>
-    <div class="note-info"></div>
+    <div class="note-info"><div id="content-loading-display" class="animation-bar animate-bar"></div></div>
     
     <select id="ui" class="jost-400">
         <option class="ui-block-option" value="">--the type of box--</option>

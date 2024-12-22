@@ -12,8 +12,8 @@
 </head>
 <body>
     {% csrf_token %}
-    <input type="text" id="name">
-    <input type="button" id="submit">
-    <script src="{% static 'note/script/make_note_test.js' %}"></script>
+    <input type="text" id="name" placeholder="ここにノートの名前を書く">
+    <input type="button" id="submit" value="作成">
+    <script src="{% static 'note/script/test.js' %}"></script>
 </body>
 </html>

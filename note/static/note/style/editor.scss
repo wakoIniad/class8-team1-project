@@ -24,7 +24,17 @@
     //background: rgb(0,0);
     /*padding: 10px;*/
     border: 5px rgb(255,255,255) dashed;
-} 
+}
+
+.image-box-frame > input[type="file"].box-editor {
+    //all: unset;
+    background-image: url('/static/note/image/import_icon.svg');
+    background-position: center;
+}
+
+.box-frame.loading {
+    border: 5px rgb(255,255,0) dashed;
+}
 
 .box-content {
     position: absolute;
@@ -97,4 +107,15 @@ opacity:0;	○	○
 
 .ui-block-option {
     
+}
+
+.box-mask {
+    display: none;
+}
+
+.box-mask.loading {
+    display: block;
+    z-index: 2;
+    background: rgba(0,0,0,0.5);
+    pointer-events: none;
 }
