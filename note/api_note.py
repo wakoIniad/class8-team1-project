@@ -25,4 +25,7 @@ class NoteApiHandler(DefaultApiHandler):
         result["children"] = [ child.json() for child in kwargs["refs"]["note_id"] ]
         return result
     
+    def make_id(self, queries, ref=[]):
+        return my_utils.generated_unique_id()
+    
 Interface = NoteApiHandler()

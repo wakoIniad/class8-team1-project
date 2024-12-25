@@ -12,3 +12,4 @@ def generate_unique_id(length=8):
         
         if not check(new_id):
             return new_id
+        
