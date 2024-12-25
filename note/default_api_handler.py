@@ -76,12 +76,12 @@ class DefaultApiHandler:
     def get_model_initialization(self, data, queries):
         return {}
     
-    def make_id(self, ref=[]):
+    def make_id(self, queries, ref=[]):
         return random.randint(0,100000000)
     
     def on_put(self, **kwargs):
         def process():
-            model = self.KeyModel( pk=self.make_id(ref=[]), **self.get_model_initialization(kwargs["data"], kwargs["queries"]))
+            model = self.KeyModel( pk=self.make_id(queries=kwargs['queries'], ref=[]), **self.get_model_initialization(kwargs["data"], kwargs["queries"]))
             model.save()
             return { 'assigned_id': model.pk }
         
