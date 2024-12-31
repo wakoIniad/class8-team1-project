@@ -8,7 +8,7 @@ register_converter(converters.BoxID, "boxid")
 
 urlpatterns = [
     path('test/', views_note.test),
-    path('<noteid:note_id>/editor', views_note.editor, name="editor"),
+    path('editor/<noteid:note_id>/', views_note.editor, name="editor"),
 
 #(?P<note_id>[a-zA-Z0-9]*)
 

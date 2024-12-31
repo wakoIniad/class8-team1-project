@@ -18,6 +18,7 @@ def test(request):
     #新しいノートを作成するテスト
     return render(request, 'note/test.html')
 
+@never_cache
 def new_note(request):
     context = {
         'title': '新規ノート作成'

@@ -15,4 +15,4 @@ def shortURL_redirect(request, short_url):
         raise Http404("404")
     
     top_page_url = my_utils.get_top_page_url(request)
-    return redirect(f"{top_page_url}/note/{short_url.target}/editor")
+    return redirect(f"{top_page_url}/note/editor/{short_url.target}/")

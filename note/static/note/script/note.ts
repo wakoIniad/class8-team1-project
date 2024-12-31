@@ -498,9 +498,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             ['mouseout', ()=>{
                 this.paintEnd();
             }],
-            ['mouseleave', (()=>{
+            ['mouseleave', ()=>{
                 this.paintEnd();
-            })],
+            }],
         ];
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.addEventListener(name, callback, {capture: true});
