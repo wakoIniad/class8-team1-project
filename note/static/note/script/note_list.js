@@ -4,6 +4,7 @@ function createLink(noteData) {
     const elm = document.createElement('a');
     elm.setAttribute('href',noteData[2]);
     elm.setAttribute('id', noteData[0]);
+    elm.classList.add('note-list-item');
     elm.textContent = noteData[1];
     container.appendChild(elm);
 }
