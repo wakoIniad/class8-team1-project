@@ -9,6 +9,8 @@ function onclick(e) {
         const id = result['assigned_id'];
 
         function callback(result) {
+            const noteList = getCookie('note_list')||'[]';
+            setCookie('note_list',JSON.stringify([...JSON.parse(noteList), [id,note_name,result['short_url']]]));
             window.open(result['short_url'], '_blank');
         }
         callNoteApi({
