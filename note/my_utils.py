@@ -3,6 +3,8 @@ from .constants import UNEXPECTED_ERROR_MESSAGE
 from . import my_utils
 import random
 import requests
+import time
+import string
 
 
 def make_id(ref=[]):
@@ -42,3 +44,14 @@ def get_top_page_url(request):
 
 def get_csrftoken(request):
     return request.META.get('HTTP_X_CSRFTOKEN', '')
+
+def generated_unique_id():
+    characters = [ *string.digits, *string.ascii_letters ]
+    l = len(characters)
+    timestamp = int(time.time()*1000//1)
+    def recrusion(n):
+        i = n % l
+        if n < l : return characters[i]
+        n //= l
+        return recrusion(n) + characters[i]
+    return recrusion(timestamp)

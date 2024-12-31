@@ -1,6 +1,7 @@
 from .default_api_handler import DefaultApiHandler
 from .models import Box
-from . import constants
+#from . import constants
+from . import constants, my_utils
 
 class BoxApiHandler(DefaultApiHandler):
     KeyModel = Box
@@ -21,5 +22,8 @@ class BoxApiHandler(DefaultApiHandler):
             "type": data["type"], 
             "parent_id": queries["note_id"]
         }
+    
+    def make_id(self, queries, ref=[]):
+        return queries['note_id'] + '-' + my_utils.generated_unique_id()
     
 Interface = BoxApiHandler()
