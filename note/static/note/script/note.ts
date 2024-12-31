@@ -5,18 +5,17 @@
 const csrftoken: string = getCsrfToken();
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
-function animateLoadingBar() {
-    if(contentLoadingDisplay) {
-        contentLoadingDisplay.classList.add('animate-bar');
-    }
-}
+const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
 function endLoadingAnimation() {
     console.log('END_LOADING_ANIMATION')
-    if(contentLoadingDisplay) {
-        contentLoadingDisplay.classList.remove('animate-bar');
-        contentLoadingDisplay.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-        contentLoadingDisplay.style.width = '100%'; // 最後にバーを100%に設定
-        contentLoadingDisplay.style.transition = 'width 1s'
+    if(contentLoadingBar && contentLoadingDisplay) {
+        contentLoadingBar.classList.remove('animate-bar');
+        //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+        contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+        contentLoadingBar.style.transition = 'width 1s'
+        
+        contentLoadingDisplay.style.transition = 'height 1s 1s';
+        contentLoadingDisplay.style.height = '0%';
     }
 }
 
