@@ -9,7 +9,7 @@ function Submit_button_was_clicked(e) {
         const id = result['assigned_id'];
 
         function callback(result) {
-            alert(result['short_url'])
+            alert(result['short_url']);
         }
         callNoteApi({
             'url': makeApiUrl('share/SYSTEM/'),
