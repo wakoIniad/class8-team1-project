@@ -64,7 +64,8 @@ class NoteController {
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
         'putbox': false,
-        'autosave': false,
+        'autosave': true,
+        'live': false,
     };
     onActivate: {[key: string]: ()=>void} = {
         /*'putbox': ()=> {
@@ -82,8 +83,8 @@ class NoteController {
 
     constructor(nudgeSize?: number) {
         if(nudgeSize)this.nudgeSize = nudgeSize;
-        document.addEventListener('keydown', this.onKeydown.bind(this))
-        document.addEventListener('keyup', this.onKeyup.bind(this))
+        document.addEventListener('keydown', this.onKeydown.bind(this));
+        document.addEventListener('keyup', this.onKeyup.bind(this));
     }
 
     onKeydown(event: KeyboardEvent) {
@@ -830,24 +831,29 @@ class UiFunctions {
     type: string;
     activated: boolean = false;
     element: HTMLElement;
-    constructor(uiLamp: HTMLElement, type: string) {
+    noteController: NoteController;
+    constructor(uiLamp: HTMLElement, type: string, noteController: NoteController) {
         this.element = uiLamp;
         this.type = type;
         this.element.addEventListener('click', (event: MouseEvent)=>{
            this.activate.apply(this); 
         });
+        this.noteController = noteController;
+        if(this.noteController.activeFunctions[this.type]) {
+            this.activate();
+        }
     }
     activate() {
         if(this.activated) {
             this.deactivate();
         } else {
-            noteController.activateFunctions(this.type);
+            this.noteController.activateFunctions(this.type);
             this.activated = true;
             this.element.classList.add('activate');
         }
     }
     deactivate() {
-        noteController.deactiveFunctions(this.type);
+        this.noteController.deactiveFunctions(this.type);
         this.activated = false;
         this.element.classList.remove('activate');
     }
@@ -862,7 +868,7 @@ for(const uiItem of uiButtonElements) {
 const uiLampElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-lamp');
 for(const uiLamp of uiLampElements) {
     if (uiLamp instanceof HTMLElement) {
-        new UiFunctions(uiLamp, uiLamp.id.replace('ui-item-for_',''))
+        new UiFunctions(uiLamp, uiLamp.id.replace('ui-item-for_',''), noteController);
     }
 }
 
