@@ -642,3 +642,55 @@ uitest.addEventListener('change',e=>{
     }
 })
 
+class Modal {
+    static container: HTMLElement;
+    message: string;
+    type: string;
+    modalElement?: HTMLDivElement;
+    lifetime: number;
+    constructor(type: string, message: string, lifetime?: number) {
+        this.type = type;
+        this.message = message;
+        this.lifetime = lifetime || Infinity;
+    }
+    //代入されるのを待つために ? をつけてるんだから、
+    //代入したということをコンパイル時に伝える方法が欲しい
+    init(T=this.modalElement): T is HTMLDivElement { //きもい
+        this.modalElement = document.createElement('div');
+        switch(this.type) {
+            case 'info-bar':
+                this.modalElement.classList.add('modal-info-bar');
+                this.modalElement.textContent = this.message;
+                break;
+        }
+        return true;
+    }
+    initialized<T>(target: T) : target is T {
+        return true
+    }
+
+    show() {
+        if(this.modalElement === undefined && !this.init(this.modalElement))return;
+        Modal.container.appendChild(this.modalElement);
+        if(Number.isFinite(this.lifetime)) {
+            setTimeout(this.delete.bind(this), this.lifetime)
+        }
+    }
+    close() {
+    }
+    delete() {
+        this.close();
+    }
+    static init() {
+        const container:HTMLElement | null = document.getElementById('modal-container');
+        if( container !== null ) {
+            Modal.container = container;
+        } else {
+            const container = document.createElement('div');
+            container.setAttribute('id', 'modal-container');
+            document.appendChild(container);
+            Modal.container = container;
+        }
+    }
+}
+Modal.init();
