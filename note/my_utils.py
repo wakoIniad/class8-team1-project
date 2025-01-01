@@ -70,8 +70,8 @@ def compress_base64_image(base64_str, target_size_kb):
     # Base64をデコードして画像データに変換
     image_data = base64.b64decode(clean_base64_string(base64_str))
     image = Image.open(BytesIO(image_data))
-    if image.mode == 'RGBA':
-            image = image.convert('RGB')
+    #if image.mode == 'RGBA':
+    #        image = image.convert('RGB')
 
     # 目標サイズをバイトに変換
     target_size_bytes = target_size_kb * 1024
@@ -83,7 +83,7 @@ def compress_base64_image(base64_str, target_size_kb):
     while True:
         # 画像をバッファに保存して圧縮
         buffer = BytesIO()
-        image.save(buffer, format="JPEG", quality=quality)
+        image.save(buffer, format="WebP", quality=quality)
         size = buffer.tell()
 
         # サイズが目標を満たしている場合、または品質が極端に低い場合に終了

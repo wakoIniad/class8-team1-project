@@ -56,6 +56,35 @@ interface BlockInterface {
     init: () => void;
 }
 
+class NoteController {
+
+    activeFunctions: {[key: string]: boolean} = {
+        'nudge': false,
+    };
+    shortcutMap: {[key: string]: string} = {
+        'n': 'nudge',
+    };
+    nudgeSize: number = 32;
+
+    constructor(nudgeSize?: number) {
+        if(nudgeSize)this.nudgeSize = nudgeSize;
+        document.addEventListener('keydown', this.activateFunctions.bind(this))
+        document.addEventListener('keyup', this.deactiveFunctions.bind(this))
+    }
+    
+    activateFunctions(event: KeyboardEvent) {
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]]) {        
+            this.activeFunctions[this.shortcutMap[event.key]] = true;
+        }
+    }
+    deactiveFunctions(event: KeyboardEvent) {
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]]) {        
+            this.activeFunctions[this.shortcutMap[event.key]] = false;
+        }
+
+    }
+}
+
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     
@@ -76,11 +105,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     pendingSync: boolean;
     dumped: boolean;
     maskElement: HTMLDivElement;
+
+    noteController: NoteController;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
-        id: string | Promise<string>, value?: string, type?: string,
+        id: string | Promise<string>, noteController: NoteController, value?: string, type?: string,
     ) {
+        this.noteController = noteController;
         this.dumped = false;
 
         this.loaderId = 0;
@@ -131,6 +163,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if(e.key == 'Delete') {
 //                this.boxFrameElement.removeEventListener("keydown", this);
                 this.dump();
+            } else {
+
             }
             console.log(this.id, e.key);
         }).bind(this));
@@ -152,6 +186,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
+        
+        
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -196,41 +232,39 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         
         this.maskElement.classList.add('loading');
         this.pendingRequest.then(response => {
-            
-        }).catch(error => {
-            console.log('これですよ！',error)
-            this.maskElement.classList.add('loading-error');
-            
-            error.json().then(responseData=>{
-                let messageText = '';
-                switch(error.status) {
-                    case 400:
-                        switch(responseData?.message) {
-                            case 'RequestDataTooBig':
-                                messageText = '- データサイズが大きすぎます'
-                                break;
-                            default:
-                                messageText = '- 編集内容に問題があります';
-                        }
-                        break;
-                    default:
-                        messageText = '- 原因不明';
-                }
-                const noticeModal = new Modal(
-                    'info-bar', 
-                    'データの反映に失敗しました\n'+messageText,
-                    5000
-                );
-                noticeModal.show();
-            });
-            
-        }).finally(()=> {
             this.pendingRequest = undefined;
             if(this.pendingSync) {
                 this.pendingSync = false;
                 this.syncServer();
             } else {
                 this.maskElement.classList.remove('loading');
+                if (response.statusText !== 'OK') {
+                    this.maskElement.classList.add('loading-error');
+                    (async()=>{
+                        const responseData = await response.json();
+                        let messageText = '';
+                        switch(response.status) {
+                            case 400:
+                                switch(responseData?.message) {
+                                    case 'RequestDataTooBig':
+                                        messageText = '- データサイズが大きすぎます'
+                                        break;
+                                    default:
+                                        messageText = '- 編集内容に問題があります';
+                                }
+                                break;
+                            default:
+                                messageText = '- 原因不明';
+                        }
+                        const noticeModal = new Modal(
+                            'info-bar', 
+                            'データの反映に失敗しました\n'+messageText,
+                            5000
+                        );
+                        noticeModal.init();
+                        noticeModal.show();
+                    })();
+                }
             }
         });
     }
@@ -325,6 +359,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     async resize(width: number, height: number): Promise<void> {
+        if(this.noteController.activeFunctions['nudge'] === true) {
+            width = ~~(width/this.noteController.nudgeSize);
+            height = ~~(height/this.noteController.nudgeSize);
+        }
         //this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
@@ -335,8 +373,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }});
     }
     async relocate(x: number, y: number): Promise<void> {
-        this.boxFrameElement.style.left = this.coordToString(this.x = x);
-        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
+        if(this.noteController.activeFunctions['nudge'] === true) {
+            x = ~~(x/this.noteController.nudgeSize);
+            y = ~~(y/this.noteController.nudgeSize);
+        }
+        this.x = x;
+        this.y = y;
+        this.boxFrameElement.style.left = this.coordToString(x);
+        this.boxFrameElement.style.top =  this.coordToString(y);
         await this.callAPI('POST', { body: {
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
@@ -367,8 +411,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor( range: rangeData, text: string = '', id: string|Promise<string> ) {
-        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id,  text, 'text', );
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
     async init() {
         super.init();
@@ -395,8 +439,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, URI, 'image');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
     }
 
     async init() {
@@ -459,8 +503,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
-        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, URI, 'canvas');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -554,6 +598,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
+const noteController: NoteController = new NoteController(32);
+
 function putBox(type: string) {
     if(!container)return;
     let xs:number[] = [];
@@ -623,13 +669,13 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
     let res;
     switch(type) {
         case 'text':
-            res = new TextBlock(range, value, id);
+            res = new TextBlock(range, value, id, noteController);
             break;
         case 'image':
-            res = new ImageBlock(range, value, id);
+            res = new ImageBlock(range, value, id, noteController);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value, id);
+            res = new canvasBlock(range, value, id, noteController);
             break;
     }
     if(id) {
@@ -695,11 +741,11 @@ class Modal {
         this.initialized = true;
     }
     proveInitialized<T>(target,initializer): target is NonNullable<T> {
-        if(target === undefined || target === null) initializer.apply(this);
+        if(target === undefined || target === null) initializer();
         return target !== undefined && target !== null;
     }
     show() {//なんかかっこいいから許容範囲内
-        if(this.proveInitialized(this.modalElement, this.init)) {
+        if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
             Modal.container.appendChild(this.modalElement);
             if(Number.isFinite(this.lifetime)) {
                 setTimeout(this.delete.bind(this), this.lifetime)
@@ -707,7 +753,7 @@ class Modal {
         }
     }
     close() {
-        if(this.proveInitialized(this.modalElement, this.init)) {
+        if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
             Modal.container.removeChild(this.modalElement);
         }
     }
@@ -729,6 +775,6 @@ class Modal {
 }
 Modal.init();
 
-const m = new Modal('info-bar', 'This is test',3000);
+const m = new Modal('info-bar', 'Hello!',3000);
 m.init();
 m.show();
