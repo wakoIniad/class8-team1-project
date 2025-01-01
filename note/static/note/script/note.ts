@@ -61,6 +61,7 @@ class NoteController {
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
         'putbox': false,
+        'autosave': false,
     };
     onActivate: {[key: string]: ()=>void} = {
         /*'putbox': ()=> {
@@ -95,6 +96,7 @@ class NoteController {
                 this.onActivate[functionName]();
             }
         }
+        console.table(this.activeFunctions)
     }
     deactiveFunctions(functionName: string) {
         if(this.activeFunctions?.[functionName] !== undefined) {        
@@ -770,14 +772,14 @@ async function helloUser() {
 helloUser();
 
 class UiDrawMode {
-    static allElements: UiDrawMode[] = [];
+    static allTypes: UiDrawMode[] = [];
     static selectedItem?: UiDrawMode = undefined;
     element: HTMLElement;
     type: string;
-    constructor(element, type) {
+    constructor(element: HTMLElement, type: string) {
         this.type = type;
         this.element = element;
-        UiDrawMode.allElements.push(this);
+        UiDrawMode.allTypes.push(this);
         this.element.addEventListener('click', (event: MouseEvent) => {
             this.selected();
         });
@@ -793,7 +795,7 @@ class UiDrawMode {
             this.unselected();
             UiDrawMode.selectedItem = undefined;
         } else {
-            UiDrawMode.allElements.forEach(uiItem=> uiItem.unselected());
+            UiDrawMode.allTypes.forEach(uiItem=> uiItem.unselected());
             this.element.classList.add('ui-selected');
             UiDrawMode.selectedItem = this;
             putBox();
@@ -804,11 +806,38 @@ class UiDrawMode {
         this.unfocused();
     }
     focused() {
-        UiDrawMode.allElements.forEach(uiItem=> uiItem.unfocused());
+        UiDrawMode.allTypes.forEach(uiItem=> uiItem.unfocused());
         this.element.classList.add('ui-forcused');
     }
     unfocused() {
         this.element.classList.remove('ui-forcused');
+    }
+}
+
+class UiFunctions {
+    type: string;
+    activated: boolean = false;
+    element: HTMLElement;
+    constructor(uiLamp: HTMLElement, type: string) {
+        this.element = uiLamp;
+        this.type = type;
+        this.element.addEventListener('click', (event: MouseEvent)=>{
+           this.activate.apply(this); 
+        });
+    }
+    activate() {
+        if(this.activated) {
+            this.deactivate();
+        } else {
+            noteController.activateFunctions(this.type);
+            this.activated = true;
+            this.element.classList.add('activate');
+        }
+    }
+    deactivate() {
+        noteController.deactiveFunctions(this.type);
+        this.activated = false;
+        this.element.classList.remove('activate');
     }
 }
 
@@ -821,10 +850,7 @@ for(const uiItem of uiButtonElements) {
 const uiLampElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-lamp');
 for(const uiLamp of uiLampElements) {
     if (uiLamp instanceof HTMLElement) {
-        uiLamp.addEventListener('click', function(event: MouseEvent){
-            const type = uiLamp.id.replace('ui-item-for_','');
-            noteController.activateFunctions()
-        });
+        new UiFunctions(uiLamp, uiLamp.id.replace('ui-item-for_',''))
     }
 }
 
@@ -862,8 +888,8 @@ function putBox() {
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
         };
-        if(UiItem.selectedItem && PROCESS_ID === putBoxId) {
-            const boxType = UiItem.selectedItem.type;
+        if(UiDrawMode.selectedItem && PROCESS_ID === putBoxId) {
+            const boxType = UiDrawMode.selectedItem.type;
             const putData = {
                 range: range, type: boxType
             }
@@ -890,7 +916,7 @@ function putBox() {
             pageObjects.push(block);
         }
 
-        UiItem.selectedItem!.unselected();
+        UiDrawMode.selectedItem!.unselected();
         
         xs = [];
         ys = [];
