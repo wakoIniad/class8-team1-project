@@ -613,7 +613,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
 const noteController: NoteController = new NoteController(32);
 
+let putBoxId = 0;
 function putBox(type: string) {
+    let PROCESS_ID = ++putBoxId;
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
@@ -631,44 +633,47 @@ function putBox(type: string) {
         //container?.removeEventListener('onmouseout', cancel);
     }
     const onmouseup = (e)=>{
-        xs.push(e.clientX);
-        ys.push(e.clientY);
-        const mx = Math.min(...xs);
-        const my = Math.min(...ys);
-        const Mx = Math.max(...xs);
-        const My = Math.max(...ys);
-        const range = {
-            x: mx,
-            y: my,
-            width: Math.max(Mx - mx,150), 
-            height: Math.max(My - my, 100)
-        };
-        const putData = {
-            range: range, type: type
-        }
-        const idPromise = (async function() {
-            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
-            const response = await fetch(url, {
-                method: 'PUT',
-                body: JSON.stringify(putData),
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                  'X-CSRFToken': csrftoken,
-                },
-            });
-            //try
-            const parsed = await response.json()
+        if(PROCESS_ID === putBoxId) {
+            xs.push(e.clientX);
+            ys.push(e.clientY);
+            const mx = Math.min(...xs);
+            const my = Math.min(...ys);
+            const Mx = Math.max(...xs);
+            const My = Math.max(...ys);
+            const range = {
+                x: mx,
+                y: my,
+                width: Math.max(Mx - mx,150), 
+                height: Math.max(My - my, 100)
+            };
+            const putData = {
+                range: range, type: type
+            }
+            const idPromise = (async function() {
+                const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    body: JSON.stringify(putData),
+                    headers: {
+                      'Content-Type': 'application/json; charset=utf-8',
+                      'X-CSRFToken': csrftoken,
+                    },
+                });
+                //try
+                const parsed = await response.json()
 
-            return parsed['assigned_id'];
-            //} catch(e) {
-            
-            //}
-        })();
-        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-        
-        
-        const block = makeBlockObject(range, type, idPromise);
-        pageObjects.push(block);
+                return parsed['assigned_id'];
+                //} catch(e) {
+
+                //}
+            })();
+            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+
+
+            const block = makeBlockObject(range, type, idPromise);
+            pageObjects.push(block);
+            UiItem.selectedItem!.unselected();
+        }
         xs = [];
         ys = [];
         container?.removeEventListener('mouseup', onmouseup);
@@ -830,9 +835,11 @@ class UiItem {
         UiItem.allElements.forEach(uiItem=> uiItem.unselected());
         this.element.classList.add('ui-selected');
         UiItem.selectedItem = this;
+        putBox(this.type);
     }
     unselected() {
         this.element.classList.remove('ui-selected');
+        this.unfocused();
     }
     focused() {
         UiItem.allElements.forEach(uiItem=> uiItem.unfocused());
