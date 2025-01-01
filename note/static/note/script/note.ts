@@ -784,7 +784,7 @@ class UiItem {
             UiItem.allElements.forEach(uiItem=> uiItem.unselected());
             this.element.classList.add('ui-selected');
             UiItem.selectedItem = this;
-            //putBox(this.type);
+            putBox();
         }
     }
     unselected() {
@@ -808,13 +808,14 @@ for(const uiItem of uiItemElements) {
 }
 
 
-
+let putBoxId = 0;
 function putBox() {
+    const PROCESS_ID = ++putBoxId;
     if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
     const cancel = () => {
-        //container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
         container?.removeEventListener('onmouseout', cancel);
         container?.removeEventListener('onmouseleave', cancel);
@@ -822,7 +823,7 @@ function putBox() {
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-        //container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mousedown', onmousedown);
         //container?.removeEventListener('onmouseleave', cancel);
         //container?.removeEventListener('onmouseout', cancel);
         
@@ -841,7 +842,7 @@ function putBox() {
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
         };
-        if(UiItem.selectedItem) {
+        if(UiItem.selectedItem && PROCESS_ID === putBoxId) {
             const boxType = UiItem.selectedItem.type;
             const putData = {
                 range: range, type: boxType
@@ -869,7 +870,7 @@ function putBox() {
             pageObjects.push(block);
         }
 
-        //UiItem.selectedItem!.unselected();
+        UiItem.selectedItem!.unselected();
         
         xs = [];
         ys = [];
