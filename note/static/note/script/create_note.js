@@ -1,15 +1,17 @@
-const buttonElement = document.getElementById("submit");
-const inputTextElement = document.getElementById("name");
+const buttonElm = document.getElementById("submit");
+const inputElm = document.getElementById("note_name");
 
-function Submit_button_was_clicked(e) {
+function onclick(e) {
     e.preventDefault();
-    const inputted_name_by_user = inputTextElement.value;
+    const note_name = inputElm.value;
 
     function callback(result) {
         const id = result['assigned_id'];
 
         function callback(result) {
-            alert(result['short_url']);
+            const noteList = getCookie('note_list')||'[]';
+            setCookie('note_list',JSON.stringify([...JSON.parse(noteList), id]));
+            window.open(result['short_url'], '_blank');
         }
         callNoteApi({
             'url': makeApiUrl('share/SYSTEM/'),
@@ -25,11 +27,11 @@ function Submit_button_was_clicked(e) {
         'url': makeApiUrl('note/SYSTEM/'),
         'method': 'PUT',
         'data': {
-            'name': inputted_name_by_user
+            'name': note_name
         },
         'callback': callback
     });
     
 }
 
-buttonElement.onclick = Submit_button_was_clicked;
+buttonElm.onclick = onclick;

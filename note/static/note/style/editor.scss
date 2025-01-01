@@ -119,3 +119,10 @@ opacity:0;	○	○
     background: rgba(0,0,0,0.5);
     pointer-events: none;
 }
+
+.box-mask.loading-error {
+    display: block;
+    z-index: 2;
+    background: rgba(255,0,0,0.5);
+    pointer-events: none;
+}

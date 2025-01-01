@@ -48,3 +48,26 @@ a {
   font-weight: 400;
   font-style: normal;
 }
+
+.logo-font {
+  @extend .poiret-one-regular
+}
+
+.note-logo-bar {
+  width: 100%;
+  height: 5em;
+  padding: 0;
+/*    background: #11631c;
+  background-color: rgb(37,153,118);*/
+  
+  background-color: rgb(57,123,108);
+  border-bottom: 1px white solid;
+}
+
+.app-icon {
+  height: 100%;
+  margin: auto;
+  padding: auto;
+  border: none;
+}
+

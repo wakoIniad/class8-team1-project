@@ -1,24 +1,17 @@
 {% load static %}
 {% load sass_tags %}
 <link rel='stylesheet' href='{% sass_src "note/style/header.scss" %}'>
-<link rel='stylesheet' href='{% static "compiled/note/style/header.css" %}'>
 
 
 <header class="header">
 
-    <div class="note-logo-ber">
+    <div class="note-logo-bar">
         <image class="app-icon d-inline" src="{% static 'note/image/memolive_icon.jpg' %}">
-        <h1 class="poiret-one-regular d-inline-block app-name">
+        <h1 class="logo-font d-inline-block app-name">
             Memolive
         </h1>
-        <p class="d-inline-block jost-400">{{note.name}}__({{note.id}})</p>
+        <p class="d-inline-block jost-400">@{{note.name}}</p>
     </div>
-    <div class="note-info"><div id="content-loading-display" class="animation-bar animate-bar"></div></div>
-    
-    <select id="ui" class="jost-400">
-        <option class="ui-block-option" value="">--the type of box--</option>
-        <option class="ui-block-option" value="image">image</option>
-        <option class="ui-block-option" value="text">text</option>
-        <option class="ui-block-option" value="canvas">canvas</option>
-    </select>
+
+    <div class="note-info" id="content-loading-display"><div id="content-loading-bar" class="animation-bar animate-bar"></div></div>
 </header>

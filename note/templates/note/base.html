@@ -2,7 +2,7 @@
 {% load static %}
 {% load sass_tags %}
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja"><!-- break-word: auto-phrase で必須なので変更不可  -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,6 @@
     <title>{{title}}</title>
 
     <link rel='stylesheet' href='{% sass_src "note/style/global.scss" %}'>
-    <link rel='stylesheet' href='{% static "compiled/note/style/global.css" %}'>
 
     {% bootstrap_css %}
     <!-- ブラウザによる表示の違いを少なくする: https://unpkg.com/ress/dist/ress.min.css -->

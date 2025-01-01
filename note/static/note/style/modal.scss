@@ -1,0 +1,84 @@
+
+$modal-info-width: 200px;
+
+@mixin keyframes($animation-name) {
+  @keyframes #{$animation-name} {
+    @content;
+  }
+}
+@mixin animation($animation-name) {
+  -webkit-animation: $animation-name;
+  animation: $animation-name;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+
+@include keyframes(info-slide-in) {
+    0% {
+        position: fixed;
+        opacity: 0;
+        left: calc(100% - #{$modal-info-width} * 2);
+        border-left: solid 10px rgb(255, 255, 0);
+    }
+    45% {
+        border-left: solid 10px rgb(255, 255, 0);
+    }
+    60% {
+        border-left: solid 10px rgb(255, 200, 200);
+    }
+    100% {
+        position: static;
+        opacity: 1;
+        left: calc(100% - #{$modal-info-width} * 1);
+    }
+}
+
+.modal-container {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.modal {
+  position: fixed;
+  height: fit-content;
+  display: block;
+  left: calc(100% - #{$modal-info-width} * 2);
+  transition: left .5 linear;
+}
+
+.info-container {
+    position: absolute;
+    width: fit-content;
+    height: 100%;
+    left: calc(100% - #{$modal-info-width});
+    top: 0;
+}
+
+.modal-info-bar {
+    
+  @include animation(info-slide-in 1s );
+  
+  width: $modal-info-width;
+  display: block;
+
+  color: rgb(0,0,0);
+  background-color: rgb(255,255,255);
+  border-left: solid 10px rgb(255, 255, 0);
+  box-sizing: content-box;
+  //word-break: auto-phrase;//日本語ならwbrを使う！
+    //overflow-wrap: break-word; 
+  //text-wrap: balance;
+  margin-block: 10px;
+}
+
+.modal-message-container {
+
+}
+
+.modal-message-container > .modal-message-button {
+
+}

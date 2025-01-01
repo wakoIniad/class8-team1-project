@@ -3,30 +3,43 @@ import json
 
 MODEL_NOT_FOUND_MESSAGE = "ModelDoesNotExist"
 UNEXPECTED_ERROR_MESSAGE = "ErrorUnexpected"
-ADVICE_MESSAGE_FORTEAM = "Ctrl + Shift + Iで開く開発者ツールからNetworkタブを見れば、詳細が見れるよ"
+REQUEST_DATA_TOO_BIG_MESSAGE = "RequestDataIsTooBig"
+ADVICE_MESSAGE_FOR_TEAMMEMBER = "Ctrl + Shift + Iで開く開発者ツールからNetworkタブを見れば、詳細が見れます!"
 
 API_RESPONSES = {
     "MODEL_NOT_FOUND": HttpResponseServerError(json.dumps({
-            'message': 'Not Found Error (404)', 
-            'details': MODEL_NOT_FOUND_MESSAGE + '\n' + ADVICE_MESSAGE_FORTEAM,
+            'message': 'NotFoundError', 
+            'details': MODEL_NOT_FOUND_MESSAGE,
+            'for_cs_team_member': ADVICE_MESSAGE_FOR_TEAMMEMBER,
         }),
         content_type='application/json',
         status=404
     ),
     "UNEXPECTED_ERROR_MESSAGE": HttpResponseServerError(json.dumps({
-            'message': 'Server Error (500)', 
-            'details': UNEXPECTED_ERROR_MESSAGE + '\n' + ADVICE_MESSAGE_FORTEAM
+            'message': 'InternalServerError', 
+            'details': UNEXPECTED_ERROR_MESSAGE,
+            'for_cs_team_member': ADVICE_MESSAGE_FOR_TEAMMEMBER,
         }),
         content_type='application/json',
         status=500
     ),
     "SUCCESS": HttpResponse(json.dumps({
-            'message': 'API Calling Success', 
-            'details': ADVICE_MESSAGE_FORTEAM,
+            'message': 'APICallingSuccess', 
+            'details': '',
+            'for_cs_team_member': ADVICE_MESSAGE_FOR_TEAMMEMBER,
         }),
         content_type='application/json',
         status=200
     ),
+    "REQUEST_DATA_TOO_BIG": HttpResponse(json.dumps({
+            'message': 'RequestDataTooBig', 
+            'details': REQUEST_DATA_TOO_BIG_MESSAGE,
+            'for_cs_team_member': ADVICE_MESSAGE_FOR_TEAMMEMBER,
+        }),
+        content_type='application/json',
+        status=400
+    ),
+
 }
 
 SYSTEM_API_PATH_SEGMENT = 'SYSTEM'

@@ -5,12 +5,42 @@
     {% include 'note/header-ui.html' %}
     
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
-    <link rel='stylesheet' href='{% static "compiled/note/style/editor.css" %}'>
+    
+    <link rel='stylesheet' href='{% sass_src "note/style/modal.scss" %}'>
+    <link rel='stylesheet' href='{% sass_src "note/style/editor-ui.scss" %}'>
+    <!-- exが付いているファイルは自分では制作していないファイル -->
+    <link rel='stylesheet' href='{% sass_src "note/style/ex-animation2.scss" %}'>
+    <link rel='stylesheet' href='{% static "note/style/ex-animation.css" %}'>
 
     <div id="container">
     </div>
     {% csrf_token %}
-    
+    <div class="ui-container">
+        <div class="ui-spacer">
+            
+            <div class="ui-item" id="ui-item-for_text">
+                <img class="ui-icon" src="https://img.icons8.com/?size=100&id=5I10YpmKS9iN&format=png&color=000000">
+            </div>
+            <div class="ui-item" id="ui-item-for_image">
+                <img class="ui-icon" src="https://img.icons8.com/?size=100&id=53433&format=png&color=000000">
+            </div>
+            <div class="ui-item" id="ui-item-for_canvas">
+                <img class="ui-icon" src="https://img.icons8.com/?size=100&id=8141&format=png&color=000000">
+            </div>
+            <div class="ui-item"></div>
+            <div class="ui-item"></div>
+            <div class="ui-item"></div>
+
+            <div class="svg-wrapper">
+                <svg height="40" width="150" xmlns="http://www.w3.org/2000/svg">
+                  <rect id="shape" height="40" width="150" />
+                  <div id="text">
+                    <a href=""><span class="spot"></span>SAVE</a>
+                  </div>
+                </svg>
+              </div>
+        </div>
+    </div>
     <script>
         //const initialPageObjects = {{ initialPageObjects }};
         

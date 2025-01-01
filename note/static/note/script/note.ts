@@ -5,18 +5,17 @@
 const csrftoken: string = getCsrfToken();
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
-function animateLoadingBar() {
-    if(contentLoadingDisplay) {
-        contentLoadingDisplay.classList.add('animate-bar');
-    }
-}
+const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
 function endLoadingAnimation() {
     console.log('END_LOADING_ANIMATION')
-    if(contentLoadingDisplay) {
-        contentLoadingDisplay.classList.remove('animate-bar');
-        contentLoadingDisplay.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-        contentLoadingDisplay.style.width = '100%'; // 最後にバーを100%に設定
-        contentLoadingDisplay.style.transition = 'width 1s'
+    if(contentLoadingBar && contentLoadingDisplay) {
+        contentLoadingBar.classList.remove('animate-bar');
+        //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+        contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+        contentLoadingBar.style.transition = 'width 1s'
+        
+        contentLoadingDisplay.style.transition = 'height 1s 1s';
+        contentLoadingDisplay.style.height = '0%';
     }
 }
 
@@ -57,6 +56,47 @@ interface BlockInterface {
     init: () => void;
 }
 
+class NoteController {
+
+    activeFunctions: {[key: string]: boolean} = {
+        'nudge': false,
+        'putbox': false,
+    };
+    onActivate: {[key: string]: ()=>void} = {
+        'putbox': ()=> {
+            if( UiItem.selectedItem !== undefined ) {
+                putBox(UiItem.selectedItem.type);
+            }
+        }
+    }
+    shortcutMap: {[key: string]: string} = {
+        'n': 'nudge',
+        'b': 'putbox',
+    };
+    nudgeSize: number = 32;
+
+    constructor(nudgeSize?: number) {
+        if(nudgeSize)this.nudgeSize = nudgeSize;
+        document.addEventListener('keydown', this.activateFunctions.bind(this))
+        document.addEventListener('keyup', this.deactiveFunctions.bind(this))
+    }
+    
+    activateFunctions(event: KeyboardEvent) {  
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {
+            this.activeFunctions[this.shortcutMap[event.key]] = true;
+            if(this.shortcutMap[event.key] in this.onActivate) {
+                this.onActivate[this.shortcutMap[event.key]]();
+            }
+        }
+    }
+    deactiveFunctions(event: KeyboardEvent) {
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {        
+            this.activeFunctions[this.shortcutMap[event.key]] = false;
+        }
+
+    }
+}
+
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     
@@ -77,11 +117,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     pendingSync: boolean;
     dumped: boolean;
     maskElement: HTMLDivElement;
+
+    noteController: NoteController;
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
-        id: string | Promise<string>, value?: string, type?: string,
+        id: string | Promise<string>, noteController: NoteController, value?: string, type?: string,
     ) {
+        this.noteController = noteController;
         this.dumped = false;
 
         this.loaderId = 0;
@@ -132,6 +175,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if(e.key == 'Delete') {
 //                this.boxFrameElement.removeEventListener("keydown", this);
                 this.dump();
+            } else {
+
             }
             console.log(this.id, e.key);
         }).bind(this));
@@ -153,6 +198,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
+        
+        
+    }
+    resetMaskUI() {
+        this.maskElement.classList.remove('loading-error');
     }
 
     async getId() {
@@ -191,14 +241,43 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         
         console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
+        
         this.maskElement.classList.add('loading');
-        this.pendingRequest.then(() => {
+        this.pendingRequest.then(response => {
             this.pendingRequest = undefined;
             if(this.pendingSync) {
                 this.pendingSync = false;
                 this.syncServer();
             } else {
                 this.maskElement.classList.remove('loading');
+                if (response.statusText !== 'OK') {
+                    this.maskElement.classList.add('loading-error');
+                    (async()=>{
+                        const responseData = await response.json();
+                        let messageText = '';
+                        switch(response.status) {
+                            case 400:
+                                switch(responseData?.message) {
+                                    case 'RequestDataTooBig':
+                                        messageText = '- データサイズが大きすぎます'
+                                        break;
+                                    default:
+                                        messageText = '- 編集内容に問題があります';
+                                }
+                                break;
+                            default:
+                                messageText = '- 原因不明';
+                        }
+                        const noticeModal = new Modal(
+                            'info-bar', 
+                            'データの反映に失敗しました\n'+messageText,
+                            5000,
+                            Modal.infoContainer
+                        );
+                        noticeModal.init();
+                        noticeModal.show();
+                    })();
+                }
             }
         });
     }
@@ -285,6 +364,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     async applyValue(): Promise<void> {
+        this.resetMaskUI();
         await this.callAPI('POST', { body: {
             update_keys: ["value"],
             update_values: [this.value]
@@ -292,6 +372,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     async resize(width: number, height: number): Promise<void> {
+        if(this.noteController.activeFunctions['nudge'] === true) {
+            width -= width%this.noteController.nudgeSize;
+            height -= height%this.noteController.nudgeSize;
+        }
         //this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
@@ -302,8 +386,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }});
     }
     async relocate(x: number, y: number): Promise<void> {
-        this.boxFrameElement.style.left = this.coordToString(this.x = x);
-        this.boxFrameElement.style.top =  this.coordToString(this.y = y);
+        if(this.noteController.activeFunctions['nudge'] === true) {
+            x -= x%this.noteController.nudgeSize;
+            y -= y%this.noteController.nudgeSize;
+        }
+        this.x = x;
+        this.y = y;
+        this.boxFrameElement.style.left = this.coordToString(x);
+        this.boxFrameElement.style.top =  this.coordToString(y);
         await this.callAPI('POST', { body: {
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
@@ -328,14 +418,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 
          * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
          */ 
-        this.callAPI('DELETE', { force: true } );
+        await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
     }
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    constructor( range: rangeData, text: string = '', id: string|Promise<string> ) {
-        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id,  text, 'text', );
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
     async init() {
         super.init();
@@ -362,8 +452,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, URI, 'image');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
     }
 
     async init() {
@@ -426,8 +516,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     private lastX: number | null;
     private lastY: number | null;
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string> ) {
-        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, URI, 'canvas');
+    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
         if(context !== null) {
             this.context = context;
@@ -498,9 +588,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             ['mouseout', ()=>{
                 this.paintEnd();
             }],
-            ['mouseleave', (()=>{
+            ['mouseleave', ()=>{
                 this.paintEnd();
-            })],
+            }],
         ];
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.addEventListener(name, callback, {capture: true});
@@ -520,6 +610,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         await super.applyValue();
     }
 }
+
+const noteController: NoteController = new NoteController(32);
 
 function putBox(type: string) {
     if(!container)return;
@@ -593,13 +685,13 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
     let res;
     switch(type) {
         case 'text':
-            res = new TextBlock(range, value, id);
+            res = new TextBlock(range, value, id, noteController);
             break;
         case 'image':
-            res = new ImageBlock(range, value, id);
+            res = new ImageBlock(range, value, id, noteController);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value, id);
+            res = new canvasBlock(range, value, id, noteController);
             break;
     }
     if(id) {
@@ -629,11 +721,135 @@ fetch(NOTE_API_URL+NOTE_ID)
     applyPageData(...initialPageObjects);
 });
 
-const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
-uitest.addEventListener('change',e=>{
-    putBox(uitest.value);
-    let option_states: NodeListOf<HTMLOptionElement> = document.querySelectorAll("#ui option");
-    for(let state of option_states) {
-        state.selected = false;
+class Modal {
+    static container: HTMLElement;
+    static infoContainer: HTMLElement;
+    message: string;
+    type: string;
+    modalElement?: HTMLDivElement;
+    lifetime: number;
+    initialized: boolean = false;
+    container: HTMLElement;
+    
+    constructor(type: string, message: string, lifetime?: number, container: HTMLElement) {
+        this.type = type;
+        this.message = message;
+        this.lifetime = lifetime || Infinity;
+        this.container = container;
     }
-})
+    //代入されるのを待つために ? をつけてるんだから、
+    //代入したということをコンパイル時に伝える方法が欲しい
+    init() { 
+        this.modalElement = document.createElement('div');
+        
+        switch(this.type) {
+            case 'info-bar':
+                this.modalElement.classList.add('modal', 'modal-info-bar');
+                this.modalElement.innerText = this.message;
+                break;
+        }
+        this.initialized = true;
+    }
+    proveInitialized<T>(target,initializer): target is NonNullable<T> {
+        if(target === undefined || target === null) initializer();
+        return target !== undefined && target !== null;
+    }
+    show() {//なんかかっこいいから許容範囲内
+        if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
+            this.container.appendChild(this.modalElement);
+            if(Number.isFinite(this.lifetime)) {
+                setTimeout(this.delete.bind(this), this.lifetime)
+            }
+        }
+    }
+    close() {
+        if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
+            this.container.removeChild(this.modalElement);
+        }
+    }
+    delete() {
+        this.close();
+    }
+    static init() {
+        const container:HTMLElement|null = document.getElementById('modal-container');
+        if( container !== null ) {
+            Modal.container = container;
+        } else {
+            const container = document.createElement('div');
+            container.setAttribute('id', `modal-container`); 
+            container.setAttribute('class', 'modal-container');
+            document.body.appendChild(container);
+            Modal.container = container;
+        }
+        const infoContainer: HTMLElement = document.createElement('div');
+        infoContainer.setAttribute('id','info-container');
+        infoContainer.setAttribute('class','info-container');
+        Modal.infoContainer = infoContainer;
+        Modal.container.appendChild(Modal.infoContainer);
+    }
+}
+Modal.init();
+
+async function sleep(time) {
+    return new Promise((resolve)=>{
+        setTimeout(resolve,time);
+    })
+}
+async function helloUser() {
+    const m1 = new Modal('info-bar', 'Hello!',3000, Modal.infoContainer);
+    m1.init();
+    m1.show();
+    await sleep(1000);
+    const m2 = new Modal('info-bar', 'You can edit',3000, Modal.infoContainer);
+    m2.init();
+    m2.show();
+    await sleep(1000);
+    const m3 = new Modal('info-bar', 'Memolive',3000, Modal.infoContainer);
+    m3.init();
+    m3.show();
+}
+//helloUser();
+
+class UiItem {
+    static allElements: UiItem[] = [];
+    static selectedItem?: UiItem = undefined;
+    element: HTMLElement;
+    type: string;
+    constructor(element, type) {
+        this.type = type;
+        this.element = element;
+        UiItem.allElements.push(this);
+        this.element.addEventListener('click', (event: MouseEvent) => {
+            this.selected();
+        });
+        this.element.addEventListener('mouseover', (event: MouseEvent) => {
+            this.focused();
+        });
+        this.element.addEventListener('mouseleave', (event: MouseEvent) => {
+            if(UiItem.selectedItem !== undefined)UiItem.selectedItem.focused();
+        });
+    }
+    selected() {
+        UiItem.allElements.forEach(uiItem=> uiItem.unselected());
+        this.element.classList.add('ui-selected');
+        UiItem.selectedItem = this;
+    }
+    unselected() {
+        this.element.classList.remove('ui-selected');
+    }
+    focused() {
+        UiItem.allElements.forEach(uiItem=> uiItem.unfocused());
+        this.element.classList.add('ui-forcused');
+    }
+    unfocused() {
+        this.element.classList.remove('ui-forcused');
+    }
+}
+
+const uiItemElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-item');
+for(const uiItem of uiItemElements) {
+    if (uiItem instanceof HTMLElement) {
+        new UiItem(uiItem, uiItem.id.replace('ui-item-for_',''));
+    }
+}
+

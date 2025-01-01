@@ -6,6 +6,7 @@ from django.db import models
 
 from . import constants, my_utils
 import json, random, requests
+from django.core import exceptions
 
 from functools import partial
 
@@ -61,7 +62,10 @@ class DefaultApiHandler:
 
         data = {}
         if request.method in ["POST","PUT"]:
-            data = json.loads(request.body)
+            try:
+                data = json.loads(request.body)
+            except exceptions.RequestDataTooBig:
+                return constants.API_RESPONSES["REQUEST_DATA_TOO_BIG"]
 
         kwargs = { 'model': key_model, 'data': data, 'queries': queries, 'refs': ref_models, 'request': request }
         if request.method == "PUT":
@@ -104,7 +108,7 @@ class DefaultApiHandler:
     
     def on_delete(self, **kwargs):
         result = self.delete_processer(kwargs["model"].delete, **kwargs)
-        response = self.get_response(result, **kwargs)
+        response = self.delete_response(result, **kwargs)
         return response
     
     def put_response(self, response, **kwargs):
