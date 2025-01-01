@@ -505,6 +505,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     async applyValue() {
         this.displayElement.setAttribute('src', this.value);
+        this.toggleToView();
         await super.applyValue();
     }
     relayout(): void {
@@ -743,19 +744,23 @@ async function sleep(time) {
     })
 }
 async function helloUser() {
-    const m1 = new Modal('info-bar', 'Hello!',3000, Modal.infoContainer);
+    const m1 = new Modal('info-bar', 'Hello',4000, Modal.infoContainer);
     m1.init();
     m1.show();
-    await sleep(1000);
-    const m2 = new Modal('info-bar', 'You can edit',3000, Modal.infoContainer);
+    await sleep(650);
+    const m2 = new Modal('info-bar', 'You can use it',4000, Modal.infoContainer);
     m2.init();
     m2.show();
-    await sleep(1000);
-    const m3 = new Modal('info-bar', 'Memolive',3000, Modal.infoContainer);
+    await sleep(650);
+    const m3 = new Modal('info-bar', 'as you like',4000, Modal.infoContainer);
     m3.init();
     m3.show();
+    await sleep(650);
+    const m4 = new Modal('info-bar', '**Memolive**',4000, Modal.infoContainer);
+    m4.init();
+    m4.show();
 }
-//helloUser();
+helloUser();
 
 class UiItem {
     static allElements: UiItem[] = [];

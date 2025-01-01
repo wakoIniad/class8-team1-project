@@ -29,11 +29,10 @@
 .image-box-frame > input[type="file"].box-editor::file-selector-button {
     //all: unset;
     opacity: 0;
-}
-
-.image-box-frame > input[type="file"].box-editor::file-se {
-    //all: unset;
-    opacity: 0;
+    
+    text-align: center;
+    border-radius: 25%;
+    background-color: ;
 }
 
 .image-box-frame > input[type="file"].box-editor {

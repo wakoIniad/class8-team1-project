@@ -71,3 +71,9 @@ a {
   border: none;
 }
 
+.vr {
+  height: 100%;
+  border-left: rgb(200,200,200) solid 1px;
+  box-sizing: content-box;
+  width: 0px;
+}
