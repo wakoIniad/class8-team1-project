@@ -803,3 +803,25 @@ async function helloUser() {
     m3.show();
 }
 //helloUser();
+
+class UiItem {
+    static allElements: HTMLElement[] = [];
+    element: HTMLElement;
+    constructor(element) {
+        this.element = element;
+        UiItem.allElements.push(this.element);
+        this.element.addEventListener('click', (event: MouseEvent) => {
+            this.selected();
+        });
+    }
+    selected() {
+        this.element.classList.add('ui-selected');
+    }
+}
+
+const uiItemElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-item');
+for(const uiItem of uiItemElements) {
+    if (uiItem instanceof HTMLElement) {
+        new UiItem(uiItem);
+    }
+}
