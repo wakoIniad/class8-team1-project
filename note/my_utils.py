@@ -6,6 +6,10 @@ import requests
 import time
 import string
 
+import base64
+from io import BytesIO
+from PIL import Image
+
 
 def make_id(ref=[]):
     return random.randint(0,100000000)
@@ -55,3 +59,42 @@ def generated_unique_id():
         n //= l
         return recrusion(n) + characters[i]
     return recrusion(timestamp)
+
+def clean_base64_string(base64_str):
+    if base64_str.startswith('data:image'):
+        # 画像データのURL形式（data:image/png;base64,...）を取り除く
+        base64_str = base64_str.split(',')[1]
+    return base64_str
+
+def compress_base64_image(base64_str, target_size_kb):
+    # Base64をデコードして画像データに変換
+    image_data = base64.b64decode(clean_base64_string(base64_str))
+    image = Image.open(BytesIO(image_data))
+    if image.mode == 'RGBA':
+            image = image.convert('RGB')
+
+    # 目標サイズをバイトに変換
+    target_size_bytes = target_size_kb * 1024
+    
+    # 初期設定
+    quality = 95  # JPEGの圧縮品質
+    step = 5  # 品質を下げるステップ
+
+    while True:
+        # 画像をバッファに保存して圧縮
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG", quality=quality)
+        size = buffer.tell()
+
+        # サイズが目標を満たしている場合、または品質が極端に低い場合に終了
+        if size <= target_size_bytes or quality <= 10:
+            break
+        
+        # 品質を下げて再試行
+        quality -= step
+
+    # 圧縮された画像をBase64にエンコード
+    buffer.seek(0)
+    compressed_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    return 'data:image/jpeg;base64,'+compressed_base64

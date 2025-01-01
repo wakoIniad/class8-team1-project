@@ -191,13 +191,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
         this.maskElement.classList.add('loading');
-        this.pendingRequest.then(() => {
+        this.pendingRequest.then(result => {
             this.pendingRequest = undefined;
             if(this.pendingSync) {
                 this.pendingSync = false;
                 this.syncServer();
             } else {
                 this.maskElement.classList.remove('loading');
+                if (result.statusText !== 'OK') {
+                    this.maskElement.classList.add('loading-error');
+                }
             }
         });
     }
