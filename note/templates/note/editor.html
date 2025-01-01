@@ -7,11 +7,16 @@
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
     <link rel='stylesheet' href='{% sass_src "note/style/modal.scss" %}'>
+    <link rel='stylesheet' href='{% sass_src "note/style/editor-ui.scss" %}'>
 
     <div id="container">
     </div>
     {% csrf_token %}
-    
+    <div class="ui-container">
+        <div class="ui-spacer">
+            <div class="ui-item"></div>
+        </div>
+    </div>
     <script>
         //const initialPageObjects = {{ initialPageObjects }};
         

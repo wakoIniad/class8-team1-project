@@ -15,9 +15,10 @@ $modal-info-width: 200px;
 
 @include keyframes(info-slide-in) {
     0% {
-      opacity: 0;
-      left: calc(100% - #{$modal-info-width} * 2);
-      border-left: solid 10px rgb(255, 255, 0);
+        position: fixed;
+        opacity: 0;
+        left: calc(100% - #{$modal-info-width} * 2);
+        border-left: solid 10px rgb(255, 255, 0);
     }
     45% {
         border-left: solid 10px rgb(255, 255, 0);
@@ -26,8 +27,9 @@ $modal-info-width: 200px;
         border-left: solid 10px rgb(255, 200, 200);
     }
     100% {
-      opacity: 1;
-      left: calc(100% - #{$modal-info-width} * 1);
+        position: static;
+        opacity: 1;
+        left: calc(100% - #{$modal-info-width} * 1);
     }
 }
 
@@ -48,21 +50,29 @@ $modal-info-width: 200px;
   transition: left .5 linear;
 }
 
+.info-container {
+    position: absolute;
+    width: fit-content;
+    height: 100%;
+    left: calc(100% - #{$modal-info-width});
+    top: 0;
+}
+
 .modal-info-bar {
     
   @include animation(info-slide-in 1s );
-  width: $modal-info-width;
   
-  top: 10%;
-  left: calc(100% - #{$modal-info-width});
+  width: $modal-info-width;
+  display: block;
 
   color: rgb(0,0,0);
   background-color: rgb(255,255,255);
   border-left: solid 10px rgb(255, 255, 0);
-  //box-sizing: content-box;
+  box-sizing: content-box;
   //word-break: auto-phrase;//日本語ならwbrを使う！
     //overflow-wrap: break-word; 
   //text-wrap: balance;
+  margin-block: 10px;
 }
 
 .modal-message-container {

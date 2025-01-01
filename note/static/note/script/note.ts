@@ -259,7 +259,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                         const noticeModal = new Modal(
                             'info-bar', 
                             'データの反映に失敗しました\n'+messageText,
-                            5000
+                            5000,
+                            Modal.infoContainer
                         );
                         noticeModal.init();
                         noticeModal.show();
@@ -716,16 +717,19 @@ uitest.addEventListener('change',e=>{
 
 class Modal {
     static container: HTMLElement;
+    static infoContainer: HTMLElement;
     message: string;
     type: string;
     modalElement?: HTMLDivElement;
     lifetime: number;
     initialized: boolean = false;
+    container: HTMLElement;
     
-    constructor(type: string, message: string, lifetime?: number) {
+    constructor(type: string, message: string, lifetime?: number, container: HTMLElement) {
         this.type = type;
         this.message = message;
         this.lifetime = lifetime || Infinity;
+        this.container = container;
     }
     //代入されるのを待つために ? をつけてるんだから、
     //代入したということをコンパイル時に伝える方法が欲しい
@@ -746,7 +750,7 @@ class Modal {
     }
     show() {//なんかかっこいいから許容範囲内
         if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
-            Modal.container.appendChild(this.modalElement);
+            this.container.appendChild(this.modalElement);
             if(Number.isFinite(this.lifetime)) {
                 setTimeout(this.delete.bind(this), this.lifetime)
             }
@@ -754,27 +758,48 @@ class Modal {
     }
     close() {
         if(this.proveInitialized(this.modalElement, this.init.bind(this))) {
-            Modal.container.removeChild(this.modalElement);
+            this.container.removeChild(this.modalElement);
         }
     }
     delete() {
         this.close();
     }
     static init() {
-        const container:HTMLElement | null = document.getElementById('modal-container');
+        const container:HTMLElement|null = document.getElementById('modal-container');
         if( container !== null ) {
             Modal.container = container;
         } else {
             const container = document.createElement('div');
-            container.setAttribute('id', `modal-container-${Date.now()}`); //被らないようにするため
-            container.setAttribute('class', 'modal-container')
+            container.setAttribute('id', `modal-container`); 
+            container.setAttribute('class', 'modal-container');
             document.body.appendChild(container);
             Modal.container = container;
         }
+        const infoContainer: HTMLElement = document.createElement('div');
+        infoContainer.setAttribute('id','info-container');
+        infoContainer.setAttribute('class','info-container');
+        Modal.infoContainer = infoContainer;
+        Modal.container.appendChild(Modal.infoContainer);
     }
 }
 Modal.init();
 
-const m = new Modal('info-bar', 'Hello!',3000);
-m.init();
-m.show();
+async function sleep(time) {
+    return new Promise((resolve)=>{
+        setTimeout(resolve,time);
+    })
+}
+async function helloUser() {
+    const m1 = new Modal('info-bar', 'Hello!',3000, Modal.infoContainer);
+    m1.init();
+    m1.show();
+    await sleep(1000);
+    const m2 = new Modal('info-bar', 'You can edit',3000, Modal.infoContainer);
+    m2.init();
+    m2.show();
+    await sleep(1000);
+    const m3 = new Modal('info-bar', 'Memolive',3000, Modal.infoContainer);
+    m3.init();
+    m3.show();
+}
+//helloUser();
