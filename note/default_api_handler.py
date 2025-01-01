@@ -108,7 +108,7 @@ class DefaultApiHandler:
     
     def on_delete(self, **kwargs):
         result = self.delete_processer(kwargs["model"].delete, **kwargs)
-        response = self.get_response(result, **kwargs)
+        response = self.delete_response(result, **kwargs)
         return response
     
     def put_response(self, response, **kwargs):

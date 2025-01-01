@@ -60,9 +60,18 @@ class NoteController {
 
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
+        'putbox': false,
     };
+    onActivate: {[key: string]: ()=>void} = {
+        'putbox': ()=> {
+            if( UiItem.selectedItem !== undefined ) {
+                putBox(UiItem.selectedItem.type);
+            }
+        }
+    }
     shortcutMap: {[key: string]: string} = {
         'n': 'nudge',
+        'b': 'putbox',
     };
     nudgeSize: number = 32;
 
@@ -72,9 +81,12 @@ class NoteController {
         document.addEventListener('keyup', this.deactiveFunctions.bind(this))
     }
     
-    activateFunctions(event: KeyboardEvent) {    
+    activateFunctions(event: KeyboardEvent) {  
         if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {
             this.activeFunctions[this.shortcutMap[event.key]] = true;
+            if(this.shortcutMap[event.key] in this.onActivate) {
+                this.onActivate[this.shortcutMap[event.key]]();
+            }
         }
     }
     deactiveFunctions(event: KeyboardEvent) {
@@ -406,7 +418,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 
          * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
          */ 
-        this.callAPI('DELETE', { force: true } );
+        await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
     }
 }
@@ -706,15 +718,6 @@ fetch(NOTE_API_URL+NOTE_ID)
     applyPageData(...initialPageObjects);
 });
 
-const uitest:HTMLSelectElement = document.getElementById('ui') as HTMLSelectElement;
-uitest.addEventListener('change',e=>{
-    putBox(uitest.value);
-    let option_states: NodeListOf<HTMLOptionElement> = document.querySelectorAll("#ui option");
-    for(let state of option_states) {
-        state.selected = false;
-    }
-})
-
 class Modal {
     static container: HTMLElement;
     static infoContainer: HTMLElement;
@@ -805,23 +808,45 @@ async function helloUser() {
 //helloUser();
 
 class UiItem {
-    static allElements: HTMLElement[] = [];
+    static allElements: UiItem[] = [];
+    static selectedItem?: UiItem = undefined;
     element: HTMLElement;
-    constructor(element) {
+    type: string;
+    constructor(element, type) {
+        this.type = type;
         this.element = element;
-        UiItem.allElements.push(this.element);
+        UiItem.allElements.push(this);
         this.element.addEventListener('click', (event: MouseEvent) => {
             this.selected();
         });
+        this.element.addEventListener('mouseover', (event: MouseEvent) => {
+            this.focused();
+        });
+        this.element.addEventListener('mouseleave', (event: MouseEvent) => {
+            if(UiItem.selectedItem !== undefined)UiItem.selectedItem.focused();
+        });
     }
     selected() {
+        UiItem.allElements.forEach(uiItem=> uiItem.unselected());
         this.element.classList.add('ui-selected');
+        UiItem.selectedItem = this;
+    }
+    unselected() {
+        this.element.classList.remove('ui-selected');
+    }
+    focused() {
+        UiItem.allElements.forEach(uiItem=> uiItem.unfocused());
+        this.element.classList.add('ui-forcused');
+    }
+    unfocused() {
+        this.element.classList.remove('ui-forcused');
     }
 }
 
 const uiItemElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-item');
 for(const uiItem of uiItemElements) {
     if (uiItem instanceof HTMLElement) {
-        new UiItem(uiItem);
+        new UiItem(uiItem, uiItem.id.replace('ui-item-for_',''));
     }
 }
+
