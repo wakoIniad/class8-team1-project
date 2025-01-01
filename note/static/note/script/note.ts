@@ -72,13 +72,13 @@ class NoteController {
         document.addEventListener('keyup', this.deactiveFunctions.bind(this))
     }
     
-    activateFunctions(event: KeyboardEvent) {
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]]) {        
+    activateFunctions(event: KeyboardEvent) {    
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {
             this.activeFunctions[this.shortcutMap[event.key]] = true;
         }
     }
     deactiveFunctions(event: KeyboardEvent) {
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]]) {        
+        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {        
             this.activeFunctions[this.shortcutMap[event.key]] = false;
         }
 
@@ -360,8 +360,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async resize(width: number, height: number): Promise<void> {
         if(this.noteController.activeFunctions['nudge'] === true) {
-            width = ~~(width/this.noteController.nudgeSize);
-            height = ~~(height/this.noteController.nudgeSize);
+            width -= width%this.noteController.nudgeSize;
+            height -= height%this.noteController.nudgeSize;
         }
         //this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
@@ -374,8 +374,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     async relocate(x: number, y: number): Promise<void> {
         if(this.noteController.activeFunctions['nudge'] === true) {
-            x = ~~(x/this.noteController.nudgeSize);
-            y = ~~(y/this.noteController.nudgeSize);
+            x -= x%this.noteController.nudgeSize;
+            y -= y%this.noteController.nudgeSize;
         }
         this.x = x;
         this.y = y;
