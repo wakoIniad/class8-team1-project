@@ -136,7 +136,7 @@ SASS_PROCESSOR_INCLUDE_FILE_PATTERN = r'^.+\.(sass|scss)$'
 SASS_PRECISION = 8
 SASS_OUTPUT_STYLE = 'compressed'
 SASS_TEMPLATE_EXTS = ['.html', '.haml']
-STATIC_ROOT = BASE_DIR / 'note' / 'static' / 'compiled'
+STATIC_ROOT = BASE_DIR / 'note' / 'static'
 
 COMPRESS_PRECOMPILERS = (
     ('text/x-scss', 'django_libsass.SassCompiler'),
