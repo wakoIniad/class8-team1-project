@@ -648,6 +648,8 @@ class Modal {
     type: string;
     modalElement?: HTMLDivElement;
     lifetime: number;
+    initialized: boolean = false;
+    
     constructor(type: string, message: string, lifetime?: number) {
         this.type = type;
         this.message = message;
@@ -655,28 +657,33 @@ class Modal {
     }
     //代入されるのを待つために ? をつけてるんだから、
     //代入したということをコンパイル時に伝える方法が欲しい
-    init(T=this.modalElement): T is HTMLDivElement { //きもい
+    init() { 
         this.modalElement = document.createElement('div');
         switch(this.type) {
             case 'info-bar':
-                this.modalElement.classList.add('modal-info-bar');
+                this.modalElement.classList.add('modal', 'modal-info-bar');
                 this.modalElement.textContent = this.message;
                 break;
         }
-        return true;
+        this.initialized = true;
     }
-    initialized<T>(target: T) : target is T {
-        return true
+    proveInitialized<T>(target,initializer): target is NonNullable<T> {
+        if(target === undefined || target === null) initializer();
+        return target !== undefined && target !== null;
     }
 
-    show() {
-        if(this.modalElement === undefined && !this.init(this.modalElement))return;
-        Modal.container.appendChild(this.modalElement);
-        if(Number.isFinite(this.lifetime)) {
-            setTimeout(this.delete.bind(this), this.lifetime)
+    show() {//なんかかっこいいから許容範囲内
+        if(this.proveInitialized(this.modalElement, this.init)) {
+            Modal.container.appendChild(this.modalElement);
+            if(Number.isFinite(this.lifetime)) {
+                setTimeout(this.delete.bind(this), this.lifetime)
+            }
         }
     }
     close() {
+        if(this.proveInitialized(this.modalElement, this.init)) {
+            Modal.container.removeChild(this.modalElement);
+        }
     }
     delete() {
         this.close();
@@ -687,10 +694,15 @@ class Modal {
             Modal.container = container;
         } else {
             const container = document.createElement('div');
-            container.setAttribute('id', 'modal-container');
-            document.appendChild(container);
+            container.setAttribute('id', `modal-container-${Date.now()}`); //被らないようにするため
+            container.setAttribute('class', 'modal-container')
+            document.body.appendChild(container);
             Modal.container = container;
         }
     }
 }
 Modal.init();
+
+const m = new Modal('info-bar', 'This is test');
+m.init();
+m.show();
