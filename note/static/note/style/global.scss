@@ -71,38 +71,3 @@ a {
   border: none;
 }
 
-.modal-container {
-  width: 100vw;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-.modal {
-  position: absolute;
-  z-index: 100;
-  width: fit-content;
-  height: fit-content;
-  display: block;
-}
-
-.modal-info-bar {
-  color: rgb(0,0,0);
-  background-color: rgb(255,255,255);
-  border-left: solid 10px rgb(255, 255, 0);
-  box-sizing: content-box;
-  top: 10%;
-  right: 10px;
-  word-break: auto-phrase;//日本語ならwbrを使う！
-	overflow-wrap: break-word; 
-  text-wrap: balance;
-}
-
-.modal-message-container {
-
-}
-
-.modal-message-container > .modal-message-button {
-
-}

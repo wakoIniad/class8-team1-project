@@ -659,6 +659,7 @@ class Modal {
     //代入したということをコンパイル時に伝える方法が欲しい
     init() { 
         this.modalElement = document.createElement('div');
+        
         switch(this.type) {
             case 'info-bar':
                 this.modalElement.classList.add('modal', 'modal-info-bar');
