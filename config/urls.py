@@ -21,7 +21,7 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     #path('', views.redirect_view, name=''),
-    path('/', views.landing, name='landing'),
+    path('', views.landing, name='landing'),
     path('note/', include('note.urls_note')),
     path('share/', include('note.urls_share')),
     path('api/', include('note.urls_api')),
