@@ -7,26 +7,34 @@ ADVICE_MESSAGE_FORTEAM = "Ctrl + Shift + Iで開く開発者ツールからNetwo
 
 API_RESPONSES = {
     "MODEL_NOT_FOUND": HttpResponseServerError(json.dumps({
-            'message': 'Not Found Error (404)', 
+            'message': 'NotFoundError', 
             'details': MODEL_NOT_FOUND_MESSAGE + '\n' + ADVICE_MESSAGE_FORTEAM,
         }),
         content_type='application/json',
         status=404
     ),
     "UNEXPECTED_ERROR_MESSAGE": HttpResponseServerError(json.dumps({
-            'message': 'Server Error (500)', 
+            'message': 'InternalServerError', 
             'details': UNEXPECTED_ERROR_MESSAGE + '\n' + ADVICE_MESSAGE_FORTEAM
         }),
         content_type='application/json',
         status=500
     ),
     "SUCCESS": HttpResponse(json.dumps({
-            'message': 'API Calling Success', 
+            'message': 'APICallingSuccess', 
             'details': ADVICE_MESSAGE_FORTEAM,
         }),
         content_type='application/json',
         status=200
     ),
+    "REQUEST_DATA_TOO_BIG": HttpResponse(json.dumps({
+            'message': 'RequestDataTooBig', 
+            'details': ADVICE_MESSAGE_FORTEAM,
+        }),
+        content_type='application/json',
+        status=400
+    ),
+
 }
 
 SYSTEM_API_PATH_SEGMENT = 'SYSTEM'

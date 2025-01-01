@@ -195,16 +195,42 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.pendingRequest = fetch(TARGET_URL, config);
         
         this.maskElement.classList.add('loading');
-        this.pendingRequest.then(result => {
+        this.pendingRequest.then(response => {
+            
+        }).catch(error => {
+            console.log('これですよ！',error)
+            this.maskElement.classList.add('loading-error');
+            
+            error.json().then(responseData=>{
+                let messageText = '';
+                switch(error.status) {
+                    case 400:
+                        switch(responseData?.message) {
+                            case 'RequestDataTooBig':
+                                messageText = '- データサイズが大きすぎます'
+                                break;
+                            default:
+                                messageText = '- 編集内容に問題があります';
+                        }
+                        break;
+                    default:
+                        messageText = '- 原因不明';
+                }
+                const noticeModal = new Modal(
+                    'info-bar', 
+                    'データの反映に失敗しました\n'+messageText,
+                    5000
+                );
+                noticeModal.show();
+            });
+            
+        }).finally(()=> {
             this.pendingRequest = undefined;
             if(this.pendingSync) {
                 this.pendingSync = false;
                 this.syncServer();
             } else {
                 this.maskElement.classList.remove('loading');
-                if (result.statusText !== 'OK') {
-                    this.maskElement.classList.add('loading-error');
-                }
             }
         });
     }
@@ -663,16 +689,15 @@ class Modal {
         switch(this.type) {
             case 'info-bar':
                 this.modalElement.classList.add('modal', 'modal-info-bar');
-                this.modalElement.textContent = this.message;
+                this.modalElement.innerText = this.message;
                 break;
         }
         this.initialized = true;
     }
     proveInitialized<T>(target,initializer): target is NonNullable<T> {
-        if(target === undefined || target === null) initializer();
+        if(target === undefined || target === null) initializer.apply(this);
         return target !== undefined && target !== null;
     }
-
     show() {//なんかかっこいいから許容範囲内
         if(this.proveInitialized(this.modalElement, this.init)) {
             Modal.container.appendChild(this.modalElement);
@@ -704,6 +729,6 @@ class Modal {
 }
 Modal.init();
 
-const m = new Modal('info-bar', 'This is test');
+const m = new Modal('info-bar', 'This is test',3000);
 m.init();
 m.show();
