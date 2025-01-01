@@ -153,6 +153,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.applyValue();//初期値の反映
         this.toggleToView();
     }
+    resetMaskUI() {
+        this.maskElement.classList.remove('loading-error');
+    }
 
     async getId() {
         return await Promise.any([this.id]);
@@ -190,6 +193,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         
         console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
+        
         this.maskElement.classList.add('loading');
         this.pendingRequest.then(result => {
             this.pendingRequest = undefined;
@@ -287,6 +291,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     async applyValue(): Promise<void> {
+        this.resetMaskUI();
         await this.callAPI('POST', { body: {
             update_keys: ["value"],
             update_values: [this.value]
@@ -636,3 +641,4 @@ uitest.addEventListener('change',e=>{
         state.selected = false;
     }
 })
+

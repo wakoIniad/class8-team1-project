@@ -31,7 +31,6 @@ class BoxApiHandler(DefaultApiHandler):
             kwargs["model"].type == 'image' and\
             "value" in kwargs["data"]["update_keys"]:
             i = kwargs["data"]["update_keys"].index("value")
-            print(kwargs["data"]["update_values"][i])
             kwargs["data"]["update_values"][i] = \
                 my_utils.compress_base64_image(kwargs["data"]["update_values"][i], 1000)
         return super().post_processer(process, **kwargs)
