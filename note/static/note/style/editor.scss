@@ -26,8 +26,17 @@
     border: 5px rgb(255,255,255) dashed;
 }
 
-.image-box-frame > input[type="file"].box-editor {
+.image-box-frame > input[type="file"].box-editor::file-selector-button {
     //all: unset;
+    opacity: 0;
+}
+
+.image-box-frame > input[type="file"].box-editor::file-se {
+    //all: unset;
+    opacity: 0;
+}
+
+.image-box-frame > input[type="file"].box-editor {
     background-image: url('/static/note/image/import_icon.svg');
     background-position: center;
 }

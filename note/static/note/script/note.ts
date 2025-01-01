@@ -327,6 +327,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     toggleToView() {
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
+        
         //this.assign(this.displayElement);
     }
     async makeData(): Promise<blockData> {
@@ -456,7 +457,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+    constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
     }
 
@@ -465,7 +466,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
-        this.displayElement.setAttribute('src', this.value);
+        this.displayElement.setAttribute('src', this.value||SPACER_URI);
         this.displayElement.setAttribute('alt','');
         this.editorElement.addEventListener('change', ()=>{
             this.update();
@@ -480,6 +481,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.addEventListener('drop', ()=> {
             this.toggleToView();
         });
+        this.toggleToView();
     }
 
     async getValue(): Promise<string> {
@@ -509,6 +511,15 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.displayElement.onload = ()=> {
             this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width);
         }
+    }
+    toggleToView() {
+        if(this.value) {
+            this.editorElement.classList.remove('visible');
+            this.displayElement.classList.add('visible');
+        } else {
+            this.toggleToEditor();
+        }
+        //this.assign(this.displayElement);
     }
 }
 
