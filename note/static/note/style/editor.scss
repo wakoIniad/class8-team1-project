@@ -1,3 +1,5 @@
+$main-color: rgb(57,123,108);
+
 #container {
     display: flex; 
     overflow: visible; /* 子要素がはみ出しても表示 */
@@ -29,16 +31,13 @@
 .image-box-frame > input[type="file"].box-editor::file-selector-button {
     //all: unset;
     opacity: 0;
-    
-    text-align: center;
-    border-radius: 25%;
-    background-color: ;
 }
 
 .image-box-frame > input[type="file"].box-editor {
     color: transparent;
     background-image: url('/static/note/image/ui_box_import.svg');
     background-position: center;
+    justify-content: center;
 }
 
 .box-frame.loading {

@@ -43,10 +43,24 @@ $breakpoint: 200px;
     border-radius: 50px;
 }
 
-.ui-item {
+.ui-item.ui-button {
     height: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 50%;
+    background-color: rgb(255,255,255);
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+
+    overflow: visible;
+}
+
+.ui-item.ui-lamp {
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 5%;
     background-color: rgb(255,255,255);
     
     display: flex;
@@ -74,7 +88,7 @@ $breakpoint: 200px;
     }
 }
 
-.ui-item:not(.ui-selected) {
+.ui-item.ui-item.ui-button:not(.ui-selected) {
     &:before {
         content: '';
         background-color: rgb(255,200,0);
@@ -139,3 +153,7 @@ $breakpoint: 200px;
     border-image-repeat: round;       
 
 }*/
+
+.ui-item.ui-lamp.activate {
+    background-color: rgb(71, 255, 206);
+}

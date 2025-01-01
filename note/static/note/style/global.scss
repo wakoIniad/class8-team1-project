@@ -1,3 +1,5 @@
+$main-color: rgb(57,123,108);
+
 html,
 body {
   padding: 0;
@@ -60,7 +62,7 @@ a {
 /*    background: #11631c;
   background-color: rgb(37,153,118);*/
   
-  background-color: rgb(57,123,108);
+  background-color: $main-color;
   border-bottom: 1px white solid;
 }
 

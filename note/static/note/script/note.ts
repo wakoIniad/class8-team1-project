@@ -77,21 +77,28 @@ class NoteController {
 
     constructor(nudgeSize?: number) {
         if(nudgeSize)this.nudgeSize = nudgeSize;
-        document.addEventListener('keydown', this.activateFunctions.bind(this))
-        document.addEventListener('keyup', this.deactiveFunctions.bind(this))
+        document.addEventListener('keydown', this.onKeydown.bind(this))
+        document.addEventListener('keyup', this.onKeyup.bind(this))
+    }
+
+    onKeydown(event: KeyboardEvent) {
+        this.activateFunctions(this.shortcutMap?.[event.key]);
+    }
+    onKeyup(event: KeyboardEvent) {
+        this.deactiveFunctions(this.shortcutMap?.[event.key]);
     }
     
-    activateFunctions(event: KeyboardEvent) {  
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {
-            this.activeFunctions[this.shortcutMap[event.key]] = true;
-            if(this.shortcutMap[event.key] in this.onActivate) {
-                this.onActivate[this.shortcutMap[event.key]]();
+    activateFunctions(functionName: string) {  
+        if(this.activeFunctions?.[functionName] !== undefined) {
+            this.activeFunctions[functionName] = true;
+            if(functionName in this.onActivate) {
+                this.onActivate[functionName]();
             }
         }
     }
-    deactiveFunctions(event: KeyboardEvent) {
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {        
-            this.activeFunctions[this.shortcutMap[event.key]] = false;
+    deactiveFunctions(functionName: string) {
+        if(this.activeFunctions?.[functionName] !== undefined) {        
+            this.activeFunctions[functionName] = false;
         }
 
     }
@@ -762,15 +769,15 @@ async function helloUser() {
 }
 helloUser();
 
-class UiItem {
-    static allElements: UiItem[] = [];
-    static selectedItem?: UiItem = undefined;
+class UiDrawMode {
+    static allElements: UiDrawMode[] = [];
+    static selectedItem?: UiDrawMode = undefined;
     element: HTMLElement;
     type: string;
     constructor(element, type) {
         this.type = type;
         this.element = element;
-        UiItem.allElements.push(this);
+        UiDrawMode.allElements.push(this);
         this.element.addEventListener('click', (event: MouseEvent) => {
             this.selected();
         });
@@ -778,17 +785,17 @@ class UiItem {
             this.focused();
         });
         this.element.addEventListener('mouseleave', (event: MouseEvent) => {
-            if(UiItem.selectedItem !== undefined)UiItem.selectedItem.focused();
+            if(UiDrawMode.selectedItem !== undefined)UiDrawMode.selectedItem.focused();
         });
     }
     selected() {
-        if(UiItem.selectedItem && this.type === UiItem.selectedItem.type) {
+        if(UiDrawMode.selectedItem && this.type === UiDrawMode.selectedItem.type) {
             this.unselected();
-            UiItem.selectedItem = undefined;
+            UiDrawMode.selectedItem = undefined;
         } else {
-            UiItem.allElements.forEach(uiItem=> uiItem.unselected());
+            UiDrawMode.allElements.forEach(uiItem=> uiItem.unselected());
             this.element.classList.add('ui-selected');
-            UiItem.selectedItem = this;
+            UiDrawMode.selectedItem = this;
             putBox();
         }
     }
@@ -797,7 +804,7 @@ class UiItem {
         this.unfocused();
     }
     focused() {
-        UiItem.allElements.forEach(uiItem=> uiItem.unfocused());
+        UiDrawMode.allElements.forEach(uiItem=> uiItem.unfocused());
         this.element.classList.add('ui-forcused');
     }
     unfocused() {
@@ -805,13 +812,21 @@ class UiItem {
     }
 }
 
-const uiItemElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-item');
-for(const uiItem of uiItemElements) {
+const uiButtonElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-button');
+for(const uiItem of uiButtonElements) {
     if (uiItem instanceof HTMLElement) {
-        new UiItem(uiItem, uiItem.id.replace('ui-item-for_',''));
+        new UiDrawMode(uiItem, uiItem.id.replace('ui-item-for_',''));
     }
 }
-
+const uiLampElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-lamp');
+for(const uiLamp of uiLampElements) {
+    if (uiLamp instanceof HTMLElement) {
+        uiLamp.addEventListener('click', function(event: MouseEvent){
+            const type = uiLamp.id.replace('ui-item-for_','');
+            noteController.activateFunctions()
+        });
+    }
+}
 
 let putBoxId = 0;
 function putBox() {
