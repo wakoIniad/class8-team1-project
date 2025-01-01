@@ -288,7 +288,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                         const noticeModal = new Modal(
                             'info-bar', 
                             'データの反映に失敗しました\n'+messageText,
-                            5000,
+                            7000,
                             Modal.infoContainer
                         );
                         noticeModal.init();
@@ -376,7 +376,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async syncServer() {
         this.callAPI('POST', { body: {
-            update_keys: ["X", "y", "width", "height", "value"],
+            update_keys: ["x", "y", "width", "height", "value"],
             update_values: [this.x, this.y, this.width, this.height, this.value]
         }});
     }
@@ -941,16 +941,15 @@ function putBox() {
 putBox();
 const saveUiElement: HTMLElement|null = document.getElementById('ui-save');
 const sendEffectBarElement: HTMLElement|null = document.getElementById('send-effect-bar');
-if(saveUiElement && sendEffectBarElement) {
+if(saveUiElement) {
     saveUiElement.addEventListener('click', (event: MouseEvent) => {
                 
         const message = new Modal(
             'info-bar',
             'セーブしました',
-            2000, Modal.infoContainer);
+            3000, Modal.infoContainer);
         message.init();
         message.show();
-        console.log('test');
 
         allBlockSyncServer();
 
