@@ -37,7 +37,8 @@
 }
 
 .image-box-frame > input[type="file"].box-editor {
-    background-image: url('/static/note/image/import_icon.svg');
+    color: transparent;
+    background-image: url('/static/note/image/ui_box_import.svg');
     background-position: center;
 }
 
