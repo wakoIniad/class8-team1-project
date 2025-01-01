@@ -75,12 +75,19 @@ $breakpoint: 200px;
     }
 }
 
+
 .ui-item.ui-selected {
-    border-radius: 50%;
-    border: blue solid 10px;
-    border-image-source: url("https://cdn.leonardo.ai/users/b2e8a2ff-4d9f-4802-93b4-9f9f5878141d/generations/821dad68-cb4b-41bc-9b04-db2b413592ae/AlbedoBase_XL_series_of_cracked_rocks_frame_illustration_gamel_3.jpg") ;
-    border-image-slice: 100;
-    border-image-width: 5px;
-    border-image-outset: 10px;
-    border-image-repeat: round;
+    position: relative;
+}
+
+.ui-item.ui-selected::after{
+    content: "";
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    bottom: -10px;
+    left: -10px;
+    background: linear-gradient(135deg, tomato, blue);
+    border-radius: 20px;
+    z-index: -1;
 }
