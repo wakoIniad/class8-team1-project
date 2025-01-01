@@ -7,7 +7,9 @@
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
     <link rel='stylesheet' href='{% sass_src "note/style/modal.scss" %}'>
+    
     <link rel='stylesheet' href='{% sass_src "note/style/editor-ui.scss" %}'>
+
     <!-- exが付いているファイルは自分では制作していないファイル -->
     <link rel='stylesheet' href='{% sass_src "note/style/ex-animation2.scss" %}'>
     <link rel='stylesheet' href='{% static "note/style/ex-animation.css" %}'>
@@ -32,7 +34,7 @@
             <div class="ui-item ui-lamp" id="ui-item-for_autosave">Autosave</div>
             <div class="ui-item ui-lamp"></div>
 
-            <div class="svg-wrapper">
+            <div class="svg-wrapper ui-save" id="ui-save">
                 <svg height="40" width="150" xmlns="http://www.w3.org/2000/svg">
                     <rect id="shape" height="40" width="150" />
                     <div id="text">

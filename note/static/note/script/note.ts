@@ -25,6 +25,9 @@ const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALA
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
 const pageObjects: Block<any,any>[] = [];
+function allBlockSyncServer() {
+    pageObjects.forEach(block=>block.syncServer());
+}
 
 let container:HTMLElement | null = document.getElementById('container');
 if(!(container instanceof HTMLElement)) {
@@ -65,10 +68,11 @@ class NoteController {
     };
     onActivate: {[key: string]: ()=>void} = {
         /*'putbox': ()=> {
-            if( UiItem.selectedItem !== undefined ) {
-                putBox(UiItem.selectedItem.type);
+            if( UiDrawMode.selectedItem !== undefined ) {
+                putBox();
             }
-        }*/
+        },*/
+       'autosave': allBlockSyncServer,
     }
     shortcutMap: {[key: string]: string} = {
         'n': 'nudge',
@@ -96,7 +100,7 @@ class NoteController {
                 this.onActivate[functionName]();
             }
         }
-        console.table(this.activeFunctions)
+        //console.table(this.activeFunctions)
     }
     deactiveFunctions(functionName: string) {
         if(this.activeFunctions?.[functionName] !== undefined) {        
@@ -379,10 +383,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async applyValue(): Promise<void> {
         this.resetMaskUI();
-        await this.callAPI('POST', { body: {
-            update_keys: ["value"],
-            update_values: [this.value]
-        }});
+        if(this.noteController.activeFunctions['autosave'] === true) {
+            await this.callAPI('POST', { body: {
+                update_keys: ["value"],
+                update_values: [this.value]
+            }});
+        }
     }
 
     async resize(width: number, height: number): Promise<void> {
@@ -394,10 +400,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
-        await this.callAPI('POST', { body: {
-            update_keys: ["width","height"],
-            update_values: [this.width, this.height]
-        }});
+        
+        if(this.noteController.activeFunctions['autosave'] === true) {
+            await this.callAPI('POST', { body: {
+                update_keys: ["width","height"],
+                update_values: [this.width, this.height]
+            }});
+        }
     }
     async relocate(x: number, y: number): Promise<void> {
         if(this.noteController.activeFunctions['nudge'] === true) {
@@ -408,10 +417,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.y = y;
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
-        await this.callAPI('POST', { body: {
-            update_keys: ["x","y"],
-            update_values: [this.x, this.y]
-        }});
+        
+        if(this.noteController.activeFunctions['autosave'] === true) {
+            await this.callAPI('POST', { body: {
+                update_keys: ["x","y"],
+                update_values: [this.x, this.y]
+            }});
+        }
     }
     relayout() {
 
@@ -769,7 +781,7 @@ async function helloUser() {
     m4.init();
     m4.show();
 }
-helloUser();
+//helloUser();
 
 class UiDrawMode {
     static allTypes: UiDrawMode[] = [];
@@ -916,7 +928,7 @@ function putBox() {
             pageObjects.push(block);
         }
 
-        UiDrawMode.selectedItem!.unselected();
+        UiDrawMode.selectedItem?.unselected();
         
         xs = [];
         ys = [];
@@ -927,3 +939,21 @@ function putBox() {
     container.addEventListener('mousedown', onmousedown);
 }
 putBox();
+const saveUiElement: HTMLElement|null = document.getElementById('ui-save');
+const sendEffectBarElement: HTMLElement|null = document.getElementById('send-effect-bar');
+if(saveUiElement && sendEffectBarElement) {
+    saveUiElement.addEventListener('click', (event: MouseEvent) => {
+                
+        const message = new Modal(
+            'info-bar',
+            'セーブしました',
+            2000, Modal.infoContainer);
+        message.init();
+        message.show();
+        console.log('test');
+
+        allBlockSyncServer();
+
+        //sendEffectBarElement.classList.add('send-effect-bar');
+    });
+}
