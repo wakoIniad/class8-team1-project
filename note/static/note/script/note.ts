@@ -777,10 +777,15 @@ class UiItem {
         });
     }
     selected() {
-        UiItem.allElements.forEach(uiItem=> uiItem.unselected());
-        this.element.classList.add('ui-selected');
-        UiItem.selectedItem = this;
-        //putBox(this.type);
+        if(UiItem.selectedItem && this.type === UiItem.selectedItem.type) {
+            this.unselected();
+            UiItem.selectedItem = undefined;
+        } else {
+            UiItem.allElements.forEach(uiItem=> uiItem.unselected());
+            this.element.classList.add('ui-selected');
+            UiItem.selectedItem = this;
+            //putBox(this.type);
+        }
     }
     unselected() {
         this.element.classList.remove('ui-selected');
