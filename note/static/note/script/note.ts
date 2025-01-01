@@ -894,6 +894,7 @@ function putBox() {
         container.addEventListener('mouseup', onmouseup);
     }
     const onmouseup = (e)=>{
+        const rect = container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
         const mx = Math.min(...xs);
@@ -901,8 +902,8 @@ function putBox() {
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
         const range = {
-            x: mx,
-            y: my,
+            x: mx - rect.left,
+            y: my - rect.top,
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
         };
