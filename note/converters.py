@@ -17,7 +17,7 @@ class NoteID:
         return str(value)
     
 class BoxID:
-    regex = "[a-zA-Z0-9]{1,16}"#"([a-zA-Z0-9]{16})"
+    regex = "[a-zA-Z0-9]{1,16}-[a-zA-Z0-9]{1,16}"#"([a-zA-Z0-9]{16})"
 
     def to_python(self, value):
         return str(value)
