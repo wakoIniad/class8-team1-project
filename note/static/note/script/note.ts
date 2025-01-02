@@ -1009,13 +1009,37 @@ if(saveUiElement) {
 }
 
 socket.on("reconnect", (attempt) => {
-    window.location.reload(true);
+    //window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が復旧しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
 });
 socket.on("connect", () => {
-    // ...
+    // ...//window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
 });
 socket.on("disconnect", (reason, details) => {
     // ...
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が切れました',
+        5000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
 });
 
 socket.on("update", (target_id, update_keys, update_values) => {

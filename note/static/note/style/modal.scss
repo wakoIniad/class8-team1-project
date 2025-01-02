@@ -1,5 +1,6 @@
 
 $modal-info-width: 200px;
+$modal-info-adjuster: 30px;
 
 @mixin keyframes($animation-name) {
   @keyframes #{$animation-name} {
@@ -29,7 +30,7 @@ $modal-info-width: 200px;
     100% {
         position: static;
         opacity: 1;
-        left: calc(100% - #{$modal-info-width} * 1);
+        left: calc(100% - #{$modal-info-width} * 1 - #{$modal-info-adjuster});
     }
 }
 
@@ -54,7 +55,7 @@ $modal-info-width: 200px;
     position: absolute;
     width: fit-content;
     height: 100%;
-    left: calc(100% - #{$modal-info-width});
+    left: calc(100% - #{$modal-info-width} - #{$modal-info-adjuster});
     top: 0;
 }
 
@@ -69,9 +70,11 @@ $modal-info-width: 200px;
   background-color: rgb(255,255,255);
   border-left: solid 10px rgb(255, 255, 0);
   box-sizing: content-box;
-  //word-break: auto-phrase;//日本語ならwbrを使う！
-    //overflow-wrap: break-word; 
-  //text-wrap: balance;
+
+  word-break: auto-phrase;//日本語ならwbrを使う！
+  overflow-wrap: break-word; 
+  text-wrap: balance;
+  
   margin-block: 10px;
 }
 
