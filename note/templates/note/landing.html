@@ -4,8 +4,8 @@
 {% load sass_tags %}
 <body>
     <link rel="stylesheet" href="{% sass_src 'note/style/landing.scss' %}">
-    <div class="main-container">
-        
+    <link rel="stylesheet" href="{% sass_src 'note/style/ex-animation3.scss' %}">
+    <div class="main-container context">
         <div class="hero">
             <div class="note-logo-ber">
                 <h1 class="logo-font">Mem<img class="olive-symbol-image" src="{% static 'note/image/olive.png' %}">live</h1>
@@ -20,11 +20,26 @@
             Memoliveは、メモ一つ一つにURLが割り当てられます。<br>
             ブックマークに保存して複数の人とリアルタイムに編集しましょう。
         </p>
-        <p>
+        <p class="landing-footer">
             古代ギリシャの知恵の神アテナが、人々にオリーブの木を贈り豊かな生活をもたらしたように、<br>
             このメモアプリはあなたの知恵と想像力を引き出し、日常に調和をもたらします。<br>
             オリーブのように実りのあるアイデアを育てましょう。
         </p>
     </div>
+    
+<div class="area" >
+    <ul class="circles">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+    </ul>
+</div >
 </body>
 {% endblock content %}
