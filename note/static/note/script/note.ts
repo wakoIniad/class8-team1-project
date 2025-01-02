@@ -981,3 +981,8 @@ socket.on("connect", () => {
 socket.on("disconnect", (reason, details) => {
     // ...
 });
+
+socket.on("update", (update_keys, update_values) => {
+    console.log(update_keys, update_values);
+});
+socket.emit("update", ["testdayo"],["1234"])
