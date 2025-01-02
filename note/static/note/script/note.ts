@@ -399,8 +399,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         if(this.noteController.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying);
         }
-        if(this.noteController.activateFunctions['live']) {
-            socket.emit(this.id, applying.update_keys, applying.update_values);
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
 
@@ -421,8 +421,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         if(this.noteController.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activateFunctions['live']) {
-            socket.emit(this.id, applying.update_keys, applying.update_values);
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(x: number, y: number): Promise<void> {
@@ -442,8 +442,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         if(this.noteController.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activateFunctions['live']) {
-            socket.emit(this.id, applying.update_keys, applying.update_values);
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     relayout() {
