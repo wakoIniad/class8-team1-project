@@ -26,7 +26,11 @@ io.on("connection", (socket) => {
         socket.on('create', (range, type, id) => {
             console.log(CLIENT_ROOM_ID, range, type, id);
             socket.to(CLIENT_ROOM_ID).emit('create', range, type, id);
-        })
+        });
+        socket.on('delete', (id) => {
+            console.log(CLIENT_ROOM_ID, id);
+            socket.to(CLIENT_ROOM_ID).emit('delete', id);
+        });
     }
 });
 

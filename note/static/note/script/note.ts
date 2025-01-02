@@ -493,6 +493,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          */ 
         await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
+
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("delete", this.id);
+            console.log("socket_emit_delete");
+        }
     }
 }
 
@@ -532,7 +537,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
         .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
         .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
-        console.log(parsedAsMarkdown)
+        
         return parsedAsMarkdown;
     }
 }
@@ -1002,7 +1007,6 @@ function putBox() {
             pageObjects.push(block);
             (async()=>{
                 const id = await Promise.any([idPromise]);
-                console.log("promise_any_test",id);
                 
                 socket.emit('create', range, boxType, id);
             })();
@@ -1083,6 +1087,17 @@ socket.on("update", (target_id, update_keys, update_values) => {
             target.update_parameters(update_keys, update_values);
             console.log(target.x,target.y,target.width,target.height,target.value);
             target.render();
+        } else {
+            console.warn('ボックスがない')
+        }
+    }
+});
+
+socket.on("delete", (id) => {
+    if(noteController.activeFunctions["live"])  {
+        const target = pageObjects.find(object=>object.id === id);
+        if(target !== undefined) {
+            target.dump();
         } else {
             console.warn('ボックスがない')
         }
