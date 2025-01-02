@@ -1,3 +1,5 @@
+const socket = io();
+
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -205,8 +207,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
 
+        let resizeProcessIdCounter: number = 0;
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+            const PROCESS_ID: number = ++resizeProcessIdCounter;
+            setTimeout(()=>{
+                if(PROCESS_ID === resizeProcessIdCounter) {
+                    this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+                }
+            },500);
         });
         resizeObserver.observe(this.boxFrameElement);
 
@@ -963,3 +971,13 @@ if(saveUiElement) {
         //sendEffectBarElement.classList.add('send-effect-bar');
     });
 }
+
+socket.on("reconnect", (attempt) => {
+    
+});
+socket.on("connect", () => {
+    // ...
+});
+socket.on("disconnect", (reason, details) => {
+    // ...
+});

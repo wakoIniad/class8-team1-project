@@ -3,7 +3,8 @@
 {% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    
+    <script src="/socket.io/socket.io.js"></script>
+
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
     <link rel='stylesheet' href='{% sass_src "note/style/modal.scss" %}'>
