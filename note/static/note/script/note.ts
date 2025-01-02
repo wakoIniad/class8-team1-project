@@ -135,6 +135,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     maskElement: HTMLDivElement;
 
     noteController: NoteController;
+
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
@@ -390,17 +391,33 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }});
     }
 
-    async applyValue(): Promise<void> {
+    update_parameters(update_keys, update_values) {
+        for(const [ i, key ] of update_keys.entries()) {
+            this[key] = update_values[i];
+        }
+    }
+
+    render() {
+        this.boxFrameElement.style.left = this.coordToString(this.y);
+        this.boxFrameElement.style.top = this.coordToString(this.y);
+        this.boxFrameElement.style.width = this.coordToString(this.width);
+        this.boxFrameElement.style.height = this.coordToString(this.height);
+        this.applyValue(true);
+    }
+
+    async applyValue(nosynch: boolean = false): Promise<void> {
         this.resetMaskUI();
-        const applying = {
-            update_keys: ["value"],
-            update_values: [this.value]
-        }
-        if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: applying});
-        }
-        if(this.noteController.activeFunctions['live']) {
-            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+        if(!nosynch) {
+            const applying = {
+                update_keys: ["value"],
+                update_values: [this.value]
+            }
+            if(this.noteController.activeFunctions['autosave'] === true) {
+                await this.callAPI('POST', { body: applying});
+            }
+            if(this.noteController.activeFunctions['live']) {
+                socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            }
         }
     }
 
@@ -492,9 +509,9 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     getValue() {
         return this.editorElement.value;
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.textContent = this.value;
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
@@ -545,10 +562,10 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
         this.toggleToView();
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
@@ -662,10 +679,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-    async applyValue() {
-        console.log(this.value);
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
@@ -996,10 +1012,14 @@ socket.on("disconnect", (reason, details) => {
 
 socket.on("update", (target_id, update_keys, update_values) => {
     if(noteController.activeFunctions["live"])  {
-        console.log(update_keys, update_values);
         const target = pageObjects.find(object=>object.id === target_id);
-        if(target !== undefined) {
 
+        if(target !== undefined) {
+            target.update_parameters(update_keys, update_values);
+            console.log(target.x,target.y,target.width,target.height,target.value);
+            target.render();
+        } else {
+            console.warn('ボックスがない')
         }
     }
 });
