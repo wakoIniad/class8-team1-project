@@ -872,6 +872,7 @@ class UiDrawMode {
 }
 
 class UiFunctions {
+    static applying: { [key: string]: UiFunctions } = {};
     type: string;
     activated: boolean = false;
     element: HTMLElement;
@@ -886,6 +887,13 @@ class UiFunctions {
         if(this.noteController.activeFunctions[this.type]) {
             this.activate();
         }
+        UiFunctions.applying[this.type] = this;
+    }
+    lock() {
+        this.element.classList.add('locked');
+    }
+    unlock() {
+        this.element.classList.remove('locked');
     }
     activate() {
         if(this.activated) {
@@ -1018,6 +1026,7 @@ socket.on("reconnect", (attempt) => {
     );
     noticeModal.init();
     noticeModal.show();
+    UiFunctions.applying['live']?.unlock?.();
 });
 socket.on("connect", () => {
     // ...//window.location.reload(true);
@@ -1029,6 +1038,8 @@ socket.on("connect", () => {
     );
     noticeModal.init();
     noticeModal.show();
+
+    UiFunctions.applying['live']?.unlock?.();
 });
 socket.on("disconnect", (reason, details) => {
     // ...
@@ -1040,6 +1051,7 @@ socket.on("disconnect", (reason, details) => {
     );
     noticeModal.init();
     noticeModal.show();
+    UiFunctions.applying['live']?.lock?.();
 });
 
 socket.on("update", (target_id, update_keys, update_values) => {
