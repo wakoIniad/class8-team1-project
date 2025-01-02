@@ -103,7 +103,7 @@ class NoteController {
                 this.onActivate[functionName]();
             }
         }
-        //console.table(this.activeFunctions)
+        console.table(this.activeFunctions)
     }
     deactiveFunctions(functionName: string) {
         if(this.activeFunctions?.[functionName] !== undefined) {        
@@ -983,6 +983,8 @@ socket.on("disconnect", (reason, details) => {
 });
 
 socket.on("update", (update_keys, update_values) => {
-    console.log(update_keys, update_values);
+    if(noteController.activeFunctions["live"])  {
+        console.log(update_keys, update_values);
+    }
 });
 socket.emit("update", ["testdayo"],["1234"])
