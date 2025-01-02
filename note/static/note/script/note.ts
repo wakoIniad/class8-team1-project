@@ -496,7 +496,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         if(this.noteController.activeFunctions['live']) {
             socket.emit("delete", this.id);
-            console.log("socket_emit_delete");
         }
     }
 }
@@ -1105,7 +1104,6 @@ socket.on("delete", (id) => {
 });
 
 socket.on("create", (range, type, id) => {
-    console.log("create_socket_test", range, type, id);
     if(noteController.activeFunctions["live"])  {
         const block = makeBlockObject(range, type, id);
         pageObjects.push(block);
