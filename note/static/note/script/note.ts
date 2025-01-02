@@ -397,7 +397,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             update_values: [this.value]
         }
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: applying);
+            await this.callAPI('POST', { body: applying});
         }
         if(this.noteController.activeFunctions['live']) {
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
@@ -997,6 +997,10 @@ socket.on("disconnect", (reason, details) => {
 socket.on("update", (target_id, update_keys, update_values) => {
     if(noteController.activeFunctions["live"])  {
         console.log(update_keys, update_values);
+        const target = pageObjects.find(object=>object.id === target_id);
+        if(target !== undefined) {
+
+        }
     }
 });
 socket.emit("update", "aaa",["testdayo"],["1234"]);
