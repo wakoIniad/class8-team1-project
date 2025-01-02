@@ -3,7 +3,8 @@
 {% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    
+    <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
+
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
     <link rel='stylesheet' href='{% sass_src "note/style/modal.scss" %}'>
@@ -32,7 +33,7 @@
             <span class="vr"></span>
             <div class="ui-item ui-lamp" id="ui-item-for_autosave">Autosave</div>
             <div class="ui-item ui-lamp" id="ui-item-for_nudge">Nudge</div>
-            <div class="ui-item ui-lamp" id="ui-item-live">Live</div>
+            <div class="ui-item ui-lamp" id="ui-item-for_live">Live</div>
 
             <div class="svg-wrapper ui-save" id="ui-save">
                 <svg height="40" width="150" xmlns="http://www.w3.org/2000/svg">
@@ -46,9 +47,11 @@
     </div>
     <script>
         //const initialPageObjects = {{ initialPageObjects }};
-        
+
         const NOTE_ID = "{{ note.id }}";
         const SYSTEM_API_PATH_SEGMENT = "{{ SYSTEM_API_PATH_SEGMENT }}";
+
+        //import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
     </script>
     <script src="{% static 'note/script/note.ts' %}" type="text/typescript"></script>
 {% endblock content %}
