@@ -1,11 +1,12 @@
 {% extends 'note/base.html' %}
 {% load static %}
 {% block content %}
+{% load sass_tags %}
 <body>
-    <link rel="stylesheet" href="{% static 'note/style/landing.css' %}">
+    <link rel="stylesheet" href="{% sass_src 'note/style/landing.scss' %}">
     <div class="main-container">
         <div class="note-logo-ber">
-            <h1 class="logo-font">Memolive</h1>
+            <h1 class="logo-font">Mem<img class="olive-symbol-image" src="{% static 'note/image/olive.png' %}">live</h1>
         </div>
         <p>
             スピーディーにメモ &<br>

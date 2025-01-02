@@ -79,3 +79,16 @@ a {
   box-sizing: content-box;
   width: 0px;
 }
+
+.olive-symbol {
+  color: $main-color;
+  font-weight: 900;
+}
+
+.olive-symbol-image {
+  display: inline;
+  height: auto;
+  font-size: inherit;
+  height: 1em;
+  width: 1em;
+}
