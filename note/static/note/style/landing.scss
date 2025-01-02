@@ -60,9 +60,18 @@ h1 {
     border-radius: 25px;
     border: rgba(255,255,255,0.6) 5px solid;
     flex: 0 0 auto; /* 要素の幅をコンテンツに応じて設定 */
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cover-col {
   flex-basis: 100%; /* 幅全体を覆う */
   margin-top: 0; /* 次の行に移動 */
+}
+
+.feature-item:hover {
+    background-color: rgba(255,255,255,0.6);
+    //text-decoration: underline;
 }
