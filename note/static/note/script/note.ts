@@ -505,6 +505,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.editorElement.classList.add('text-editor');
 
         this.displayElement.classList.add('text-view');
+        this.displayElement.classList.add('markdown-text-default');
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
@@ -518,8 +519,19 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         return this.editorElement.value;
     }
     async applyValue(nosynch: boolean = false) {
-        this.displayElement.textContent = this.value;
+        this.displayElement.innerHTML = this.parseMarkdown();
         await super.applyValue(nosynch);
+    }
+    parseMarkdown(): string {
+        const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
+        
+        const parsedAsMarkdown: string = escapedStr 
+        .replaceAll(/\*\*(.*?)\*\*/, '<span class="markdown-bold">$1</span>')
+        .replaceAll(/\*(.*?)\*/, '<span class="markdown-italic">$1</span>')
+        .replaceAll(/\_\_(.*?)\_\_/, '<span class="markdown-under-line"></span>')
+        .replaceAll(/\_(.*?)\_/, '<span class="markdown-italic"></span>')
+        .replaceAll(/\~\~(.*?)\~\~/, '<span class="markdown-strike-through"></span>');
+        return parsedAsMarkdown;
     }
 }
 
@@ -1069,3 +1081,10 @@ socket.on("update", (target_id, update_keys, update_values) => {
         }
     }
 });
+
+
+function escapeHTML(str: string) {
+    const div = document.createElement('div'); 
+    div.textContent = str; 
+    return div.innerHTML; 
+}
