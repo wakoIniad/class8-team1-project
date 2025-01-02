@@ -3,7 +3,7 @@
 {% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
 
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
@@ -47,9 +47,11 @@
     </div>
     <script>
         //const initialPageObjects = {{ initialPageObjects }};
-        
+
         const NOTE_ID = "{{ note.id }}";
         const SYSTEM_API_PATH_SEGMENT = "{{ SYSTEM_API_PATH_SEGMENT }}";
+
+        //import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
     </script>
     <script src="{% static 'note/script/note.ts' %}" type="text/typescript"></script>
 {% endblock content %}

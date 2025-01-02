@@ -1,5 +1,5 @@
-const socket = io();
 
+const socket = io("http://localhost:3000");
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策

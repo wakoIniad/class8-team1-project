@@ -11,7 +11,7 @@ from .constants import API_RESPONSES, SYSTEM_API_PATH_SEGMENT
 import json
 import requests
 
-
+NODE_JS_SERVER_PORT = 3000
 # Create your views here.
 #テスト用
 
@@ -35,6 +35,7 @@ def editor(request, note_id):
         raise Http404("404")
     
     context = {
+        "nodejs_server_port": NODE_JS_SERVER_PORT,
         "SYSTEM_API_PATH_SEGMENT": SYSTEM_API_PATH_SEGMENT,
         "note": { 
             "name": note.name,
