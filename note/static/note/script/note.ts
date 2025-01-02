@@ -1,5 +1,13 @@
 
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:3000", {
+    transportOptions: {
+        polling: {
+            extraHeaders: {
+                "self-proclaimed-referer": window.location.href,  // 任意のカスタムヘッダーを送信
+            }
+        }
+    }
+});
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -1001,7 +1009,7 @@ if(saveUiElement) {
 }
 
 socket.on("reconnect", (attempt) => {
-    
+    window.location.reload(true);
 });
 socket.on("connect", () => {
     // ...
@@ -1023,4 +1031,3 @@ socket.on("update", (target_id, update_keys, update_values) => {
         }
     }
 });
-socket.emit("update", "aaa",["testdayo"],["1234"]);
