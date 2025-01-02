@@ -67,6 +67,7 @@ def clean_base64_string(base64_str):
     return base64_str
 
 def compress_base64_image(base64_str, target_size_kb):
+    if len(base64_str) == 0: return '';
     # Base64をデコードして画像データに変換
     image_data = base64.b64decode(clean_base64_string(base64_str))
     image = Image.open(BytesIO(image_data))

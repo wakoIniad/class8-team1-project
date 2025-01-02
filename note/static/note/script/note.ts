@@ -1,3 +1,13 @@
+
+const socket = io("http://localhost:3000", {
+    transportOptions: {
+        polling: {
+            extraHeaders: {
+                "self-proclaimed-referer": window.location.href,  // 任意のカスタムヘッダーを送信
+            }
+        }
+    }
+});
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -25,6 +35,9 @@ const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALA
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
 const pageObjects: Block<any,any>[] = [];
+function allBlockSyncServer() {
+    pageObjects.forEach(block=>block.syncServer());
+}
 
 let container:HTMLElement | null = document.getElementById('container');
 if(!(container instanceof HTMLElement)) {
@@ -61,13 +74,16 @@ class NoteController {
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
         'putbox': false,
+        'autosave': true,
+        'live': false,
     };
     onActivate: {[key: string]: ()=>void} = {
-        'putbox': ()=> {
-            if( UiItem.selectedItem !== undefined ) {
-                putBox(UiItem.selectedItem.type);
+        /*'putbox': ()=> {
+            if( UiDrawMode.selectedItem !== undefined ) {
+                putBox();
             }
-        }
+        },*/
+       'autosave': allBlockSyncServer,
     }
     shortcutMap: {[key: string]: string} = {
         'n': 'nudge',
@@ -77,21 +93,29 @@ class NoteController {
 
     constructor(nudgeSize?: number) {
         if(nudgeSize)this.nudgeSize = nudgeSize;
-        document.addEventListener('keydown', this.activateFunctions.bind(this))
-        document.addEventListener('keyup', this.deactiveFunctions.bind(this))
+        document.addEventListener('keydown', this.onKeydown.bind(this));
+        document.addEventListener('keyup', this.onKeyup.bind(this));
+    }
+
+    onKeydown(event: KeyboardEvent) {
+        this.activateFunctions(this.shortcutMap?.[event.key]);
+    }
+    onKeyup(event: KeyboardEvent) {
+        this.deactiveFunctions(this.shortcutMap?.[event.key]);
     }
     
-    activateFunctions(event: KeyboardEvent) {  
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {
-            this.activeFunctions[this.shortcutMap[event.key]] = true;
-            if(this.shortcutMap[event.key] in this.onActivate) {
-                this.onActivate[this.shortcutMap[event.key]]();
+    activateFunctions(functionName: string) {  
+        if(this.activeFunctions?.[functionName] !== undefined) {
+            this.activeFunctions[functionName] = true;
+            if(functionName in this.onActivate) {
+                this.onActivate[functionName]();
             }
         }
+        console.table(this.activeFunctions)
     }
-    deactiveFunctions(event: KeyboardEvent) {
-        if(this.activeFunctions?.[this.shortcutMap?.[event.key]] !== undefined) {        
-            this.activeFunctions[this.shortcutMap[event.key]] = false;
+    deactiveFunctions(functionName: string) {
+        if(this.activeFunctions?.[functionName] !== undefined) {        
+            this.activeFunctions[functionName] = false;
         }
 
     }
@@ -119,6 +143,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     maskElement: HTMLDivElement;
 
     noteController: NoteController;
+
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
@@ -180,6 +205,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             }
             console.log(this.id, e.key);
         }).bind(this));
+        this.boxFrameElement.addEventListener('mousedown', function(event){
+            /**ブロック編集時にブロック作成操作が実行されないようにする用 */
+            event.stopPropagation();
+        })
         
 
         /** フォーカスを受け取れるようにする 
@@ -187,8 +216,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
 
+        let resizeProcessIdCounter: number = 0;
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+            const PROCESS_ID: number = ++resizeProcessIdCounter;
+            setTimeout(()=>{
+                if(PROCESS_ID === resizeProcessIdCounter) {
+                    this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+                }
+            },500);
         });
         resizeObserver.observe(this.boxFrameElement);
 
@@ -271,7 +306,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                         const noticeModal = new Modal(
                             'info-bar', 
                             'データの反映に失敗しました\n'+messageText,
-                            5000,
+                            7000,
                             Modal.infoContainer
                         );
                         noticeModal.init();
@@ -323,6 +358,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     toggleToView() {
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
+        
         //this.assign(this.displayElement);
     }
     async makeData(): Promise<blockData> {
@@ -358,20 +394,46 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async syncServer() {
         this.callAPI('POST', { body: {
-            update_keys: ["X", "y", "width", "height", "value"],
+            update_keys: ["x", "y", "width", "height", "value"],
             update_values: [this.x, this.y, this.width, this.height, this.value]
         }});
     }
 
-    async applyValue(): Promise<void> {
+    update_parameters(update_keys, update_values) {
+        for(const [ i, key ] of update_keys.entries()) {
+            this[key] = update_values[i];
+        }
+    }
+
+    render() {
+        this.boxFrameElement.style.left = this.coordToString(this.y);
+        this.boxFrameElement.style.top = this.coordToString(this.y);
+        this.boxFrameElement.style.width = this.coordToString(this.width);
+        this.boxFrameElement.style.height = this.coordToString(this.height);
+        this.applyValue(true);
+    }
+
+    async applyValue(nosynch: boolean = false): Promise<void> {
         this.resetMaskUI();
-        await this.callAPI('POST', { body: {
-            update_keys: ["value"],
-            update_values: [this.value]
-        }});
+        if(!nosynch) {
+            const applying = {
+                update_keys: ["value"],
+                update_values: [this.value]
+            }
+            if(this.noteController.activeFunctions['autosave'] === true) {
+                await this.callAPI('POST', { body: applying});
+            }
+            if(this.noteController.activeFunctions['live']) {
+                socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            }
+        }
     }
 
     async resize(width: number, height: number): Promise<void> {
+        const applying = {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             width -= width%this.noteController.nudgeSize;
             height -= height%this.noteController.nudgeSize;
@@ -380,12 +442,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
-        await this.callAPI('POST', { body: {
-            update_keys: ["width","height"],
-            update_values: [this.width, this.height]
-        }});
+        
+        if(this.noteController.activeFunctions['autosave'] === true) {
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+        }
     }
     async relocate(x: number, y: number): Promise<void> {
+        const applying = {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.nudgeSize;
             y -= y%this.noteController.nudgeSize;
@@ -394,10 +463,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.y = y;
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
-        await this.callAPI('POST', { body: {
-            update_keys: ["x","y"],
-            update_values: [this.x, this.y]
-        }});
+        
+        if(this.noteController.activeFunctions['autosave'] === true) {
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+        }
     }
     relayout() {
 
@@ -445,14 +517,14 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     getValue() {
         return this.editorElement.value;
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.textContent = this.value;
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
-    constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
+    constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
     }
 
@@ -461,7 +533,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
-        this.displayElement.setAttribute('src', this.value);
+        this.displayElement.setAttribute('src', this.value||SPACER_URI);
         this.displayElement.setAttribute('alt','');
         this.editorElement.addEventListener('change', ()=>{
             this.update();
@@ -476,6 +548,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.addEventListener('drop', ()=> {
             this.toggleToView();
         });
+        this.toggleToView();
     }
 
     async getValue(): Promise<string> {
@@ -497,14 +570,24 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
-        await super.applyValue();
+        this.toggleToView();
+        await super.applyValue(nosynch);
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
             this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width);
         }
+    }
+    toggleToView() {
+        if(this.value) {
+            this.editorElement.classList.remove('visible');
+            this.displayElement.classList.add('visible');
+        } else {
+            this.toggleToEditor();
+        }
+        //this.assign(this.displayElement);
     }
 }
 
@@ -604,83 +687,14 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-    async applyValue() {
-        console.log(this.value);
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
 const noteController: NoteController = new NoteController(32);
 
-function putBox(type: string) {
-    if(!container)return;
-    let xs:number[] = [];
-    let ys:number[] = [];
-    const cancel = () => {
-        container?.removeEventListener('mousedown', onmousedown);
-        container?.removeEventListener('mouseup', onmouseup);
-        container?.removeEventListener('onmouseout', cancel);
-        container?.removeEventListener('onmouseleave', cancel);
-    }
-    const onmousedown = (e)=>{
-        xs.push(e.clientX);
-        ys.push(e.clientY);
-
-        container?.removeEventListener('mousedown', onmousedown);
-        //container?.removeEventListener('onmouseleave', cancel);
-        //container?.removeEventListener('onmouseout', cancel);
-    }
-    const onmouseup = (e)=>{
-        xs.push(e.clientX);
-        ys.push(e.clientY);
-        console.log(2,xs,ys)
-        const mx = Math.min(...xs);
-        const my = Math.min(...ys);
-        const Mx = Math.max(...xs);
-        const My = Math.max(...ys);
-        const range = {
-            x: mx,
-            y: my,
-            width: Math.max(Mx - mx,150), 
-            height: Math.max(My - my, 100)
-        };
-
-        const putData = {
-            range: range, type: type
-        }
-        const idPromise = (async function() {
-            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
-            const response = await fetch(url, {
-                method: 'PUT',
-                body: JSON.stringify(putData),
-                headers: {
-                  'Content-Type': 'application/json; charset=utf-8',
-                  'X-CSRFToken': csrftoken,
-                },
-            });
-            //try
-            const parsed = await response.json()
-
-            return parsed['assigned_id'];
-            //} catch(e) {
-            
-            //}
-        })();
-        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-        
-        
-        const block = makeBlockObject(range, type, idPromise);
-        pageObjects.push(block);
-        xs = [];
-        ys = [];
-        container?.removeEventListener('mouseup', onmouseup);
-        makePageData().then(console.log);
-    }
-
-    container.addEventListener('mousedown', onmousedown);
-    container.addEventListener('mouseup', onmouseup);
-}
 function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
     switch(type) {
@@ -796,29 +810,33 @@ async function sleep(time) {
     })
 }
 async function helloUser() {
-    const m1 = new Modal('info-bar', 'Hello!',3000, Modal.infoContainer);
+    const m1 = new Modal('info-bar', 'Hello',4000, Modal.infoContainer);
     m1.init();
     m1.show();
-    await sleep(1000);
-    const m2 = new Modal('info-bar', 'You can edit',3000, Modal.infoContainer);
+    await sleep(650);
+    const m2 = new Modal('info-bar', 'You can use it',4000, Modal.infoContainer);
     m2.init();
     m2.show();
-    await sleep(1000);
-    const m3 = new Modal('info-bar', 'Memolive',3000, Modal.infoContainer);
+    await sleep(650);
+    const m3 = new Modal('info-bar', 'as you like',4000, Modal.infoContainer);
     m3.init();
     m3.show();
+    await sleep(650);
+    const m4 = new Modal('info-bar', '**Memolive**',4000, Modal.infoContainer);
+    m4.init();
+    m4.show();
 }
 //helloUser();
 
-class UiItem {
-    static allElements: UiItem[] = [];
-    static selectedItem?: UiItem = undefined;
+class UiDrawMode {
+    static allTypes: UiDrawMode[] = [];
+    static selectedItem?: UiDrawMode = undefined;
     element: HTMLElement;
     type: string;
-    constructor(element, type) {
+    constructor(element: HTMLElement, type: string) {
         this.type = type;
         this.element = element;
-        UiItem.allElements.push(this);
+        UiDrawMode.allTypes.push(this);
         this.element.addEventListener('click', (event: MouseEvent) => {
             this.selected();
         });
@@ -826,19 +844,26 @@ class UiItem {
             this.focused();
         });
         this.element.addEventListener('mouseleave', (event: MouseEvent) => {
-            if(UiItem.selectedItem !== undefined)UiItem.selectedItem.focused();
+            if(UiDrawMode.selectedItem !== undefined)UiDrawMode.selectedItem.focused();
         });
     }
     selected() {
-        UiItem.allElements.forEach(uiItem=> uiItem.unselected());
-        this.element.classList.add('ui-selected');
-        UiItem.selectedItem = this;
+        if(UiDrawMode.selectedItem && this.type === UiDrawMode.selectedItem.type) {
+            this.unselected();
+            UiDrawMode.selectedItem = undefined;
+        } else {
+            UiDrawMode.allTypes.forEach(uiItem=> uiItem.unselected());
+            this.element.classList.add('ui-selected');
+            UiDrawMode.selectedItem = this;
+            putBox();
+        }
     }
     unselected() {
         this.element.classList.remove('ui-selected');
+        this.unfocused();
     }
     focused() {
-        UiItem.allElements.forEach(uiItem=> uiItem.unfocused());
+        UiDrawMode.allTypes.forEach(uiItem=> uiItem.unfocused());
         this.element.classList.add('ui-forcused');
     }
     unfocused() {
@@ -846,10 +871,201 @@ class UiItem {
     }
 }
 
-const uiItemElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-item');
-for(const uiItem of uiItemElements) {
-    if (uiItem instanceof HTMLElement) {
-        new UiItem(uiItem, uiItem.id.replace('ui-item-for_',''));
+class UiFunctions {
+    static applying: { [key: string]: UiFunctions } = {};
+    type: string;
+    activated: boolean = false;
+    element: HTMLElement;
+    noteController: NoteController;
+    constructor(uiLamp: HTMLElement, type: string, noteController: NoteController) {
+        this.element = uiLamp;
+        this.type = type;
+        this.element.addEventListener('click', (event: MouseEvent)=>{
+           this.activate.apply(this); 
+        });
+        this.noteController = noteController;
+        if(this.noteController.activeFunctions[this.type]) {
+            this.activate();
+        }
+        UiFunctions.applying[this.type] = this;
+    }
+    lock() {
+        this.element.classList.add('locked');
+    }
+    unlock() {
+        this.element.classList.remove('locked');
+    }
+    activate() {
+        if(this.activated) {
+            this.deactivate();
+        } else {
+            this.noteController.activateFunctions(this.type);
+            this.activated = true;
+            this.element.classList.add('activate');
+        }
+    }
+    deactivate() {
+        this.noteController.deactiveFunctions(this.type);
+        this.activated = false;
+        this.element.classList.remove('activate');
     }
 }
 
+const uiButtonElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-button');
+for(const uiItem of uiButtonElements) {
+    if (uiItem instanceof HTMLElement) {
+        new UiDrawMode(uiItem, uiItem.id.replace('ui-item-for_',''));
+    }
+}
+const uiLampElements:HTMLCollectionOf<Element> = document.getElementsByClassName('ui-lamp');
+for(const uiLamp of uiLampElements) {
+    if (uiLamp instanceof HTMLElement) {
+        new UiFunctions(uiLamp, uiLamp.id.replace('ui-item-for_',''), noteController);
+    }
+}
+
+UiFunctions.applying['live']?.lock?.();
+
+let putBoxId = 0;
+function putBox() {
+    const PROCESS_ID = ++putBoxId;
+    if(!container)return;
+    let xs:number[] = [];
+    let ys:number[] = [];
+    const cancel = () => {
+        container?.removeEventListener('mousedown', onmousedown);
+        container?.removeEventListener('mouseup', onmouseup);
+        container?.removeEventListener('onmouseout', cancel);
+        container?.removeEventListener('onmouseleave', cancel);
+    }
+    const onmousedown = (e)=>{
+        xs.push(e.clientX);
+        ys.push(e.clientY);
+        container?.removeEventListener('mousedown', onmousedown);
+        //container?.removeEventListener('onmouseleave', cancel);
+        //container?.removeEventListener('onmouseout', cancel);
+        
+        container.addEventListener('mouseup', onmouseup);
+    }
+    const onmouseup = (e)=>{
+        const rect = container.getBoundingClientRect();
+        xs.push(e.clientX);
+        ys.push(e.clientY);
+        const mx = Math.min(...xs);
+        const my = Math.min(...ys);
+        const Mx = Math.max(...xs);
+        const My = Math.max(...ys);
+        const range = {
+            x: mx - rect.left,
+            y: my - rect.top,
+            width: Math.max(Mx - mx,150), 
+            height: Math.max(My - my, 100)
+        };
+        if(UiDrawMode.selectedItem && PROCESS_ID === putBoxId) {
+            const boxType = UiDrawMode.selectedItem.type;
+            const putData = {
+                range: range, type: boxType
+            }
+            const idPromise = (async function() {
+                const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    body: JSON.stringify(putData),
+                    headers: {
+                      'Content-Type': 'application/json; charset=utf-8',
+                      'X-CSRFToken': csrftoken,
+                    },
+                });
+                //try
+                const parsed = await response.json()
+                return parsed['assigned_id'];
+                //} catch(e) {
+                //}
+            })();
+
+            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+
+            const block = makeBlockObject(range, boxType, idPromise);
+            pageObjects.push(block);
+        }
+
+        UiDrawMode.selectedItem?.unselected();
+        
+        xs = [];
+        ys = [];
+        container?.removeEventListener('mouseup', onmouseup);
+        makePageData().then(console.log);
+    }
+
+    container.addEventListener('mousedown', onmousedown);
+}
+putBox();
+const saveUiElement: HTMLElement|null = document.getElementById('ui-save');
+const sendEffectBarElement: HTMLElement|null = document.getElementById('send-effect-bar');
+if(saveUiElement) {
+    saveUiElement.addEventListener('click', (event: MouseEvent) => {
+                
+        const message = new Modal(
+            'info-bar',
+            'セーブしました',
+            3000, Modal.infoContainer);
+        message.init();
+        message.show();
+
+        allBlockSyncServer();
+
+        //sendEffectBarElement.classList.add('send-effect-bar');
+    });
+}
+
+socket.on("reconnect", (attempt) => {
+    //window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が復旧しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+    UiFunctions.applying['live']?.unlock?.();
+});
+socket.on("connect", () => {
+    // ...//window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+
+    UiFunctions.applying['live']?.unlock?.();
+});
+socket.on("disconnect", (reason, details) => {
+    // ...
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が切れました',
+        5000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+    UiFunctions.applying['live']?.lock?.();
+});
+
+socket.on("update", (target_id, update_keys, update_values) => {
+    if(noteController.activeFunctions["live"])  {
+        const target = pageObjects.find(object=>object.id === target_id);
+
+        if(target !== undefined) {
+            target.update_parameters(update_keys, update_values);
+            console.log(target.x,target.y,target.width,target.height,target.value);
+            target.render();
+        } else {
+            console.warn('ボックスがない')
+        }
+    }
+});

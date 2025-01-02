@@ -1,3 +1,6 @@
+$clear-blue: rgb(13, 110, 253);
+$main-color: rgb(57,123,108);
+
 html,
 body {
   padding: 0;
@@ -60,7 +63,7 @@ a {
 /*    background: #11631c;
   background-color: rgb(37,153,118);*/
   
-  background-color: rgb(57,123,108);
+  background-color: $main-color;
   border-bottom: 1px white solid;
 }
 
@@ -71,3 +74,26 @@ a {
   border: none;
 }
 
+.vr {
+  height: 100%;
+  border-left: rgb(200,200,200) solid 1px;
+  box-sizing: content-box;
+  width: 0px;
+}
+
+.olive-symbol {
+  color: $main-color;
+  font-weight: 900;
+}
+
+.olive-symbol-image {
+  display: inline;
+  height: auto;
+  font-size: inherit;
+  height: 1em;
+  width: 1em;
+}
+
+a {
+  color: $clear-blue;
+}
