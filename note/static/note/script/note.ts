@@ -619,6 +619,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
+    mouseIsOnCanvas: boolean = false;
     private lastX: number | null;
     private lastY: number | null;
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
@@ -634,31 +635,34 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         this.bindedEvents = [];
     }
+    usingPen(ref=this){
+        if(!this.drawing) {
+            this.drawing = true;
+            this.paintStart();
+            this.updateLineStyle();
+            this.boxFrameElement.removeEventListener('mousedown', ref.usingPen);
+        }
+    }
     async init() {
         super.init();
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
-        const onmousedown = ()=> {
-            if(!this.drawing) {
-                this.drawing = true;
-                this.paintStart();
-                this.updateLineStyle();
-                this.boxFrameElement.removeEventListener('mousedown', onmousedown);
-            }
-        }
+        
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
             //this.paintStart();
             if(!this.moving) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown);
+                this.boxFrameElement.addEventListener('mousedown', this.usingPen);
             }
+            this.mouseIsOnCanvas = true;
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             this.paintEnd();
             this.update();
             this.toggleToView();
-            this.boxFrameElement.removeEventListener('mousedown', onmousedown);
+            this.boxFrameElement.removeEventListener('mousedown', this.usingPen);
+            this.mouseIsOnCanvas = false;
         });
         this.lastX = null;
         this.lastY = null;
@@ -714,6 +718,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.drawing = false;
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
+        }
+        if(this.mouseIsOnCanvas) {
+            
         }
     }
     getValue() {
