@@ -15,9 +15,9 @@ io.on("connection", (socket) => {
     const CLIENT_ROOM_ID = url.pathname; 
     console.log(origin);
     socket.join(CLIENT_ROOM_ID);
-    socket.on('update', (update_keys, update_values)=> {
-        console.log(CLIENT_ROOM_ID, update_keys, update_values);
-        socket.to(CLIENT_ROOM_ID).emit('update', update_keys, update_values);
+    socket.on('update', (target_id, update_keys, update_values)=> {
+        console.log(CLIENT_ROOM_ID, target_id, update_keys, update_values);
+        socket.to(CLIENT_ROOM_ID).emit('update', target_id, update_keys, update_values);
     });
 });
 

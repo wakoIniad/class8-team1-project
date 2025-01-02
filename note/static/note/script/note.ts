@@ -392,15 +392,23 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async applyValue(): Promise<void> {
         this.resetMaskUI();
+        const applying = {
+            update_keys: ["value"],
+            update_values: [this.value]
+        }
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
-                update_keys: ["value"],
-                update_values: [this.value]
-            }});
+            await this.callAPI('POST', { body: applying);
+        }
+        if(this.noteController.activateFunctions['live']) {
+            socket.emit(this.id, applying.update_keys, applying.update_values);
         }
     }
 
     async resize(width: number, height: number): Promise<void> {
+        const applying = {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             width -= width%this.noteController.nudgeSize;
             height -= height%this.noteController.nudgeSize;
@@ -411,13 +419,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.coordToString(this.height = height);
         
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
-                update_keys: ["width","height"],
-                update_values: [this.width, this.height]
-            }});
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activateFunctions['live']) {
+            socket.emit(this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(x: number, y: number): Promise<void> {
+        const applying = {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.nudgeSize;
             y -= y%this.noteController.nudgeSize;
@@ -428,10 +440,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.top =  this.coordToString(y);
         
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
-                update_keys: ["x","y"],
-                update_values: [this.x, this.y]
-            }});
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activateFunctions['live']) {
+            socket.emit(this.id, applying.update_keys, applying.update_values);
         }
     }
     relayout() {
@@ -982,9 +994,9 @@ socket.on("disconnect", (reason, details) => {
     // ...
 });
 
-socket.on("update", (update_keys, update_values) => {
+socket.on("update", (target_id, update_keys, update_values) => {
     if(noteController.activeFunctions["live"])  {
         console.log(update_keys, update_values);
     }
 });
-socket.emit("update", ["testdayo"],["1234"])
+socket.emit("update", "aaa",["testdayo"],["1234"]);
