@@ -29,6 +29,7 @@ function endLoadingAnimation() {
     }
 }
 
+import { parse } from 'path';
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
@@ -526,11 +527,12 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
-        .replaceAll(/\*\*(.*?)\*\*/, '<span class="markdown-bold">$1</span>')
-        .replaceAll(/\*(.*?)\*/, '<span class="markdown-italic">$1</span>')
-        .replaceAll(/\_\_(.*?)\_\_/, '<span class="markdown-under-line"></span>')
-        .replaceAll(/\_(.*?)\_/, '<span class="markdown-italic"></span>')
-        .replaceAll(/\~\~(.*?)\~\~/, '<span class="markdown-strike-through"></span>');
+        .replaceAll(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
+        .replaceAll(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
+        .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
+        .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
+        .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
+        console.log(parsedAsMarkdown)
         return parsedAsMarkdown;
     }
 }
