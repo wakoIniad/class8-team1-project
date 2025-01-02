@@ -7,3 +7,10 @@ $main-color: rgb(57,123,108);
 h1 {
     color: $main-color;
 }
+
+.hero {
+    height: 130px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
