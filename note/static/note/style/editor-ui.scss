@@ -154,8 +154,13 @@ $breakpoint: 200px;
 
 }*/
 
-.ui-item.ui-lamp.activate {
+.ui-item.ui-lamp.activate:not(.locked) {
     background-color: rgb(71, 255, 206);
+}
+
+.ui-item.ui-lamp.locked {
+    //background-color: rgb(200, 0, 0);
+    background-color: rgb(255, 120, 0);
 }
 
 /*@include keyframes(send-effect-bar) {
