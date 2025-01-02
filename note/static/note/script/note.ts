@@ -144,6 +144,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     maskElement: HTMLDivElement;
 
     noteController: NoteController;
+    moving: boolean = false;
 
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
@@ -179,11 +180,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.maskElement.classList.add('box-mask');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+            this.moving = true;
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
                 this.y += e.clientY - sy;
                 this.relocate(this.x, this.y);
                 this.boxFrameElement.removeEventListener('dragend', callback);
+                this.moving = false;
             }
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
@@ -615,6 +618,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penSize: number = 3;
     penColor: string = '#000000';
     penOpacity: number = 1;
+    drawing: boolean = false;
     private lastX: number | null;
     private lastY: number | null;
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
@@ -636,13 +640,19 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('alt','');
         
         const onmousedown = ()=> {
-            this.paintStart();
-            this.updateLineStyle();
+            if(!this.drawing) {
+                this.drawing = true;
+                this.paintStart();
+                this.updateLineStyle();
+                this.boxFrameElement.removeEventListener('mousedown', onmousedown);
+            }
         }
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
             //this.paintStart();
-            this.boxFrameElement.addEventListener('mousedown', onmousedown);
+            if(!this.moving) {
+                this.boxFrameElement.addEventListener('mousedown', onmousedown);
+            }
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             this.paintEnd();
@@ -692,12 +702,16 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             ['mouseleave', ()=>{
                 this.paintEnd();
             }],
+            ['mousedown', ()=>{
+                this.paintEnd();
+            }]
         ];
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.addEventListener(name, callback, {capture: true});
         }
     }
     paintEnd() {
+        this.drawing = false;
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
