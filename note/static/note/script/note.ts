@@ -642,7 +642,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         
         const onmousedown = ()=> {
             if(!this.drawing) {
-                console.log('this.is.init.mousedown');
                 this.drawing = true;
                 this.paintStart();
                 this.updateLineStyle();
@@ -695,7 +694,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        //this.paintEnd();
         this.bindedEvents = [
             ['mousemove', (e: MouseEvent)=>{
                 this.paintAt(e);
@@ -707,7 +705,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 this.paintEnd();
             }],
             ['mousedown', ()=>{
-                console.log('this.is.paintStart.mousedown');
                 this.paintEnd();
             }]
         ];
@@ -721,9 +718,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
         setTimeout(()=>{
-            console.log('ICHIODESU')
             const onmousedown = ()=> {
-                console.log('this.is.paintEnd.mousedown');
                 if(!this.drawing) {
                     this.drawing = true;
                     this.paintStart();
