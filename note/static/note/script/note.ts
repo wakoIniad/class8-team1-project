@@ -722,17 +722,17 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         setTimeout(()=>{
             console.log('ICHIODESU')
-            const onmousedown__ = ()=> {
+            const onmousedown = ()=> {
                 console.log('this.is.paintEnd.mousedown');
                 if(!this.drawing) {
                     this.drawing = true;
                     this.paintStart();
                     this.updateLineStyle();
-                    this.boxFrameElement.removeEventListener('mousedown', onmousedown__);
+                    this.boxFrameElement.removeEventListener('mousedown', onmousedown);
                 }
             }
             if(this.mouseIsOnCanvas) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown__);
+                this.boxFrameElement.addEventListener('mousedown', onmousedown);
             }
         }, 1000);
     }
