@@ -1,3 +1,13 @@
+
+const socket = io("http://localhost:3000", {
+    transportOptions: {
+        polling: {
+            extraHeaders: {
+                "self-proclaimed-referer": window.location.href,  // 任意のカスタムヘッダーを送信
+            }
+        }
+    }
+});
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -101,7 +111,7 @@ class NoteController {
                 this.onActivate[functionName]();
             }
         }
-        //console.table(this.activeFunctions)
+        console.table(this.activeFunctions)
     }
     deactiveFunctions(functionName: string) {
         if(this.activeFunctions?.[functionName] !== undefined) {        
@@ -133,6 +143,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     maskElement: HTMLDivElement;
 
     noteController: NoteController;
+
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
@@ -205,8 +216,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
 
+        let resizeProcessIdCounter: number = 0;
         const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+            const PROCESS_ID: number = ++resizeProcessIdCounter;
+            setTimeout(()=>{
+                if(PROCESS_ID === resizeProcessIdCounter) {
+                    this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
+                }
+            },500);
         });
         resizeObserver.observe(this.boxFrameElement);
 
@@ -382,17 +399,41 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }});
     }
 
-    async applyValue(): Promise<void> {
+    update_parameters(update_keys, update_values) {
+        for(const [ i, key ] of update_keys.entries()) {
+            this[key] = update_values[i];
+        }
+    }
+
+    render() {
+        this.boxFrameElement.style.left = this.coordToString(this.y);
+        this.boxFrameElement.style.top = this.coordToString(this.y);
+        this.boxFrameElement.style.width = this.coordToString(this.width);
+        this.boxFrameElement.style.height = this.coordToString(this.height);
+        this.applyValue(true);
+    }
+
+    async applyValue(nosynch: boolean = false): Promise<void> {
         this.resetMaskUI();
-        if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
+        if(!nosynch) {
+            const applying = {
                 update_keys: ["value"],
                 update_values: [this.value]
-            }});
+            }
+            if(this.noteController.activeFunctions['autosave'] === true) {
+                await this.callAPI('POST', { body: applying});
+            }
+            if(this.noteController.activeFunctions['live']) {
+                socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            }
         }
     }
 
     async resize(width: number, height: number): Promise<void> {
+        const applying = {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             width -= width%this.noteController.nudgeSize;
             height -= height%this.noteController.nudgeSize;
@@ -403,13 +444,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.coordToString(this.height = height);
         
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
-                update_keys: ["width","height"],
-                update_values: [this.width, this.height]
-            }});
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(x: number, y: number): Promise<void> {
+        const applying = {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        };
         if(this.noteController.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.nudgeSize;
             y -= y%this.noteController.nudgeSize;
@@ -420,10 +465,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.top =  this.coordToString(y);
         
         if(this.noteController.activeFunctions['autosave'] === true) {
-            await this.callAPI('POST', { body: {
-                update_keys: ["x","y"],
-                update_values: [this.x, this.y]
-            }});
+            await this.callAPI('POST', { body: applying});
+        }
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     relayout() {
@@ -472,9 +517,9 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     getValue() {
         return this.editorElement.value;
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.textContent = this.value;
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
@@ -525,10 +570,10 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    async applyValue() {
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
         this.toggleToView();
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
@@ -642,10 +687,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-    async applyValue() {
-        console.log(this.value);
+    async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
-        await super.applyValue();
+        await super.applyValue(nosynch);
     }
 }
 
@@ -828,6 +872,7 @@ class UiDrawMode {
 }
 
 class UiFunctions {
+    static applying: { [key: string]: UiFunctions } = {};
     type: string;
     activated: boolean = false;
     element: HTMLElement;
@@ -842,6 +887,13 @@ class UiFunctions {
         if(this.noteController.activeFunctions[this.type]) {
             this.activate();
         }
+        UiFunctions.applying[this.type] = this;
+    }
+    lock() {
+        this.element.classList.add('locked');
+    }
+    unlock() {
+        this.element.classList.remove('locked');
     }
     activate() {
         if(this.activated) {
@@ -963,3 +1015,55 @@ if(saveUiElement) {
         //sendEffectBarElement.classList.add('send-effect-bar');
     });
 }
+
+socket.on("reconnect", (attempt) => {
+    //window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が復旧しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+    UiFunctions.applying['live']?.unlock?.();
+});
+socket.on("connect", () => {
+    // ...//window.location.reload(true);
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続しました',
+        3000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+
+    UiFunctions.applying['live']?.unlock?.();
+});
+socket.on("disconnect", (reason, details) => {
+    // ...
+    const noticeModal = new Modal(
+        'info-bar', 
+        'WebSocketサーバーへの接続が切れました',
+        5000,
+        Modal.infoContainer
+    );
+    noticeModal.init();
+    noticeModal.show();
+    UiFunctions.applying['live']?.lock?.();
+});
+
+socket.on("update", (target_id, update_keys, update_values) => {
+    if(noteController.activeFunctions["live"])  {
+        const target = pageObjects.find(object=>object.id === target_id);
+
+        if(target !== undefined) {
+            target.update_parameters(update_keys, update_values);
+            console.log(target.x,target.y,target.width,target.height,target.value);
+            target.render();
+        } else {
+            console.warn('ボックスがない')
+        }
+    }
+});
