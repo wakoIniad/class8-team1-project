@@ -635,25 +635,25 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         this.bindedEvents = [];
     }
-    usingPen(ref=this){
-        if(!this.drawing) {
-            this.drawing = true;
-            this.paintStart();
-            this.updateLineStyle();
-            this.boxFrameElement.removeEventListener('mousedown', ref.usingPen);
-        }
-    }
     async init() {
         super.init();
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
         
-        
+        const onmousedown = ()=> {
+            if(!this.drawing) {
+                console.log('this.is.init.mousedown');
+                this.drawing = true;
+                this.paintStart();
+                this.updateLineStyle();
+                this.boxFrameElement.removeEventListener('mousedown', onmousedown);
+            }
+        }
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
             //this.paintStart();
             if(!this.moving) {
-                this.boxFrameElement.addEventListener('mousedown', this.usingPen);
+                this.boxFrameElement.addEventListener('mousedown', onmousedown);
             }
             this.mouseIsOnCanvas = true;
         }, {capture: true});
@@ -661,7 +661,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.paintEnd();
             this.update();
             this.toggleToView();
-            this.boxFrameElement.removeEventListener('mousedown', this.usingPen);
+            this.boxFrameElement.removeEventListener('mousedown', onmousedown);
             this.mouseIsOnCanvas = false;
         });
         this.lastX = null;
@@ -695,7 +695,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     paintStart() {
-        this.paintEnd();
+        //this.paintEnd();
         this.bindedEvents = [
             ['mousemove', (e: MouseEvent)=>{
                 this.paintAt(e);
@@ -707,6 +707,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 this.paintEnd();
             }],
             ['mousedown', ()=>{
+                console.log('this.is.paintStart.mousedown');
                 this.paintEnd();
             }]
         ];
@@ -719,9 +720,21 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
-        if(this.mouseIsOnCanvas) {
-            
-        }
+        setTimeout(()=>{
+            console.log('ICHIODESU')
+            const onmousedown__ = ()=> {
+                console.log('this.is.paintEnd.mousedown');
+                if(!this.drawing) {
+                    this.drawing = true;
+                    this.paintStart();
+                    this.updateLineStyle();
+                    this.boxFrameElement.removeEventListener('mousedown', onmousedown__);
+                }
+            }
+            if(this.mouseIsOnCanvas) {
+                this.boxFrameElement.addEventListener('mousedown', onmousedown__);
+            }
+        }, 1000);
     }
     getValue() {
         return this.editorElement.toDataURL();
