@@ -924,6 +924,8 @@ for(const uiLamp of uiLampElements) {
     }
 }
 
+UiFunctions.applying['live']?.lock?.();
+
 let putBoxId = 0;
 function putBox() {
     const PROCESS_ID = ++putBoxId;
