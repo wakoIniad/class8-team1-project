@@ -29,6 +29,7 @@ function endLoadingAnimation() {
     }
 }
 
+import { parse } from 'path';
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
@@ -505,6 +506,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.editorElement.classList.add('text-editor');
 
         this.displayElement.classList.add('text-view');
+        this.displayElement.classList.add('markdown-text-default');
         
         this.boxFrameElement.addEventListener('focusin', (e)=>{
             this.toggleToEditor();
@@ -518,8 +520,20 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         return this.editorElement.value;
     }
     async applyValue(nosynch: boolean = false) {
-        this.displayElement.textContent = this.value;
+        this.displayElement.innerHTML = this.parseMarkdown();
         await super.applyValue(nosynch);
+    }
+    parseMarkdown(): string {
+        const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
+        
+        const parsedAsMarkdown: string = escapedStr 
+        .replaceAll(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
+        .replaceAll(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
+        .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
+        .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
+        .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
+        console.log(parsedAsMarkdown)
+        return parsedAsMarkdown;
     }
 }
 
@@ -1069,3 +1083,10 @@ socket.on("update", (target_id, update_keys, update_values) => {
         }
     }
 });
+
+
+function escapeHTML(str: string) {
+    const div = document.createElement('div'); 
+    div.textContent = str; 
+    return div.innerHTML; 
+}

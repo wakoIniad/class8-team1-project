@@ -1,0 +1,19 @@
+.markdown-text-default  {
+    font-weight: lighter;
+}
+
+.markdown-bold {
+    font-weight: bold;
+}
+
+.markdown-under-line {
+    text-decoration: underline;
+}
+
+.markdown-strike-through {
+    text-decoration: line-through;
+}
+
+.markdown-italic {
+    font-style: italic;
+}
