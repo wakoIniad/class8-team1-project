@@ -1,3 +1,5 @@
+import subprocess
+
 from django.views.decorators.cache import never_cache
 from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
@@ -52,3 +54,18 @@ def home(request):
         'title': 'ホーム画面'
     }
     return render(request, 'note/home.html', context)
+
+
+#  process = subprocess.run( ["node", "socketio_server.js"],  # Node.jsスクリプトの実行コマンド
+#      stdout=subprocess.PIPE,  # 標準出力をキャプチャ
+#      stderr=subprocess.PIPE,  # 標準エラー出力もキャプチャ（必要なら）
+#      bufsize=1,               # 出力を逐次フラッシュ
+#      text=True,               # 出力を文字列として扱う
+#  )
+#  
+#  # 標準出力をリアルタイムで表示
+#  try:
+#      for line in process.stdout:
+#          print(line.strip())  # 出力を1行ずつ処理して表示
+#  except KeyboardInterrupt:
+#      print("プロセスを終了します。")
