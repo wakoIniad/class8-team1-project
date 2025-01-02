@@ -493,6 +493,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          */ 
         await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
+
+        if(this.noteController.activeFunctions['live']) {
+            socket.emit("delete", this.id);
+        }
     }
 }
 
@@ -532,7 +536,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
         .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
         .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
-        console.log(parsedAsMarkdown)
+        
         return parsedAsMarkdown;
     }
 }
@@ -991,16 +995,20 @@ function putBox() {
                     },
                 });
                 //try
-                const parsed = await response.json()
+                const parsed = await response.json();
                 return parsed['assigned_id'];
                 //} catch(e) {
                 //}
             })();
 
             //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-
             const block = makeBlockObject(range, boxType, idPromise);
             pageObjects.push(block);
+            (async()=>{
+                const id = await Promise.any([idPromise]);
+                
+                socket.emit('create', range, boxType, id);
+            })();
         }
 
         UiDrawMode.selectedItem?.unselected();
@@ -1081,6 +1089,24 @@ socket.on("update", (target_id, update_keys, update_values) => {
         } else {
             console.warn('ボックスがない')
         }
+    }
+});
+
+socket.on("delete", (id) => {
+    if(noteController.activeFunctions["live"])  {
+        const target = pageObjects.find(object=>object.id === id);
+        if(target !== undefined) {
+            target.dump();
+        } else {
+            console.warn('ボックスがない')
+        }
+    }
+});
+
+socket.on("create", (range, type, id) => {
+    if(noteController.activeFunctions["live"])  {
+        const block = makeBlockObject(range, type, id);
+        pageObjects.push(block);
     }
 });
 
