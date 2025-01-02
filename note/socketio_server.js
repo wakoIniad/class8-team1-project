@@ -19,10 +19,14 @@ io.on("connection", (socket) => {
         const url = new URL(referer);
         const CLIENT_ROOM_ID = url.pathname;
         socket.join(CLIENT_ROOM_ID);
-        socket.on('update', (target_id, update_keys, update_values)=> {
+        socket.on('update', (target_id, update_keys, update_values) => {
             console.log(CLIENT_ROOM_ID, target_id, update_keys, update_values);
             socket.to(CLIENT_ROOM_ID).emit('update', target_id, update_keys, update_values);
         });
+        socket.on('create', (range, type, id) => {
+            console.log(CLIENT_ROOM_ID, range, type, id);
+            socket.to(CLIENT_ROOM_ID).emit('create', range, type, id);
+        })
     }
 });
 

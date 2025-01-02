@@ -991,16 +991,21 @@ function putBox() {
                     },
                 });
                 //try
-                const parsed = await response.json()
+                const parsed = await response.json();
                 return parsed['assigned_id'];
                 //} catch(e) {
                 //}
             })();
 
             //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-
             const block = makeBlockObject(range, boxType, idPromise);
             pageObjects.push(block);
+            (async()=>{
+                const id = await Promise.any([idPromise]);
+                console.log("promise_any_test",id);
+                
+                socket.emit('create', range, boxType, id);
+            })();
         }
 
         UiDrawMode.selectedItem?.unselected();
@@ -1081,6 +1086,14 @@ socket.on("update", (target_id, update_keys, update_values) => {
         } else {
             console.warn('ボックスがない')
         }
+    }
+});
+
+socket.on("create", (range, type, id) => {
+    console.log("create_socket_test", range, type, id);
+    if(noteController.activeFunctions["live"])  {
+        const block = makeBlockObject(range, type, id);
+        pageObjects.push(block);
     }
 });
 
