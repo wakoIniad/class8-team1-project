@@ -615,6 +615,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+    private lastX: number | null;
+    private lastY: number | null;
+
     bindedEvents: [string, (any)=>void][];
     context: CanvasRenderingContext2D;
     penSize: number = 3;
@@ -622,8 +625,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penOpacity: number = 1;
     drawing: boolean = false;
     mouseIsOnCanvas: boolean = false;
-    private lastX: number | null;
-    private lastY: number | null;
+
+    active: boolean = false;
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
@@ -641,32 +644,68 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         super.init();
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt','');
-        
-        const onmousedown = ()=> {
-            if(!this.drawing) {
-                this.drawing = true;
+        this.boxFrameElement.addEventListener('dblclick', ()=>{
+            if(this.active) {
+                this.toggleToView();
+                this.paintEnd();
+            } else {
+                this.toggleToEditor();
                 this.paintStart();
-                this.updateLineStyle();
-                this.boxFrameElement.removeEventListener('mousedown', onmousedown);
             }
-        }
+            this.active = !this.active;
+        });
+        //const onmousedown = ()=> {
+        //    if(!this.drawing) {
+        //        this.drawing = true;
+        //        //this.paintStart();
+        //        this.updateLineStyle();
+        //        this.boxFrameElement.removeEventListener('mousedown', onmousedown);
+        //    }
+        //}
         this.boxFrameElement.addEventListener('focusin', (e)=>{
-            this.toggleToEditor();
-            //this.paintStart();
+            //this.toggleToEditor();
             if(!this.moving) {
                 this.boxFrameElement.addEventListener('mousedown', onmousedown);
             }
             this.mouseIsOnCanvas = true;
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
-            this.paintEnd();
+            //this.paintEnd();
             this.update();
-            this.toggleToView();
+            //this.toggleToView();
             this.boxFrameElement.removeEventListener('mousedown', onmousedown);
             this.mouseIsOnCanvas = false;
         });
         this.lastX = null;
         this.lastY = null;
+    }
+    paintStart() {
+        this.bindedEvents = [
+            ['mousemove', (e: MouseEvent)=>{
+                this.paintAt(e);
+            }],
+            ['mousedown', ()=>{
+                this.drawing = true;
+            }],
+            ['mouseup', ()=>{
+                this.drawing = false;
+            }],
+            ///以下２つはactivate = falseもアリ
+            ['mouseout', ()=>{
+                this.drawing = false;
+            }],
+            ['mouseleave', ()=>{
+                this.drawing = false;
+            }],
+        ];
+        for( const [name, callback] of this.bindedEvents ) {
+            this.editorElement.addEventListener(name, callback, {capture: true});
+        }
+    }
+    paintEnd() {
+        for( const [name, callback] of this.bindedEvents ) {
+            this.editorElement.removeEventListener(name, callback, {capture: true});
+        }
     }
     updateLineStyle() {
         this.context.globalAlpha = this.penOpacity;
@@ -677,6 +716,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = null;
     }
     paintAt(e) {
+        if(!this.drawing) return;
+
         const rect = this.editorElement.getBoundingClientRect();
 
         const x = (e.clientX - rect.left) * (this.editorElement.width / rect.width);
@@ -694,44 +735,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.lastX = x;
         this.lastY = y;
-    }
-    paintStart() {
-        this.bindedEvents = [
-            ['mousemove', (e: MouseEvent)=>{
-                this.paintAt(e);
-            }],
-            ['mouseout', ()=>{
-                this.paintEnd();
-            }],
-            ['mouseleave', ()=>{
-                this.paintEnd();
-            }],
-            ['mousedown', ()=>{
-                this.paintEnd();
-            }]
-        ];
-        for( const [name, callback] of this.bindedEvents ) {
-            this.editorElement.addEventListener(name, callback, {capture: true});
-        }
-    }
-    paintEnd() {
-        this.drawing = false;
-        for( const [name, callback] of this.bindedEvents ) {
-            this.editorElement.removeEventListener(name, callback, {capture: true});
-        }
-        setTimeout(()=>{
-            const onmousedown = ()=> {
-                if(!this.drawing) {
-                    this.drawing = true;
-                    this.paintStart();
-                    this.updateLineStyle();
-                    this.boxFrameElement.removeEventListener('mousedown', onmousedown);
-                }
-            }
-            if(this.mouseIsOnCanvas) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown);
-            }
-        }, 1000);
     }
     getValue() {
         return this.editorElement.toDataURL();
