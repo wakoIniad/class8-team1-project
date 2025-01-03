@@ -40,9 +40,6 @@ function allBlockSyncServer() {
     pageObjects.forEach(block=>block.syncServer());
 }
 
-let container:HTMLElement | null = document.getElementById('container');
-if(!(container instanceof HTMLElement)) {
-}
 
 class ContainerManager {
     container: HTMLElement;
@@ -1003,26 +1000,25 @@ UiFunctions.applying['live']?.lock?.();
 let putBoxId = 0;
 function putBox() {
     const PROCESS_ID = ++putBoxId;
-    if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
     const cancel = () => {
-        container?.removeEventListener('mouseup', onmouseup);
-        container?.removeEventListener('onmouseout', cancel);
-        container?.removeEventListener('onmouseleave', cancel);
+        noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.removeEventListener('onmouseout', cancel);
+        noteController.containerManager.container.removeEventListener('onmouseleave', cancel);
     }
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-        container?.removeEventListener('mousedown', onmousedown);
+        noteController.containerManager.container.removeEventListener('mousedown', onmousedown);
 
         // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
-        container.addEventListener('mouseup', onmouseup);
-        container.addEventListener('onmouseout', cancel);
-        container.addEventListener('onmouseleave', cancel);
+        noteController.containerManager.container.addEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.addEventListener('onmouseout', cancel);
+        noteController.containerManager.container.addEventListener('onmouseleave', cancel);
     }
     const onmouseup = (e)=>{
-        const rect = container.getBoundingClientRect();
+        const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
         const mx = Math.min(...xs);
@@ -1071,11 +1067,11 @@ function putBox() {
         
         xs = [];
         ys = [];
-        container?.removeEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
         makePageData().then(console.log);
     }
 
-    container.addEventListener('mousedown', onmousedown);
+    noteController.containerManager.container.addEventListener('mousedown', onmousedown);
 }
 putBox();
 const saveUiElement: HTMLElement|null = document.getElementById('ui-save');
