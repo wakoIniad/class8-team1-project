@@ -422,18 +422,18 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
-            const relu = n => ( n - ( n ** 2 ) ** 0.5 ) / 2;
+            const relu = n => ( n + ( n ** 2 ) ** 0.5 ) / 2;
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
-            const lackX += relu(Block.minWidth - resizedWidth);
-            const lackY += relu(Block.minHeight - resizedHeight);
+            const lackX = relu(Block.minWidth - resizedWidth);
+            const lackY = relu(Block.minHeight - resizedHeight);
 
             const relocatedX = this.x + relu(-offset_x) * movementX;
             const relocatedY = this.y + relu(-offset_y) * movementY;
 
-            this.relocate(relocatedX+lackX, relocatedY+lackY);
+            this.relocate(relocatedX-lackX, relocatedY-lackY);
             this.resize(resizedWidth-lackX, resizedHeight-lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
