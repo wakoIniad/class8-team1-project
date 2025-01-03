@@ -54,6 +54,9 @@ class Range {
     spread(): [ number, number, number, number ] {
         return [ this.x, this.y, this.width, this.height ];
     }
+    spreadShape(): [ number, number, number, number ] {
+        return [ 0, 0, this.width, this.height ];
+    }
 }
 
 class ContainerManager {
@@ -828,6 +831,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         return this.editorElement.toDataURL();
     }
     async applyValue(nosynch: boolean = false) {
+        this.backgroundContext.clearRect(...this.editingRange.spread());
         this.backgroundContext.drawImage(this.editorElement, ...this.editingRange.spread());
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
@@ -838,7 +842,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.width = width;
         this.editingRange.height = height;
 
-        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), 0, 0, this.width, this.height);
+        this.editingContext.clearRect(...this.editingRange.spreadShape());
+        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), ...this.editingRange.spreadShape());
         console.log('resizer', width, height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
