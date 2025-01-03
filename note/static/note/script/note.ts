@@ -3,7 +3,7 @@ const socket = io("http://localhost:3000", {
     transportOptions: {
         polling: {
             extraHeaders: {
-                "self-proclaimed-referer": window.location.href,  // 任意のカスタムヘッダーを送信
+                "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
             }
         }
     }
@@ -12,7 +12,7 @@ const socket = io("http://localhost:3000", {
 
 // CSRF対策
 
-const csrftoken: string = getCsrfToken();
+const csrftoken: string = getCsrfToken();//これはサーバー側で発行されている
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
 const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
@@ -40,37 +40,84 @@ function allBlockSyncServer() {
     pageObjects.forEach(block=>block.syncServer());
 }
 
-let container:HTMLElement | null = document.getElementById('container');
-if(!(container instanceof HTMLElement)) {
-    throw new Error('コンテナの取得に失敗しました');
-}
-
-function appendToContainer(elm: HTMLElement): void {
-    if(container) container.appendChild(elm);
-}
-
-type BlockObjectParameters = [ rangeData, string?, string?, string? ];
-
-interface BlockInterface {
+class Range {
     x:number;
     y:number;
-    width:number;
-    height:number;
-    editorElement: HTMLElement;
-    displayElement: HTMLElement;
-    value: string;
-    id: string;
-    boxFrameElement: HTMLSpanElement;
-    makeBoxElement<T>(tagName: string):T;
-    assign(element: HTMLElement):void;
-    toggleToEditor():void;
-    toggleToView():void;
-    getValue: () => string | Promise<string>;
-    applyValue: () => void;
-    init: () => void;
+    width: number;
+    height: number;
+    constructor(x: number, y: number, width: number, height: number) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+    spread(): [ number, number, number, number ] {
+        return [ this.x, this.y, this.width, this.height ];
+    }
+    shape(): Range {
+        return new Range( 0, 0, this.width, this.height );
+    }
+    //Rectifiedは数学では非負になるように修正するみたいな意味らしい（真偽不明） 
+    rectified(): Range {
+        return new Range( 
+            (this.x + Math.abs(this.x))/2,
+            (this.y + Math.abs(this.y))/2,
+            this.width,
+            this.height  
+        );
+    }
+    relative(ref: Range): Range {
+        return new Range( 
+            ref.x-this.x,
+            ref.y-this.y,
+            this.width,
+            this.height  
+        );
+    }
 }
 
-class NoteController {
+class ContainerManager {
+    container: HTMLElement;
+    range: Range;
+    constructor(containerElementID: string) {
+        const containerElement:HTMLElement | null = document.getElementById(containerElementID);
+        if(containerElement instanceof HTMLElement) {
+            this.container = containerElement;
+            const containerDomRect: DOMRect = this.container.getBoundingClientRect();
+            
+            this.range = 
+                new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+        } else {
+            this.error('コンテナの取得に失敗しました');
+        }
+    }
+    append(target: HTMLElement) {
+        this.container.appendChild(target);
+    }
+    error(message: string) {
+        throw new Error(message);
+    }
+    updateContainerInfo(container = this.container) {
+        const containerDomRect: DOMRect = container.getBoundingClientRect();
+            
+        this.range = 
+            new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+    }
+    normalizeCoordinate(target): Range {
+        // 幅をノーマライズの基準にする
+        const ref = this.range.width;
+
+        const targetDomRect: DOMRect = target.getBoundingClientRect();
+        const normalizedX = ( targetDomRect.left - this.range.x ) / ref;
+        const normalizedY = ( targetDomRect.top - this.range.y ) / ref;
+        const normalizedHeight = targetDomRect.height / ref;
+        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
+    }
+}
+
+const containerManager = new ContainerManager('container');
+
+class FunctionManager {
 
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
@@ -92,8 +139,8 @@ class NoteController {
     };
     nudgeSize: number = 32;
 
-    constructor(nudgeSize?: number) {
-        if(nudgeSize)this.nudgeSize = nudgeSize;
+    constructor(noteSettings: { nudgeSize?: number } = {} ) {
+        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
         document.addEventListener('keydown', this.onKeydown.bind(this));
         document.addEventListener('keyup', this.onKeyup.bind(this));
     }
@@ -122,6 +169,18 @@ class NoteController {
     }
 }
 
+const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
+class NoteController {
+    functionManager: FunctionManager;
+    containerManager: ContainerManager;
+    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
+        this.functionManager = functionManager;
+        this.containerManager = containerManager;
+    }
+}
+const noteController: NoteController = new NoteController(functionManager, containerManager);
+
+
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     
@@ -131,20 +190,26 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     y:number;
     width:number;
     height:number;
+
     editorElement: T;
     displayElement: S;
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
+    maskElement: HTMLDivElement;
+
     value: string;
     id: string | Promise<string>;
     type?: string;
+
     pendingRequest?: Promise<any>;
+
     pendingSync: boolean;
     dumped: boolean;
-    maskElement: HTMLDivElement;
+    moving: boolean = false;
+    positionLocked: boolean = false;
+    editorIsActive: boolean = false;
 
     noteController: NoteController;
-    moving: boolean = false;
 
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
@@ -180,6 +245,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.maskElement.classList.add('box-mask');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+            //仕様: 編集中は動かさない
+            if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
@@ -233,7 +300,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.init();
 
-        appendToContainer(this.boxFrameElement);
         this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
@@ -327,12 +393,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
+        this.noteController.containerManager.append(box);
         box.style.left =   this.coordToString(this.x);
         box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
         box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
-        box.classList.add('resizer');
         return box as T;
     }
     
@@ -344,10 +410,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return content as T;
     }
     
-    makeResizer<T>(tagName: string):T {
-        const content: HTMLElement = document.createElement(tagName);
-        content.style.left = this.coordToString(0);
-        content.style.top =  this.coordToString(0);
+    makeResizer<T>(x: number, y: number):T {
+        const content: HTMLElement = document.createElement('span');
+        content.style.left = (~~(x*100))+'%';
+        content.style.top =  (~~(y*100))+'%';
         content.classList.add('resizer');
         return content as T;
     }
@@ -355,15 +421,29 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.replaceChildren(...element);
     }
     toggleToEditor() {
+        
+        //this.boxFrameElement.setAttribute('draggable', 'false');
+        this.editorIsActive = true;
         this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
         //this.assign(this.editorElment);
     }
     toggleToView() {
+        //this.boxFrameElement.setAttribute('draggable', 'true');
+        this.editorIsActive = false;
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
         
         //this.assign(this.displayElement);
+    }
+    lockPosition() {
+        this.positionLocked = true;
+        this.boxFrameElement.setAttribute('draggable', 'false');
+    }
+    
+    unlockPosition() {
+        this.positionLocked = false;
+        this.boxFrameElement.setAttribute('draggable', 'true');
     }
     async makeData(): Promise<blockData> {
         return {
@@ -424,10 +504,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 update_keys: ["value"],
                 update_values: [this.value]
             }
-            if(this.noteController.activeFunctions['autosave'] === true) {
+            if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
                 await this.callAPI('POST', { body: applying});
             }
-            if(this.noteController.activeFunctions['live']) {
+            if(this.noteController.functionManager.activeFunctions['live']) {
                 socket.emit("update", this.id, applying.update_keys, applying.update_values);
             }
         }
@@ -438,40 +518,41 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             update_keys: ["width","height"],
             update_values: [this.width, this.height]
         };
-        if(this.noteController.activeFunctions['nudge'] === true) {
-            width -= width%this.noteController.nudgeSize;
-            height -= height%this.noteController.nudgeSize;
+        if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
+            width -= width%this.noteController.functionManager.nudgeSize;
+            height -= height%this.noteController.functionManager.nudgeSize;
         }
         //this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
         
-        if(this.noteController.activeFunctions['autosave'] === true) {
+        if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(x: number, y: number): Promise<void> {
+        console.log('relocate: ', x, y);
         const applying = {
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
         };
-        if(this.noteController.activeFunctions['nudge'] === true) {
-            x -= x%this.noteController.nudgeSize;
-            y -= y%this.noteController.nudgeSize;
+        if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
+            x -= x%this.noteController.functionManager.nudgeSize;
+            y -= y%this.noteController.functionManager.nudgeSize;
         }
         this.x = x;
         this.y = y;
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
         
-        if(this.noteController.activeFunctions['autosave'] === true) {
+        if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
@@ -497,7 +578,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
 
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("delete", this.id);
         }
     }
@@ -534,11 +615,13 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
-        .replaceAll(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
-        .replaceAll(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
-        .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
-        .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
-        .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
+        .replace(/\*\*((.*?(\n)?)*?)\*\*/g, '<span class="markdown-bold">$1</span>')
+        .replace(/\*((.*?(\n)?)*?)\*/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\_\_((.*?(\n)?)*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
+        .replace(/\_((.*?(\n)?)*?)\_/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
+        .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
+        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
         
         return parsedAsMarkdown;
     }
@@ -603,144 +686,216 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     toggleToView() {
         if(this.value) {
-            this.editorElement.classList.remove('visible');
-            this.displayElement.classList.add('visible');
+            super.toggleToView();
         } else {
-            this.toggleToEditor();
+            super.toggleToEditor();
         }
         //this.assign(this.displayElement);
     }
 }
 
 class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+    private lastX: number | null;
+    private lastY: number | null;
+
     bindedEvents: [string, (any)=>void][];
-    context: CanvasRenderingContext2D;
+    editingContext: CanvasRenderingContext2D;
     penSize: number = 3;
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
-    mouseIsOnCanvas: boolean = false;
-    private lastX: number | null;
-    private lastY: number | null;
+
+    background: HTMLCanvasElement;
+    backgroundContext: CanvasRenderingContext2D;
+
+    editingRange: Range;
+
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
-        const context = this.editorElement.getContext('2d');
-        if(context !== null) {
-            this.context = context;
+        
+        const editingContext = this.editorElement.getContext('2d');
+        //background(非描画領域も含めた全データ)はサーバーに保存済みのデータで初期化
+        // = サーバーに保存後、アプリを閉じたら非描画部分は消える
+        const background = document.createElement('canvas');
+        background.width = range.width;
+        background.height = range.height;
+        this.background = background;
+        const backgroundContext = this.background.getContext('2d');
+        this.editingRange = new Range(0, 0, range.width, range.height);
+
+        if(backgroundContext !== null && editingContext !== null) {
+            this.backgroundContext = backgroundContext;
+            this.editingContext = editingContext;
             if(URI !== SPACER_URI) {
                 const image = new Image();
+                image.addEventListener("load", () => {
+                    this.backgroundContext.drawImage(image, 0, 0);
+                });
                 image.src = URI;
-                this.context.drawImage(image, 0, 0);
             }
         }
         this.bindedEvents = [];
     }
     async init() {
         super.init();
+
+        this.editorElement.setAttribute('width', String(this.width));
+        this.editorElement.setAttribute('height', String(this.height));
+
         this.displayElement.setAttribute('src', this.value);
-        this.displayElement.setAttribute('alt','');
-        
-        const onmousedown = ()=> {
-            if(!this.drawing) {
-                this.drawing = true;
-                this.paintStart();
-                this.updateLineStyle();
-                this.boxFrameElement.removeEventListener('mousedown', onmousedown);
+        this.displayElement.setAttribute('alt', '');
+        this.boxFrameElement.addEventListener('dblclick', ()=>{
+            if(this.editorIsActive) {
+                this.deactivateCanvasEditor();
+            } else {
+                this.activateCanvasEditor();
             }
-        }
-        this.boxFrameElement.addEventListener('focusin', (e)=>{
-            this.toggleToEditor();
-            //this.paintStart();
-            if(!this.moving) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown);
-            }
-            this.mouseIsOnCanvas = true;
-        }, {capture: true});
-        this.boxFrameElement.addEventListener('focusout', (e)=>{
-            this.paintEnd();
-            this.update();
-            this.toggleToView();
-            this.boxFrameElement.removeEventListener('mousedown', onmousedown);
-            this.mouseIsOnCanvas = false;
         });
+
         this.lastX = null;
         this.lastY = null;
     }
-    updateLineStyle() {
-        this.context.globalAlpha = this.penOpacity;
-        this.context.lineCap = 'round';
-        this.context.lineWidth =  this.penSize;
-        this.context.strokeStyle = this.penColor;
-        this.lastX = null;
-        this.lastY = null;
+    activateCanvasEditor() {
+        
+        this.lockPosition();
+        this.toggleToEditor();
+        this.paintStart();
+        console.log('activated');
+
+        //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
+        this.drawing = false;
     }
-    paintAt(e) {
-        const rect = this.editorElement.getBoundingClientRect();
+    deactivateCanvasEditor() {
+        
+        this.unlockPosition();
+        this.toggleToView();
+        this.paintEnd();
+        console.log('de activated');
 
-        const x = (e.clientX - rect.left) * (this.editorElement.width / rect.width);
-        const y = (e.clientY - rect.top) * (this.editorElement.height / rect.height);
-        this.context.beginPath();
-
-        const lastX = this.lastX || x;
-        const lastY = this.lastY || y;
-
-        this.context.moveTo(lastX, lastY);
-
-        this.context.lineTo(x, y);
-
-        this.context.stroke();
-
-        this.lastX = x;
-        this.lastY = y;
+        //キャンバスの編集を終えるときは、編集情報を適用する
+        this.update();
     }
     paintStart() {
         this.bindedEvents = [
+            //仕様: クリックしながら動かして線を書く
             ['mousemove', (e: MouseEvent)=>{
                 this.paintAt(e);
             }],
+            ['mousedown', ()=>{
+                this.newLine();
+                this.applyLineStyle();
+
+                this.drawing = true;
+            }],
+            ['mouseup', ()=>{
+                this.drawing = false;
+
+                //仕様: 線一本の変更ごとに保存
+                this.update();
+            }],
+
+            //仕様: マウスがボックス外に出たら編集終了
             ['mouseout', ()=>{
-                this.paintEnd();
+                
+                this.deactivateCanvasEditor();
             }],
             ['mouseleave', ()=>{
-                this.paintEnd();
+
+                this.deactivateCanvasEditor();
             }],
-            ['mousedown', ()=>{
-                this.paintEnd();
-            }]
         ];
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.addEventListener(name, callback, {capture: true});
         }
     }
     paintEnd() {
-        this.drawing = false;
         for( const [name, callback] of this.bindedEvents ) {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
-        setTimeout(()=>{
-            const onmousedown = ()=> {
-                if(!this.drawing) {
-                    this.drawing = true;
-                    this.paintStart();
-                    this.updateLineStyle();
-                    this.boxFrameElement.removeEventListener('mousedown', onmousedown);
-                }
-            }
-            if(this.mouseIsOnCanvas) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown);
-            }
-        }, 1000);
+    }
+    applyLineStyle() {
+        this.editingContext.globalAlpha = this.penOpacity;
+        this.editingContext.lineCap = 'round';
+        this.editingContext.lineWidth =  this.penSize;
+        this.editingContext.strokeStyle = this.penColor;
+    }
+    newLine() {
+        this.lastX = null;
+        this.lastY = null;
+    }
+    paintAt(e) {
+        if(!this.drawing) return;
+
+        const rect = this.editorElement.getBoundingClientRect();
+
+        const x = (e.clientX - rect.left) * (this.editorElement.width / rect.width);
+        const y = (e.clientY - rect.top) * (this.editorElement.height / rect.height);
+        this.editingContext.beginPath();
+
+        const lastX = this.lastX || x;
+        const lastY = this.lastY || y;
+
+        this.editingContext.moveTo(lastX, lastY);
+
+        this.editingContext.lineTo(x, y);
+
+        this.editingContext.stroke();
+
+        this.lastX = x;
+        this.lastY = y;
     }
     getValue() {
         return this.editorElement.toDataURL();
     }
+
+    /**
+     * 左上から縮小 ⇒ relocate & ( -= moveMent )
+     * 左上から拡大 ⇒ relocate & ( -= movement )
+     * 右下から縮小 ⇒ += movement
+     * 右下から拡大 ⇒ += movement 
+     * 
+     * rangeが -n (n: 自然数)
+     * (x + |-x|)/2 ⇒ n: n, -n: 0
+     * 
+     * 
+     */
     async applyValue(nosynch: boolean = false) {
+        //左上から拡大・縮小されることは想定していない
+        if(this.background.width < this.editingRange.width) {
+            //this.background.setAttribute('width', String(this.editingRange.width));
+            this.background.width = this.editingRange.width;
+        }
+        
+        if(this.background.height < this.editingRange.height) {
+            this.background.height = this.editingRange.height;
+           // this.background.setAttribute('height', String(this.editingRange.height));
+        }
+        this.backgroundContext.clearRect(...this.editingRange.spread());
+        this.backgroundContext.drawImage(this.editorElement, ...this.editingRange.spread());
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
+    async resize(width, height) {
+        
+        this.editorElement.setAttribute('width', width);
+        this.editorElement.setAttribute('height', height);
+        this.editingRange.width = width;
+        this.editingRange.height = height;
+
+        this.editingContext.clearRect(...this.editingRange.shape().spread());
+        this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
+        console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
+        
+        this.value = this.getValue();
+        this.applyValue();
+        super.resize(width, height);
+    //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
+    //    //this.editorElement.setAttribute('width', width);
+    //    //this.editorElement.setAttribute('height', height);
+    //    //this.applyValue();
+    }
 }
 
-const noteController: NoteController = new NoteController(32);
 
 function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
@@ -931,7 +1086,7 @@ class UiFunctions {
            this.activate.apply(this); 
         });
         this.noteController = noteController;
-        if(this.noteController.activeFunctions[this.type]) {
+        if(this.noteController.functionManager.activeFunctions[this.type]) {
             this.activate();
         }
         UiFunctions.applying[this.type] = this;
@@ -946,13 +1101,13 @@ class UiFunctions {
         if(this.activated) {
             this.deactivate();
         } else {
-            this.noteController.activateFunctions(this.type);
+            this.noteController.functionManager.activateFunctions(this.type);
             this.activated = true;
             this.element.classList.add('activate');
         }
     }
     deactivate() {
-        this.noteController.deactiveFunctions(this.type);
+        this.noteController.functionManager.deactiveFunctions(this.type);
         this.activated = false;
         this.element.classList.remove('activate');
     }
@@ -976,28 +1131,29 @@ UiFunctions.applying['live']?.lock?.();
 let putBoxId = 0;
 function putBox() {
     const PROCESS_ID = ++putBoxId;
-    if(!container)return;
     let xs:number[] = [];
     let ys:number[] = [];
     const cancel = () => {
-        container?.removeEventListener('mousedown', onmousedown);
-        container?.removeEventListener('mouseup', onmouseup);
-        container?.removeEventListener('onmouseout', cancel);
-        container?.removeEventListener('onmouseleave', cancel);
+        noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.removeEventListener('onmouseout', cancel);
+        noteController.containerManager.container.removeEventListener('onmouseleave', cancel);
     }
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-        container?.removeEventListener('mousedown', onmousedown);
-        //container?.removeEventListener('onmouseleave', cancel);
-        //container?.removeEventListener('onmouseout', cancel);
-        
-        container.addEventListener('mouseup', onmouseup);
+        console.log('start:', e.clientX, e.clientY);
+        noteController.containerManager.container.removeEventListener('mousedown', onmousedown);
+
+        // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
+        noteController.containerManager.container.addEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.addEventListener('onmouseout', cancel);
+        noteController.containerManager.container.addEventListener('onmouseleave', cancel);
     }
     const onmouseup = (e)=>{
-        const rect = container.getBoundingClientRect();
+        const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
+        console.log('end:', e.clientX, e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
@@ -1044,11 +1200,11 @@ function putBox() {
         
         xs = [];
         ys = [];
-        container?.removeEventListener('mouseup', onmouseup);
+        noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
         makePageData().then(console.log);
     }
 
-    container.addEventListener('mousedown', onmousedown);
+    noteController.containerManager.container.addEventListener('mousedown', onmousedown);
 }
 putBox();
 const saveUiElement: HTMLElement|null = document.getElementById('ui-save');
@@ -1108,7 +1264,7 @@ socket.on("disconnect", (reason, details) => {
 });
 
 socket.on("update", (target_id, update_keys, update_values) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const target = pageObjects.find(object=>object.id === target_id);
 
         if(target !== undefined) {
@@ -1122,7 +1278,7 @@ socket.on("update", (target_id, update_keys, update_values) => {
 });
 
 socket.on("delete", (id) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const target = pageObjects.find(object=>object.id === id);
         if(target !== undefined) {
             target.dump();
@@ -1133,7 +1289,7 @@ socket.on("delete", (id) => {
 });
 
 socket.on("create", (range, type, id) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const block = makeBlockObject(range, type, id);
         pageObjects.push(block);
     }
@@ -1141,7 +1297,8 @@ socket.on("create", (range, type, id) => {
 
 
 function escapeHTML(str: string) {
-    const div = document.createElement('div'); 
-    div.textContent = str; 
-    return div.innerHTML; 
+    const temp = document.createElement('div'); 
+    temp.textContent = str; 
+    return temp.innerHTML; 
 }
+

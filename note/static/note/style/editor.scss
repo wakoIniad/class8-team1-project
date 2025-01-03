@@ -1,14 +1,29 @@
+
+
 $main-color: rgb(57,123,108);
+body {
+    overflow: clip;
+
+}
+.header {
+    //position: absolute;
+    //top: 0;
+    //left: 0;
+    //z-index: 100;
+    //width: 100vw;
+}
 
 #container {
-    display: flex; 
-    overflow: visible; /* 子要素がはみ出しても表示 */
+    display: block; 
+    overflow-x: hidden; /* 子要素がはみ出しても表示 */
+    overflow-y: visible;
     
     position: relative;
-    min-width: 100%;
-    min-height: 100%;
+    width: 100%;
+    height: calc(100% - var(--memolive-logo-bar-height));// %指定だとコンテナの外に基準が存在しないので
     
     background: rgb(0,0,0);
+    padding-bottom: 1px;
 }
 
 .box-frame {

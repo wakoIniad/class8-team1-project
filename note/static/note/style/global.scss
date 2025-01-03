@@ -59,7 +59,7 @@ a {
 
 .note-logo-bar {
   width: 100%;
-  height: 5em;
+  height: var(--memolive-logo-bar-height);
   padding: 0;
 /*    background: #11631c;
   background-color: rgb(37,153,118);*/
