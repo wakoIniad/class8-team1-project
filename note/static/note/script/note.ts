@@ -681,7 +681,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
-    canvasEditorActive: boolean = false;
 
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
@@ -813,13 +812,15 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
-    //async resize(width, height) {
-    //    await super.resize(width, height);
+    async resize(width, height) {
+        console.log('resizer',width,height)
+        this.applyValue();
+        super.resize(width, height);
     //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
     //    //this.editorElement.setAttribute('width', width);
     //    //this.editorElement.setAttribute('height', height);
     //    //this.applyValue();
-    //}
+    }
 }
 
 
