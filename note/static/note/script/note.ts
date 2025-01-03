@@ -40,13 +40,30 @@ function allBlockSyncServer() {
     pageObjects.forEach(block=>block.syncServer());
 }
 
+class Range {
+    x:number;
+    y:number;
+    width: number;
+    height: number;
+    constructor(x: number, y: number, width: number, height: number) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+}
 
 class ContainerManager {
     container: HTMLElement;
+    range: Range;
     constructor(containerElementID: string) {
         const containerElement:HTMLElement | null = document.getElementById(containerElementID);
         if(containerElement instanceof HTMLElement) {
             this.container = containerElement;
+            const containerDomRect: DOMRect = this.container.getBoundingClientRect();
+            
+            this.range = 
+                new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
         } else {
             this.error('コンテナの取得に失敗しました');
         }
@@ -56,6 +73,22 @@ class ContainerManager {
     }
     error(message: string) {
         throw new Error(message);
+    }
+    updateContainerInfo(container = this.container) {
+        const containerDomRect: DOMRect = container.getBoundingClientRect();
+            
+        this.range = 
+            new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+    }
+    normalizeCoordinate(target): Range {
+        // 幅をノーマライズの基準にする
+        const ref = this.range.width;
+
+        const targetDomRect: DOMRect = target.getBoundingClientRect();
+        const normalizedX = ( targetDomRect.left - this.range.x ) / ref;
+        const normalizedY = ( targetDomRect.top - this.range.y ) / ref;
+        const normalizedHeight = targetDomRect.height / ref;
+        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
     }
 }
 
@@ -1169,12 +1202,3 @@ function escapeHTML(str: string) {
     return temp.innerHTML; 
 }
 
-function normalizeCoordinate(container, target) {
-    const containerDomRect: DOMRect = container.getBoundingClientRect();
-    const ref_width = containerDomRect.width;//ノーマライズの基準はこれになる ⇒ 仕様書.txt
-    const ref_height = containerDomRect.height;
-    const containerPosition = {x: containerDomRect.left, y: containerDomRect.top};
-    
-    const targetDomRect: DOMRect = target.getBoundingClientRect();
-    targetDomRect.left 
-}
