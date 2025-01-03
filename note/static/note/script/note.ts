@@ -652,16 +652,26 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('alt', '');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
             if(this.editorIsActive) {
-                this.toggleToView();
-                console.log('de activated');
+                this.deactivateCanvasEditor();
             } else {
-                this.toggleToEditor();
-                console.log('activated');
+                this.activateCanvasEditor();
             }
         });
 
         this.lastX = null;
         this.lastY = null;
+    }
+    activateCanvasEditor() {
+        
+        this.toggleToEditor();
+        this.paintStart();
+        console.log('activated');
+    }
+    deactivateCanvasEditor() {
+        
+        this.toggleToView();
+        this.paintEnd();
+        console.log('de activated');
     }
     paintStart() {
         this.bindedEvents = [
@@ -670,6 +680,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 this.paintAt(e);
             }],
             ['mousedown', ()=>{
+                this.newLine();
+                this.applyLineStyle();
+
                 this.drawing = true;
             }],
             ['mouseup', ()=>{
@@ -682,11 +695,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             //仕様: マウスがボックス外に出たら編集終了
             ['mouseout', ()=>{
                 
-                this.toggleToView();
+                this.deactivateCanvasEditor();
             }],
             ['mouseleave', ()=>{
 
-                this.toggleToView();
+                this.deactivateCanvasEditor();
             }],
         ];
         for( const [name, callback] of this.bindedEvents ) {
@@ -698,11 +711,13 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.editorElement.removeEventListener(name, callback, {capture: true});
         }
     }
-    updateLineStyle() {
+    applyLineStyle() {
         this.context.globalAlpha = this.penOpacity;
         this.context.lineCap = 'round';
         this.context.lineWidth =  this.penSize;
         this.context.strokeStyle = this.penColor;
+    }
+    newLine() {
         this.lastX = null;
         this.lastY = null;
     }
