@@ -534,11 +534,13 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
-        .replaceAll(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
-        .replaceAll(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
-        .replaceAll(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
-        .replaceAll(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
-        .replaceAll(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>');
+        .replace(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
+        .replace(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
+        .replace(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
+        .replace(/\[color\=([a-z]+?)\](.+?)\[\/color\]/g,'<span style="color:$1">$2</span>')
+        .replace(/\[size\=([0-9]+?)\](.+?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
         
         return parsedAsMarkdown;
     }
