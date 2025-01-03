@@ -44,7 +44,7 @@ function allBlockSyncServer() {
 class ContainerManager {
     container: HTMLElement;
     constructor(containerElementID: string) {
-        const containerElement:HTMLElement | null = document.getElementById('container');
+        const containerElement:HTMLElement | null = document.getElementById(containerElementID);
         if(containerElement instanceof HTMLElement) {
             this.container = containerElement;
         } else {
