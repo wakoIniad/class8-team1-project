@@ -630,9 +630,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
-    mouseIsOnCanvas: boolean = false;
 
-    active: boolean = false;
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         const context = this.editorElement.getContext('2d');
@@ -649,26 +647,21 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     async init() {
         super.init();
         this.displayElement.setAttribute('src', this.value);
-        this.displayElement.setAttribute('alt','');
+        this.displayElement.setAttribute('alt', '');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
-            if(this.active) {
+            if(this.editorIsActive) {
                 this.paintEnd();
             } else {
                 this.paintStart();
             }
         });
 
-        this.boxFrameElement.addEventListener('focusin', (e)=>{
-            this.mouseIsOnCanvas = true;
-        }, {capture: true});
-        this.boxFrameElement.addEventListener('focusout', (e)=>{
-            this.mouseIsOnCanvas = false;
-        });
         this.lastX = null;
         this.lastY = null;
     }
     paintStart() {
         this.bindedEvents = [
+            //仕様: クリックしながら動かして線を書く
             ['mousemove', (e: MouseEvent)=>{
                 this.paintAt(e);
             }],
@@ -677,9 +670,12 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             }],
             ['mouseup', ()=>{
                 this.drawing = false;
+
+                //仕様: 線一本の変更ごとに保存
                 this.update();
             }],
-            ///以下２つはactivate = falseもアリ(つまりdrawEnd)
+
+            //仕様: マウスがボックス外に出たら編集終了
             ['mouseout', ()=>{
                 
                 this.toggleToView();
