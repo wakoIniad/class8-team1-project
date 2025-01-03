@@ -640,8 +640,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.context = context;
             if(URI !== SPACER_URI) {
                 const image = new Image();
+                image.addEventListener("load", () => {
+                    this.context.drawImage(image, 0, 0);
+                });
                 image.src = URI;
-                this.context.drawImage(image, 0, 0);
             }
         }
         this.bindedEvents = [];
@@ -666,12 +668,18 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.toggleToEditor();
         this.paintStart();
         console.log('activated');
+
+        //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
+        this.drawing = false;
     }
     deactivateCanvasEditor() {
         
         this.toggleToView();
         this.paintEnd();
         console.log('de activated');
+
+        //キャンバスの編集を終えるときは、編集情報を適用する
+        this.update();
     }
     paintStart() {
         this.bindedEvents = [
