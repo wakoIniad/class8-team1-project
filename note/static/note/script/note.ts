@@ -51,6 +51,9 @@ class Range {
         this.width = width;
         this.height = height;
     }
+    spread(): [ number, number, number, number ] {
+        return [ this.x, this.y, this.width, this.height ];
+    }
 }
 
 class ContainerManager {
@@ -685,9 +688,12 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     background: HTMLCanvasElement;
     backgroundContext: CanvasRenderingContext2D;
 
+    editingRange: Range;
+
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         
+        const editingContext = this.editorElement.getContext('2d');
         //background(非描画領域も含めた全データ)はサーバーに保存済みのデータで初期化
         // = サーバーに保存後、アプリを閉じたら非描画部分は消える
         const background = document.createElement('canvas');
@@ -695,8 +701,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         background.height = range.height;
         this.background = background;
         const backgroundContext = this.background.getContext('2d');
+        this.editingRange = new Range(0, 0, range.width, range.height);
 
-        const editingContext = this.editorElement.getContext('2d');
         if(backgroundContext !== null && editingContext !== null) {
             this.backgroundContext = backgroundContext;
             this.editingContext = editingContext;
@@ -788,10 +794,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
     }
     applyLineStyle() {
-        this.context.globalAlpha = this.penOpacity;
-        this.context.lineCap = 'round';
-        this.context.lineWidth =  this.penSize;
-        this.context.strokeStyle = this.penColor;
+        this.editingContext.globalAlpha = this.penOpacity;
+        this.editingContext.lineCap = 'round';
+        this.editingContext.lineWidth =  this.penSize;
+        this.editingContext.strokeStyle = this.penColor;
     }
     newLine() {
         this.lastX = null;
@@ -804,40 +810,38 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         const x = (e.clientX - rect.left) * (this.editorElement.width / rect.width);
         const y = (e.clientY - rect.top) * (this.editorElement.height / rect.height);
-        this.context.beginPath();
+        this.editingContext.beginPath();
 
         const lastX = this.lastX || x;
         const lastY = this.lastY || y;
 
-        this.context.moveTo(lastX, lastY);
+        this.editingContext.moveTo(lastX, lastY);
 
-        this.context.lineTo(x, y);
+        this.editingContext.lineTo(x, y);
 
-        this.context.stroke();
+        this.editingContext.stroke();
 
         this.lastX = x;
         this.lastY = y;
     }
     getValue() {
-        
-        const displayArea = this.context.getImageData(0, 0, this.width, this.height);
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.width;
-        tempCanvas.height = this.height;
-        const tempCtx:CanvasRenderingContext2D|null = tempCanvas.getContext('2d');
-        if(!tempCtx) return '';
-        tempCtx.putImageData(displayArea, 0, 0);
+        this.backgroundContext.drawImage(this.editorElement, this.editingRange.x, this.editingRange.y);
 
-        return tempCanvas.toDataURL();
+        return this.editorElement.toDataURL();
     }
     async applyValue(nosynch: boolean = false) {
+
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
     async resize(width, height) {
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
-        console.log('resizer',width,height, this.editorElement.width,this.editorElement.height);
+        this.editingRange.width = width;
+        this.editingRange.height = height;
+
+        this.editingContext.drawImage(this.background, ...this.editingRange.spread());
+        console.log('resizer', width, height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
         this.applyValue();
