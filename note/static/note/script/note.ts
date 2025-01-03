@@ -42,33 +42,27 @@ function allBlockSyncServer() {
 
 let container:HTMLElement | null = document.getElementById('container');
 if(!(container instanceof HTMLElement)) {
-    throw new Error('コンテナの取得に失敗しました');
 }
 
-function appendToContainer(elm: HTMLElement): void {
-    if(container) container.appendChild(elm);
+class ContainerManager {
+    container: HTMLElement;
+    constructor(containerElementID: string) {
+        const containerElement:HTMLElement | null = document.getElementById('container');
+        if(containerElement instanceof HTMLElement) {
+            this.container = containerElement;
+        } else {
+            this.error('コンテナの取得に失敗しました');
+        }
+    }
+    appendElement(target: HTMLElement) {
+        this.container.appendChild(target);
+    }
+    error(message: string) {
+        throw new Error(message);
+    }
 }
 
-type BlockObjectParameters = [ rangeData, string?, string?, string? ];
-
-interface BlockInterface {
-    x:number;
-    y:number;
-    width:number;
-    height:number;
-    editorElement: HTMLElement;
-    displayElement: HTMLElement;
-    value: string;
-    id: string;
-    boxFrameElement: HTMLSpanElement;
-    makeBoxElement<T>(tagName: string):T;
-    assign(element: HTMLElement):void;
-    toggleToEditor():void;
-    toggleToView():void;
-    getValue: () => string | Promise<string>;
-    applyValue: () => void;
-    init: () => void;
-}
+const containerManager = new ContainerManager(appendToContainer);
 
 class NoteController {
 
@@ -92,8 +86,8 @@ class NoteController {
     };
     nudgeSize: number = 32;
 
-    constructor(nudgeSize?: number) {
-        if(nudgeSize)this.nudgeSize = nudgeSize;
+    constructor(noteSettings: { nudgeSize?: number } = {} ) {
+        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
         document.addEventListener('keydown', this.onKeydown.bind(this));
         document.addEventListener('keyup', this.onKeyup.bind(this));
     }
@@ -131,22 +125,25 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     y:number;
     width:number;
     height:number;
+
     editorElement: T;
     displayElement: S;
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
+    maskElement: HTMLDivElement;
+
     value: string;
     id: string | Promise<string>;
     type?: string;
+
     pendingRequest?: Promise<any>;
+
     pendingSync: boolean;
     dumped: boolean;
-    maskElement: HTMLDivElement;
+    moving: boolean = false;
+    editorIsActive: boolean = false;
 
     noteController: NoteController;
-    moving: boolean = false;
-
-    editorIsActive: boolean = false;
 
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
@@ -1163,4 +1160,14 @@ function escapeHTML(str: string) {
     const temp = document.createElement('div'); 
     temp.textContent = str; 
     return temp.innerHTML; 
+}
+
+function normalizeCoordinate(container, target) {
+    const containerDomRect: DOMRect = container.getBoundingClientRect();
+    const ref_width = containerDomRect.width;//ノーマライズの基準はこれになる ⇒ 仕様書.txt
+    const ref_height = containerDomRect.height;
+    const containerPosition = {x: containerDomRect.left, y: containerDomRect.top};
+    
+    const targetDomRect: DOMRect = target.getBoundingClientRect();
+    targetDomRect.left 
 }
