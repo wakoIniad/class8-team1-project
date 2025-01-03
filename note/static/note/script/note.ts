@@ -66,6 +66,14 @@ class Range {
             this.height  
         );
     }
+    relative(ref: Range): Range {
+        return new Range( 
+            ref.x-this.x,
+            ref.y-this.y,
+            this.width,
+            this.height  
+        );
+    }
 }
 
 class ContainerManager {
@@ -875,7 +883,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.height = height;
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
-        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), ...this.editingRange.shape().spread());
+        this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
         console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
