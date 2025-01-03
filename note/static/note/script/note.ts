@@ -676,21 +676,34 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     private lastY: number | null;
 
     bindedEvents: [string, (any)=>void][];
-    context: CanvasRenderingContext2D;
+    editingContext: CanvasRenderingContext2D;
     penSize: number = 3;
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
 
+    background: HTMLCanvasElement;
+    backgroundContext: CanvasRenderingContext2D;
+
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
-        const context = this.editorElement.getContext('2d');
-        if(context !== null) {
-            this.context = context;
+        
+        //background(非描画領域も含めた全データ)はサーバーに保存済みのデータで初期化
+        // = サーバーに保存後、アプリを閉じたら非描画部分は消える
+        const background = document.createElement('canvas');
+        background.width = range.width;
+        background.height = range.height;
+        this.background = background;
+        const backgroundContext = this.background.getContext('2d');
+
+        const editingContext = this.editorElement.getContext('2d');
+        if(backgroundContext !== null && editingContext !== null) {
+            this.backgroundContext = backgroundContext;
+            this.editingContext = editingContext;
             if(URI !== SPACER_URI) {
                 const image = new Image();
                 image.addEventListener("load", () => {
-                    this.context.drawImage(image, 0, 0);
+                    this.backgroundContext.drawImage(image, 0, 0);
                 });
                 image.src = URI;
             }
@@ -700,8 +713,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     async init() {
         super.init();
 
-        //this.editorElement.setAttribute('width', String(this.width));
-        //this.editorElement.setAttribute('height', String(this.height));
+        this.editorElement.setAttribute('width', String(this.width));
+        this.editorElement.setAttribute('height', String(this.height));
 
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt', '');
@@ -806,14 +819,27 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     getValue() {
-        return this.editorElement.toDataURL();
+        
+        const displayArea = this.context.getImageData(0, 0, this.width, this.height);
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = this.width;
+        tempCanvas.height = this.height;
+        const tempCtx:CanvasRenderingContext2D|null = tempCanvas.getContext('2d');
+        if(!tempCtx) return '';
+        tempCtx.putImageData(displayArea, 0, 0);
+
+        return tempCanvas.toDataURL();
     }
     async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
     async resize(width, height) {
-        console.log('resizer',width,height)
+        this.editorElement.setAttribute('width', width);
+        this.editorElement.setAttribute('height', height);
+        console.log('resizer',width,height, this.editorElement.width,this.editorElement.height);
+        
+        this.value = this.getValue();
         this.applyValue();
         super.resize(width, height);
     //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
