@@ -183,7 +183,8 @@ const noteController: NoteController = new NoteController(functionManager, conta
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
-    
+    static minWidth: number = 100;
+    static minHeight: number = 100;
     loaderId: number; 
     
     x:number;
@@ -286,17 +287,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
-
-        let resizeProcessIdCounter: number = 0;
-        const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            const PROCESS_ID: number = ++resizeProcessIdCounter;
-            setTimeout(()=>{
-                if(PROCESS_ID === resizeProcessIdCounter) {
-                    this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
-                }
-            },500);
-        });
-        resizeObserver.observe(this.boxFrameElement);
 
         this.init();
 
@@ -432,16 +422,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
+            const relu = n => ( n - ( n ** 2 ) ** 0.5 ) / 2;
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
-            const resizedWidth =  this.width +  offset_x * (movementX);
+            const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
+            const lackX += relu(Block.minWidth - resizedWidth);
+            const lackY += relu(Block.minHeight - resizedHeight);
 
-            const relocatedX = this.x + (Math.abs(offset_x) - offset_x) / 2 * movementX;
-            const relocatedY = this.y + (Math.abs(offset_y) - offset_y) / 2 * movementY;
+            const relocatedX = this.x + relu(-offset_x) * movementX;
+            const relocatedY = this.y + relu(-offset_y) * movementY;
 
-            this.relocate(relocatedX, relocatedY);
-            this.resize(resizedWidth, resizedHeight);
+            this.relocate(relocatedX+lackX, relocatedY+lackY);
+            this.resize(resizedWidth-lackX, resizedHeight-lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
         })
@@ -544,6 +537,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     async resize(width: number, height: number): Promise<void> {
+        width = Math.max(Block.minWidth, width);
+        height = Math.max(Block.minHeight, height);
         const applying = {
             update_keys: ["width","height"],
             update_values: [this.width, this.height]
