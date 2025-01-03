@@ -831,21 +831,20 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         return this.editorElement.toDataURL();
     }
     async applyValue(nosynch: boolean = false) {
+        //左上から拡大・縮小されることは想定していない
+        if(this.background.width < this.editingRange.width) {
+            this.background.setAttribute('width', String(this.editingRange.width));
+        }
+        
+        if(this.background.height < this.editingRange.height) {
+            this.background.setAttribute('height', String(this.editingRange.height));
+        }
         this.backgroundContext.clearRect(...this.editingRange.spread());
         this.backgroundContext.drawImage(this.editorElement, ...this.editingRange.spread());
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
     async resize(width, height) {
-        
-        //左上から拡大・縮小されることは想定していない
-        if(this.editingRange.width < width) {
-            this.editorElement.setAttribute('width', width);
-        }
-        
-        if(this.editingRange.height < height) {
-            this.editorElement.setAttribute('height', height);
-        }
         
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
