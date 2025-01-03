@@ -359,12 +359,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.replaceChildren(...element);
     }
     toggleToEditor() {
+        
+        this.boxFrameElement.setAttribute('draggable', 'false');
         this.editorIsActive = true;
         this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
         //this.assign(this.editorElment);
     }
     toggleToView() {
+        this.boxFrameElement.setAttribute('draggable', 'true');
         this.editorIsActive = false;
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
@@ -611,10 +614,9 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     toggleToView() {
         if(this.value) {
-            this.editorElement.classList.remove('visible');
-            this.displayElement.classList.add('visible');
+            super.toggleToView();
         } else {
-            this.toggleToEditor();
+            super.toggleToEditor();
         }
         //this.assign(this.displayElement);
     }
@@ -650,9 +652,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('alt', '');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
             if(this.editorIsActive) {
-                this.paintEnd();
+                this.toggleToView();
+                console.log('de activated');
             } else {
-                this.paintStart();
+                this.toggleToEditor();
+                console.log('activated');
             }
         });
 
