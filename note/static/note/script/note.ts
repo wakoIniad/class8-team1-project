@@ -54,8 +54,17 @@ class Range {
     spread(): [ number, number, number, number ] {
         return [ this.x, this.y, this.width, this.height ];
     }
-    spreadShape(): [ number, number, number, number ] {
-        return [ 0, 0, this.width, this.height ];
+    shape(): Range {
+        return new Range( 0, 0, this.width, this.height );
+    }
+    //Rectifiedは数学では非負になるように修正するみたいな意味らしい（真偽不明） 
+    rectified(): Range {
+        return new Range( 
+            (this.x + Math.abs(this.x))/2,
+            (this.y + Math.abs(this.y))/2,
+            this.width,
+            this.height  
+        );
     }
 }
 
@@ -830,14 +839,28 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
+
+    /**
+     * 左上から縮小 ⇒ relocate & ( -= moveMent )
+     * 左上から拡大 ⇒ relocate & ( -= movement )
+     * 右下から縮小 ⇒ += movement
+     * 右下から拡大 ⇒ += movement 
+     * 
+     * rangeが -n (n: 自然数)
+     * (x + |-x|)/2 ⇒ n: n, -n: 0
+     * 
+     * 
+     */
     async applyValue(nosynch: boolean = false) {
         //左上から拡大・縮小されることは想定していない
         if(this.background.width < this.editingRange.width) {
-            this.background.setAttribute('width', String(this.editingRange.width));
+            //this.background.setAttribute('width', String(this.editingRange.width));
+            this.background.width = this.editingRange.width;
         }
         
         if(this.background.height < this.editingRange.height) {
-            this.background.setAttribute('height', String(this.editingRange.height));
+            this.background.height = this.editingRange.height;
+           // this.background.setAttribute('height', String(this.editingRange.height));
         }
         this.backgroundContext.clearRect(...this.editingRange.spread());
         this.backgroundContext.drawImage(this.editorElement, ...this.editingRange.spread());
@@ -851,9 +874,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.width = width;
         this.editingRange.height = height;
 
-        this.editingContext.clearRect(...this.editingRange.spreadShape());
-        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), ...this.editingRange.spreadShape());
-        console.log('resizer', width, height, this.editorElement.width,this.editorElement.height);
+        this.editingContext.clearRect(...this.editingRange.shape().spread());
+        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), ...this.editingRange.shape().spread());
+        console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
         this.applyValue();
