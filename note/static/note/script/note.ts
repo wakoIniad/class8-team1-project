@@ -432,10 +432,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
-            const movementX: number = startX - event.clientX;
-            const movementY: number = startY - event.clientY;
-            const resizedWidth = this.width + offset_x * (movementX);
+            const movementX: number = event.clientX - startX;
+            const movementY: number = event.clientY - startY;
+            const resizedWidth =  this.width +  offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
+
+            const relocatedX = this.x + (Math.abs(offset_x) - offset_x) / 2 * movementX;
+            const relocatedY = this.y + (Math.abs(offset_y) - offset_y) / 2 * movementY;
+
+            this.relocate(relocatedX, relocatedY);
             this.resize(resizedWidth, resizedHeight);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
