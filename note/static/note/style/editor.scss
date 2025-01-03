@@ -5,6 +5,14 @@ body {
     overflow: clip;
 
 }
+.header {
+    //position: absolute;
+    //top: 0;
+    //left: 0;
+    //z-index: 100;
+    //width: 100vw;
+}
+
 #container {
     display: block; 
     overflow-x: hidden; /* 子要素がはみ出しても表示 */
@@ -12,7 +20,7 @@ body {
     
     position: relative;
     width: 100%;
-    height: 100%;// %指定だとコンテナの外に基準が存在しないので
+    height: calc(100% - var(--memolive-logo-bar-height));// %指定だとコンテナの外に基準が存在しないので
     
     background: rgb(0,0,0);
     padding-bottom: 1px;

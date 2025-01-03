@@ -2,11 +2,14 @@
 body {
     @extend .jura-400 !optional;
 }*/
-$header-height: 2em;
+
+:root {
+    --memolive-logo-bar-height: 80px;
+}
 
 .note-info {
     width: 100%;
-    height: $header-height;
+    height: 24px;
 /*    background: #11631c;*/
     //background-color: rgb(37,153,118);
 //    background-color: rgb(37,118,153);
