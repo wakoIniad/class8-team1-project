@@ -653,10 +653,8 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.boxFrameElement.addEventListener('dblclick', ()=>{
             if(this.active) {
                 this.paintEnd();
-                this.deactivateCanvasEditor();
             } else {
                 this.paintStart();
-                this.activateCanvasEditor();
             }
         });
 
@@ -668,14 +666,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         });
         this.lastX = null;
         this.lastY = null;
-    }
-    activateCanvasEditor() {
-        
-        this.toggleToEditor();
-    }
-    deactivateCanvasEditor() {
-        
-        this.toggleToView();
     }
     paintStart() {
         this.bindedEvents = [
@@ -692,13 +682,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             ///以下２つはactivate = falseもアリ(つまりdrawEnd)
             ['mouseout', ()=>{
                 
-                this.deactivateCanvasEditor();
-                this.paintEnd();
+                this.toggleToView();
             }],
             ['mouseleave', ()=>{
 
-                this.deactivateCanvasEditor();
-                this.paintEnd();
+                this.toggleToView();
             }],
         ];
         for( const [name, callback] of this.bindedEvents ) {
