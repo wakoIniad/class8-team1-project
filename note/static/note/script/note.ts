@@ -413,20 +413,30 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return content as T;
     }
     
-    makeResizer(x: number, y: number):HTMLElement {
+    makeResizer(offset_x: number, offset_y: number):HTMLElement {
         const resizer: HTMLElement = document.createElement('div');
-        resizer.style.left = (~~((1+x)/2*100))+'%';
-        resizer.style.top =  (~~((1+y)/2*100))+'%';
+        resizer.style.left = (~~((1+offset_x)/2*100))+'%';
+        resizer.style.top =  (~~((1+offset_y)/2*100))+'%';
         resizer.classList.add('resizer');
         resizer.setAttribute('draggable', 'true');
         this.boxFrameElement.appendChild(resizer);
+
+        let startX: number;
+        let startY: number;
         resizer.addEventListener('dragstart', (event: DragEvent)=>{
             event.stopPropagation();
+            startX = event.clientX;
+            startY = event.clientY;
             console.log(event.movementX,event.movementY);
             console.log("drag-client",event.clientX,event.clientY);
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
+            const movementX: number = startX - event.clientX;
+            const movementY: number = startY - event.clientY;
+            this.width += offset_x * (movementX);
+            this.height += offset_y * (movementY);
+            
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
         })
@@ -537,9 +547,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             width -= width%this.noteController.functionManager.nudgeSize;
             height -= height%this.noteController.functionManager.nudgeSize;
         }
-        //this.boxFrameElement.style.width =  
+        this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
-        //this.boxFrameElement.style.height = 
+        this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
         
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {

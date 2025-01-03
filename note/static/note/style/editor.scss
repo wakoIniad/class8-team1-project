@@ -114,12 +114,14 @@ body {
     //overflow: hidden !important;
     position: absolute;
     background-color: rgb(255,200,0);
-    width: 8px;
-    height: 8px;
+    width: 16px;
+    height: 16px;
     //border-radius: 50%;
     visibility: hidden;
 
     transform: translateY(-50%) translateX((-50%));
+
+    //border: solid 10px rgba(0,0,0,0);
 }
 
 .box-frame:hover > .resizer {
