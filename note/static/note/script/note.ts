@@ -62,9 +62,9 @@ class ContainerManager {
     }
 }
 
-const containerManager = new ContainerManager(appendToContainer);
+const containerManager = new ContainerManager('container');
 
-class NoteController {
+class FunctionManager {
 
     activeFunctions: {[key: string]: boolean} = {
         'nudge': false,
@@ -115,6 +115,16 @@ class NoteController {
 
     }
 }
+
+const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
+class NoteController {
+    functionManager: FunctionManager;
+    constructor(functionManager: FunctionManager) {
+        this.functionManager = functionManager;
+    }
+}
+const noteController: NoteController = new NoteController(functionManager);
+
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
@@ -430,10 +440,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 update_keys: ["value"],
                 update_values: [this.value]
             }
-            if(this.noteController.activeFunctions['autosave'] === true) {
+            if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
                 await this.callAPI('POST', { body: applying});
             }
-            if(this.noteController.activeFunctions['live']) {
+            if(this.noteController.functionManager.activeFunctions['live']) {
                 socket.emit("update", this.id, applying.update_keys, applying.update_values);
             }
         }
@@ -444,19 +454,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             update_keys: ["width","height"],
             update_values: [this.width, this.height]
         };
-        if(this.noteController.activeFunctions['nudge'] === true) {
-            width -= width%this.noteController.nudgeSize;
-            height -= height%this.noteController.nudgeSize;
+        if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
+            width -= width%this.noteController.functionManager.nudgeSize;
+            height -= height%this.noteController.functionManager.nudgeSize;
         }
         //this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
         //this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
         
-        if(this.noteController.activeFunctions['autosave'] === true) {
+        if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
@@ -465,19 +475,19 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
         };
-        if(this.noteController.activeFunctions['nudge'] === true) {
-            x -= x%this.noteController.nudgeSize;
-            y -= y%this.noteController.nudgeSize;
+        if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
+            x -= x%this.noteController.functionManager.nudgeSize;
+            y -= y%this.noteController.functionManager.nudgeSize;
         }
         this.x = x;
         this.y = y;
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
         
-        if(this.noteController.activeFunctions['autosave'] === true) {
+        if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
@@ -503,7 +513,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         await this.callAPI('DELETE', { force: true } );
         this.dumped = true;
 
-        if(this.noteController.activeFunctions['live']) {
+        if(this.noteController.functionManager.activeFunctions['live']) {
             socket.emit("delete", this.id);
         }
     }
@@ -756,7 +766,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
-const noteController: NoteController = new NoteController(32);
 
 function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
@@ -947,7 +956,7 @@ class UiFunctions {
            this.activate.apply(this); 
         });
         this.noteController = noteController;
-        if(this.noteController.activeFunctions[this.type]) {
+        if(this.noteController.functionManager.activeFunctions[this.type]) {
             this.activate();
         }
         UiFunctions.applying[this.type] = this;
@@ -962,13 +971,13 @@ class UiFunctions {
         if(this.activated) {
             this.deactivate();
         } else {
-            this.noteController.activateFunctions(this.type);
+            this.noteController.functionManager.activateFunctions(this.type);
             this.activated = true;
             this.element.classList.add('activate');
         }
     }
     deactivate() {
-        this.noteController.deactiveFunctions(this.type);
+        this.noteController.functionManager.deactiveFunctions(this.type);
         this.activated = false;
         this.element.classList.remove('activate');
     }
@@ -1124,7 +1133,7 @@ socket.on("disconnect", (reason, details) => {
 });
 
 socket.on("update", (target_id, update_keys, update_values) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const target = pageObjects.find(object=>object.id === target_id);
 
         if(target !== undefined) {
@@ -1138,7 +1147,7 @@ socket.on("update", (target_id, update_keys, update_values) => {
 });
 
 socket.on("delete", (id) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const target = pageObjects.find(object=>object.id === id);
         if(target !== undefined) {
             target.dump();
@@ -1149,7 +1158,7 @@ socket.on("delete", (id) => {
 });
 
 socket.on("create", (range, type, id) => {
-    if(noteController.activeFunctions["live"])  {
+    if(noteController.functionManager.activeFunctions["live"])  {
         const block = makeBlockObject(range, type, id);
         pageObjects.push(block);
     }
