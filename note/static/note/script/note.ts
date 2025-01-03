@@ -3,7 +3,7 @@ const socket = io("http://localhost:3000", {
     transportOptions: {
         polling: {
             extraHeaders: {
-                "self-proclaimed-referer": window.location.href,  // 任意のカスタムヘッダーを送信
+                "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
             }
         }
     }
@@ -12,7 +12,7 @@ const socket = io("http://localhost:3000", {
 
 // CSRF対策
 
-const csrftoken: string = getCsrfToken();
+const csrftoken: string = getCsrfToken();//これはサーバー側で発行されている
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
 const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
@@ -534,13 +534,13 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
-        .replace(/\*\*(.*?)\*\*/g, '<span class="markdown-bold">$1</span>')
-        .replace(/\*(.*?)\*/g, '<span class="markdown-italic">$1</span>')
-        .replace(/\_\_(.*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
-        .replace(/\_(.*?)\_/g, '<span class="markdown-italic">$1</span>')
-        .replace(/\~\~(.*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
-        .replace(/\[color\=([a-z]+?)\](.+?)\[\/color\]/g,'<span style="color:$1">$2</span>')
-        .replace(/\[size\=([0-9]+?)\](.+?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
+        .replace(/\*\*((.*?(\n)?)*?)\*\*/g, '<span class="markdown-bold">$1</span>')
+        .replace(/\*((.*?(\n)?)*?)\*/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\_\_((.*?(\n)?)*?)\_\_/g, '<span class="markdown-under-line">$1</span>')
+        .replace(/\_((.*?(\n)?)*?)\_/g, '<span class="markdown-italic">$1</span>')
+        .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
+        .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
+        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
         
         return parsedAsMarkdown;
     }
@@ -982,7 +982,6 @@ function putBox() {
     let xs:number[] = [];
     let ys:number[] = [];
     const cancel = () => {
-        container?.removeEventListener('mousedown', onmousedown);
         container?.removeEventListener('mouseup', onmouseup);
         container?.removeEventListener('onmouseout', cancel);
         container?.removeEventListener('onmouseleave', cancel);
@@ -991,10 +990,11 @@ function putBox() {
         xs.push(e.clientX);
         ys.push(e.clientY);
         container?.removeEventListener('mousedown', onmousedown);
-        //container?.removeEventListener('onmouseleave', cancel);
-        //container?.removeEventListener('onmouseout', cancel);
-        
+
+        // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
         container.addEventListener('mouseup', onmouseup);
+        container.addEventListener('onmouseout', cancel);
+        container.addEventListener('onmouseleave', cancel);
     }
     const onmouseup = (e)=>{
         const rect = container.getBoundingClientRect();
@@ -1143,7 +1143,7 @@ socket.on("create", (range, type, id) => {
 
 
 function escapeHTML(str: string) {
-    const div = document.createElement('div'); 
-    div.textContent = str; 
-    return div.innerHTML; 
+    const temp = document.createElement('div'); 
+    temp.textContent = str; 
+    return temp.innerHTML; 
 }
