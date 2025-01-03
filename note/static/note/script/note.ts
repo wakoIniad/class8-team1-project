@@ -304,7 +304,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.applyValue();//初期値の反映
         this.toggleToView();
         
-        
+        this.makeResizer(0,0);
+        this.makeResizer(1,1);
+        this.makeResizer(1,0);
+        this.makeResizer(0,1);
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -410,12 +413,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return content as T;
     }
     
-    makeResizer<T>(x: number, y: number):T {
-        const content: HTMLElement = document.createElement('span');
-        content.style.left = (~~(x*100))+'%';
-        content.style.top =  (~~(y*100))+'%';
-        content.classList.add('resizer');
-        return content as T;
+    makeResizer(x: number, y: number):HTMLElement {
+        const resizer: HTMLElement = document.createElement('div');
+        resizer.style.left = (~~(x*100))+'%';
+        resizer.style.top =  (~~(y*100))+'%';
+        resizer.classList.add('resizer');
+        this.boxFrameElement.appendChild(resizer);
+        return resizer;
     }
     assign(...element: HTMLElement[]) {
         this.boxFrameElement.replaceChildren(...element);
