@@ -2,10 +2,11 @@
 body {
     @extend .jura-400 !optional;
 }*/
+$header-height: 2em;
 
 .note-info {
     width: 100%;
-    height: 2em;
+    height: $header-height;
 /*    background: #11631c;*/
     //background-color: rgb(37,153,118);
 //    background-color: rgb(37,118,153);

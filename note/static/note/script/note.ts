@@ -300,7 +300,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.init();
 
-        this.noteController.containerManager.append(this.boxFrameElement);
         this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
@@ -394,12 +393,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
+        this.noteController.containerManager.append(box);
         box.style.left =   this.coordToString(this.x);
         box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
         box.style.height = this.coordToString(this.height);
         box.classList.add('box-frame');
-        box.classList.add('resizer');
         return box as T;
     }
     
@@ -411,10 +410,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return content as T;
     }
     
-    makeResizer<T>(tagName: string):T {
-        const content: HTMLElement = document.createElement(tagName);
-        content.style.left = this.coordToString(0);
-        content.style.top =  this.coordToString(0);
+    makeResizer<T>(x: number, y: number):T {
+        const content: HTMLElement = document.createElement('span');
+        content.style.left = (~~(x*100))+'%';
+        content.style.top =  (~~(y*100))+'%';
         content.classList.add('resizer');
         return content as T;
     }
@@ -536,6 +535,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
     async relocate(x: number, y: number): Promise<void> {
+        console.log('relocate: ', x, y);
         const applying = {
             update_keys: ["x","y"],
             update_values: [this.x, this.y]
@@ -1141,6 +1141,7 @@ function putBox() {
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
+        console.log('start:', e.clientX, e.clientY);
         noteController.containerManager.container.removeEventListener('mousedown', onmousedown);
 
         // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
@@ -1152,6 +1153,7 @@ function putBox() {
         const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
+        console.log('end:', e.clientX, e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
