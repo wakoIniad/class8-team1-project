@@ -434,9 +434,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             event.stopPropagation();
             const movementX: number = startX - event.clientX;
             const movementY: number = startY - event.clientY;
-            this.width += offset_x * (movementX);
-            this.height += offset_y * (movementY);
-            
+            const resizedWidth = this.width + offset_x * (movementX);
+            const resizedHeight = this.height + offset_y * (movementY);
+            this.resize(resizedWidth, resizedHeight);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
         })
