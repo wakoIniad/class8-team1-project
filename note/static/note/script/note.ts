@@ -146,6 +146,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     noteController: NoteController;
     moving: boolean = false;
 
+    editorIsActive: boolean = false;
+
     constructor(
         { EditorType, DisplayType } : { EditorType: string, DisplayType: string },
         { x, y, width, height }: rangeData,
@@ -180,6 +182,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.maskElement.classList.add('box-mask');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+            //仕様: 編集中は動かさない
+            if(this.editorIsActive)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
@@ -355,11 +359,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.replaceChildren(...element);
     }
     toggleToEditor() {
+        this.editorIsActive = true;
         this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
         //this.assign(this.editorElment);
     }
     toggleToView() {
+        this.editorIsActive = false;
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
         
@@ -646,38 +652,30 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('alt','');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
             if(this.active) {
-                this.toggleToView();
                 this.paintEnd();
+                this.deactivateCanvasEditor();
             } else {
-                this.toggleToEditor();
                 this.paintStart();
+                this.activateCanvasEditor();
             }
-            this.active = !this.active;
         });
-        //const onmousedown = ()=> {
-        //    if(!this.drawing) {
-        //        this.drawing = true;
-        //        //this.paintStart();
-        //        this.updateLineStyle();
-        //        this.boxFrameElement.removeEventListener('mousedown', onmousedown);
-        //    }
-        //}
+
         this.boxFrameElement.addEventListener('focusin', (e)=>{
-            //this.toggleToEditor();
-            if(!this.moving) {
-                this.boxFrameElement.addEventListener('mousedown', onmousedown);
-            }
             this.mouseIsOnCanvas = true;
         }, {capture: true});
         this.boxFrameElement.addEventListener('focusout', (e)=>{
-            //this.paintEnd();
-            this.update();
-            //this.toggleToView();
-            this.boxFrameElement.removeEventListener('mousedown', onmousedown);
             this.mouseIsOnCanvas = false;
         });
         this.lastX = null;
         this.lastY = null;
+    }
+    activateCanvasEditor() {
+        
+        this.toggleToEditor();
+    }
+    deactivateCanvasEditor() {
+        
+        this.toggleToView();
     }
     paintStart() {
         this.bindedEvents = [
@@ -689,13 +687,18 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             }],
             ['mouseup', ()=>{
                 this.drawing = false;
+                this.update();
             }],
-            ///以下２つはactivate = falseもアリ
+            ///以下２つはactivate = falseもアリ(つまりdrawEnd)
             ['mouseout', ()=>{
-                this.drawing = false;
+                
+                this.deactivateCanvasEditor();
+                this.paintEnd();
             }],
             ['mouseleave', ()=>{
-                this.drawing = false;
+
+                this.deactivateCanvasEditor();
+                this.paintEnd();
             }],
         ];
         for( const [name, callback] of this.bindedEvents ) {
