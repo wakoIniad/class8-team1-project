@@ -54,7 +54,7 @@ class ContainerManager {
             this.error('コンテナの取得に失敗しました');
         }
     }
-    appendElement(target: HTMLElement) {
+    append(target: HTMLElement) {
         this.container.appendChild(target);
     }
     error(message: string) {
@@ -246,7 +246,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.init();
 
-        appendToContainer(this.boxFrameElement);
+        this.noteController.containerManager.append(this.boxFrameElement);
         this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.applyValue();//初期値の反映
         this.toggleToView();
