@@ -837,6 +837,16 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         await super.applyValue(nosynch);
     }
     async resize(width, height) {
+        
+        //左上から拡大・縮小されることは想定していない
+        if(this.editingRange.width < width) {
+            this.editorElement.setAttribute('width', width);
+        }
+        
+        if(this.editingRange.height < height) {
+            this.editorElement.setAttribute('height', height);
+        }
+        
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
         this.editingRange.width = width;
