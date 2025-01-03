@@ -124,6 +124,16 @@ body {
     //border: solid 10px rgba(0,0,0,0);
 }
 
+.resizer.dragging {
+    visibility: visible;
+    background-color: rgba(0,235,235,0.75);
+}
+
+.box-frame.resizing > .resizer:not(.dragging) {
+    visibility: visible;
+    background-color: rgba(200,255,255,1);
+}
+
 .box-frame:hover > .resizer {
     visibility: visible;
 }

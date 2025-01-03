@@ -407,7 +407,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         const resizer: HTMLElement = document.createElement('div');
         resizer.style.left = (~~((1+offset_x)/2*100))+'%';
         resizer.style.top =  (~~((1+offset_y)/2*100))+'%';
-        resizer.classList.add('resizer');
+        resizer.classList.add('resizer', `resizer-${offset_x}-${offset_y}`);
         resizer.setAttribute('draggable', 'true');
         this.boxFrameElement.appendChild(resizer);
 
@@ -419,6 +419,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             startY = event.clientY;
             console.log(event.movementX,event.movementY);
             console.log("drag-client",event.clientX,event.clientY);
+
+            resizer.classList.add('dragging');
+            this.boxFrameElement.classList.add('resizing');
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
@@ -433,10 +436,13 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const relocatedX = this.x + relu(-offset_x) * movementX;
             const relocatedY = this.y + relu(-offset_y) * movementY;
 
-            this.relocate(relocatedX-lackX, relocatedY-lackY);
+            this.relocate(relocatedX-lackX*relu(-offset_x), relocatedY-lackY*relu(-offset_y));
             this.resize(resizedWidth-lackX, resizedHeight-lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
+
+            resizer.classList.remove('dragging');
+            this.boxFrameElement.classList.remove('resizing');
         })
         return resizer;
     }
