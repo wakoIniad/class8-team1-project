@@ -183,6 +183,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     pendingSync: boolean;
     dumped: boolean;
     moving: boolean = false;
+    frameFixed: boolean = false;
     editorIsActive: boolean = false;
 
     noteController: NoteController;
@@ -222,7 +223,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             //仕様: 編集中は動かさない
-            if(this.editorIsActive)return;
+            if(this.frameFixed)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
@@ -671,6 +672,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     penColor: string = '#000000';
     penOpacity: number = 1;
     drawing: boolean = false;
+    canvasEditorActive: boolean = false;
 
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
@@ -689,6 +691,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
     async init() {
         super.init();
+
+        //this.editorElement.setAttribute('width', String(this.width));
+        //this.editorElement.setAttribute('height', String(this.height));
+
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt', '');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
@@ -704,6 +710,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
     activateCanvasEditor() {
         
+        this.frameFixed = true;
         this.toggleToEditor();
         this.paintStart();
         console.log('activated');
@@ -713,6 +720,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
     deactivateCanvasEditor() {
         
+        this.frameFixed = false;
         this.toggleToView();
         this.paintEnd();
         console.log('de activated');
@@ -796,6 +804,13 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
+    //async resize(width, height) {
+    //    await super.resize(width, height);
+    //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
+    //    //this.editorElement.setAttribute('width', width);
+    //    //this.editorElement.setAttribute('height', height);
+    //    //this.applyValue();
+    //}
 }
 
 
