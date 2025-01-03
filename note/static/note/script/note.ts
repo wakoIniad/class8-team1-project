@@ -304,10 +304,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.applyValue();//初期値の反映
         this.toggleToView();
         
-        this.makeResizer(0,0);
+        this.makeResizer(-1,-1);
         this.makeResizer(1,1);
-        this.makeResizer(1,0);
-        this.makeResizer(0,1);
+        this.makeResizer(1,-1);
+        this.makeResizer(-1,1);
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -415,10 +415,21 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     
     makeResizer(x: number, y: number):HTMLElement {
         const resizer: HTMLElement = document.createElement('div');
-        resizer.style.left = (~~(x*100))+'%';
-        resizer.style.top =  (~~(y*100))+'%';
+        resizer.style.left = (~~((1+x)/2*100))+'%';
+        resizer.style.top =  (~~((1+y)/2*100))+'%';
         resizer.classList.add('resizer');
+        resizer.setAttribute('draggable', 'true');
         this.boxFrameElement.appendChild(resizer);
+        resizer.addEventListener('dragstart', (event: DragEvent)=>{
+            event.stopPropagation();
+            console.log(event.movementX,event.movementY);
+            console.log("drag-client",event.clientX,event.clientY);
+        })
+        resizer.addEventListener('dragend', (event: DragEvent)=>{
+            event.stopPropagation();
+            console.log(event.movementX,event.movementY);
+            console.log("end-drag-client",event.clientX,event.clientY);
+        })
         return resizer;
     }
     assign(...element: HTMLElement[]) {
