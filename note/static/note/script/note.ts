@@ -119,11 +119,13 @@ class FunctionManager {
 const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
 class NoteController {
     functionManager: FunctionManager;
-    constructor(functionManager: FunctionManager) {
+    containerManager: ContainerManager;
+    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
         this.functionManager = functionManager;
+        this.containerManager = containerManager;
     }
 }
-const noteController: NoteController = new NoteController(functionManager);
+const noteController: NoteController = new NoteController(functionManager, containerManager);
 
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
