@@ -825,12 +825,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lastY = y;
     }
     getValue() {
-        this.backgroundContext.drawImage(this.editorElement, this.editingRange.x, this.editingRange.y);
-
         return this.editorElement.toDataURL();
     }
     async applyValue(nosynch: boolean = false) {
-
+        this.backgroundContext.drawImage(this.editorElement, ...this.editingRange.spread());
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
@@ -840,7 +838,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.width = width;
         this.editingRange.height = height;
 
-        this.editingContext.drawImage(this.background, ...this.editingRange.spread());
+        this.editingContext.drawImage(this.background, ...this.editingRange.spread(), 0, 0, this.width, this.height);
         console.log('resizer', width, height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
