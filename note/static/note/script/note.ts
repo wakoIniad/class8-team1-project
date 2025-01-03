@@ -183,7 +183,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     pendingSync: boolean;
     dumped: boolean;
     moving: boolean = false;
-    frameFixed: boolean = false;
+    positionLocked: boolean = false;
     editorIsActive: boolean = false;
 
     noteController: NoteController;
@@ -223,7 +223,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
             //仕様: 編集中は動かさない
-            if(this.frameFixed)return;
+            if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
                 this.x += e.clientX - sx;
@@ -400,19 +400,28 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     toggleToEditor() {
         
-        this.boxFrameElement.setAttribute('draggable', 'false');
+        //this.boxFrameElement.setAttribute('draggable', 'false');
         this.editorIsActive = true;
         this.editorElement.classList.add('visible');
         this.displayElement.classList.remove('visible');
         //this.assign(this.editorElment);
     }
     toggleToView() {
-        this.boxFrameElement.setAttribute('draggable', 'true');
+        //this.boxFrameElement.setAttribute('draggable', 'true');
         this.editorIsActive = false;
         this.editorElement.classList.remove('visible');
         this.displayElement.classList.add('visible');
         
         //this.assign(this.displayElement);
+    }
+    lockPosition() {
+        this.positionLocked = true;
+        this.boxFrameElement.setAttribute('draggable', 'false');
+    }
+    
+    unlockPosition() {
+        this.positionLocked = false;
+        this.boxFrameElement.setAttribute('draggable', 'true');
     }
     async makeData(): Promise<blockData> {
         return {
@@ -710,7 +719,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
     activateCanvasEditor() {
         
-        this.frameFixed = true;
+        this.lockPosition();
         this.toggleToEditor();
         this.paintStart();
         console.log('activated');
@@ -720,7 +729,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
     deactivateCanvasEditor() {
         
-        this.frameFixed = false;
+        this.unlockPosition();
         this.toggleToView();
         this.paintEnd();
         console.log('de activated');
