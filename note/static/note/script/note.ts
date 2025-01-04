@@ -921,7 +921,7 @@ class NoteController {
     static async makePageData(): Promise<blockData[]> {
         return await Promise.all(NoteController.pageObjects.map(object=>object.makeData()));
     }
-    static applyPageData(...pageData: blockData[]): void {
+    applyPageData(...pageData: blockData[]): void {
         for( const boxData of pageData ) {
             const { range, id, type, value } = boxData;
             NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
@@ -935,7 +935,7 @@ class NoteController {
             .then(pageData=>{
                 NoteController.pageObjects.forEach(obj=>obj.dump());
                 const initialPageObjects = pageData.children;
-                NoteController.applyPageData(...initialPageObjects);
+                this.applyPageData(...initialPageObjects);
             });
     }
     endLoadingAnimation() {
