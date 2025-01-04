@@ -430,8 +430,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 resizedWidth - lackX,                    
                 resizedHeight - lackY,
                 offset_x, offset_y,
-                ternary(-offset_x) * movementX,
-                ternary(-offset_y) * movementY,
+                ternary(-offset_x) * movementX - lackX*ternary(-ternary(offset_x)),
+                ternary(-offset_y) * movementY - lackY*ternary(-ternary(offset_y)),
             );
             
             resizer.classList.remove('dragging');
@@ -1020,16 +1020,18 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     ) {
         console.log(1,this.editingRange)
         // 0, 1が 0。-1が-1
-        const activater_x = Math.round((((-offset_x)+1)/2)*offset_x);
-        const activater_y = Math.round((((-offset_y)+1)/2)*offset_y);
+        const activater_x = /*Math.round*/
+        ((((-offset_x)+1)/2)*offset_x);
+        const activater_y = /*Math.round*/
+        ((((-offset_y)+1)/2)*offset_y);
 
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
         this.editingRange.width = width;
         this.editingRange.height = height;
         
-        this.editingRange.x += offset_x *  activater_x;
-        this.editingRange.y += offset_y *  activater_y;
+        this.editingRange.x += delta_x *  activater_x;
+        this.editingRange.y += delta_y *  activater_y;
         
 
         if(this.editingRange.x < 0) {
