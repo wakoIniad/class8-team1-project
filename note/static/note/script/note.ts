@@ -968,14 +968,14 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
             this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
-            this.editingRange.width = 0;
+            this.editingRange.x = 0;
         }
         if(this.editingRange.y < 0) {
             this.background.height -= this.editingRange.y;
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copy, -this.editingRange.y, 0);
-            this.editingRange.height = 0;
+            this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
+            this.editingRange.y = 0;
         }
         //左上から拡大・縮小されることは想定していない
         if(this.background.width < this.editingRange.x + this.editingRange.width) {
@@ -998,11 +998,13 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         offset_x: number, offset_y: number,
         delta_x: number, delta_y: number,
     ): Promise<void> {
-        this.editingRange.x += delta_x * (((-offset_x)+1)/2)*offset_x;
-        this.editingRange.y += delta_y * (((-offset_y)+1)/2)*offset_y;
+        const activater_x = (((-offset_x)+1)/2)*offset_x;
+        const activater_y = (((-offset_y)+1)/2)*offset_y;
+        this.editingRange.x += delta_x * activater_x;
+        this.editingRange.y += delta_y * activater_y;
         console.log(
-            delta_x*(((-offset_x)+1)/2)*offset_x,
-            delta_y*(((-offset_y)+1)/2)*offset_y
+            activater_x,
+            activater_y
         )
         
         super.relocate(x, y, offset_x, offset_y);
