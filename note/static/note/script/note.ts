@@ -963,14 +963,14 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
      */
 
     async applyValue(nosynch: boolean = false) {
-        if(this.editingRange.x < 0) {
+        if(this.editingRange.x < 0.1) {
             this.background.width -= this.editingRange.x;
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
             this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
             this.editingRange.x = 0;
         }
-        if(this.editingRange.y < 0) {
+        if(this.editingRange.y < 0.1) {
             this.background.height -= this.editingRange.y;
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
@@ -998,13 +998,13 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         offset_x: number, offset_y: number,
         delta_x: number, delta_y: number,
     ): Promise<void> {
-        const activater_x = (((-offset_x)+1)/2)*offset_x;
-        const activater_y = (((-offset_y)+1)/2)*offset_y;
+        const activater_x = ~~((((-offset_x)+1)/2)*offset_x);
+        const activater_y = ~~((((-offset_y)+1)/2)*offset_y);
         this.editingRange.x += delta_x * activater_x;
         this.editingRange.y += delta_y * activater_y;
         console.log(
-            activater_x,
-            activater_y
+            delta_x * activater_x,
+            delta_y * activater_y
         )
         
         super.relocate(x, y, offset_x, offset_y);
