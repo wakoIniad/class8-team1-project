@@ -1,13 +1,4 @@
 
-const socket = io("http://localhost:3000", {
-    transportOptions: {
-        polling: {
-            extraHeaders: {
-                "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
-            }
-        }
-    }
-});
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -1345,76 +1336,6 @@ if(saveUiElement) {
     });
 }
 
-socket.on("reconnect", (attempt) => {
-    //window.location.reload(true);
-    const noticeModal = new Modal(
-        Modal.infoContainer, 
-        'info-bar', 
-        'WebSocketサーバーへの接続が復旧しました',
-        3000,
-    );
-    noticeModal.init();
-    noticeModal.show();
-    UiFunctions.applying['live']?.unlock?.();
-});
-socket.on("connect", () => {
-    // ...//window.location.reload(true);
-    const noticeModal = new Modal(
-        Modal.infoContainer, 
-        'info-bar', 
-        'WebSocketサーバーへの接続しました',
-        3000,
-    );
-    noticeModal.init();
-    noticeModal.show();
-
-    UiFunctions.applying['live']?.unlock?.();
-});
-socket.on("disconnect", (reason, details) => {
-    // ...
-    const noticeModal = new Modal(
-        Modal.infoContainer, 
-        'info-bar', 
-        'WebSocketサーバーへの接続が切れました',
-        5000,
-    );
-    noticeModal.init();
-    noticeModal.show();
-    UiFunctions.applying['live']?.lock?.();
-});
-
-socket.on("update", (target_id, update_keys, update_values) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const target = NoteController.getBlockById(target_id);
-
-        if(target !== undefined) {
-            target.update_parameters(update_keys, update_values);
-            console.log(target.x,target.y,target.width,target.height,target.value);
-            target.render();
-        } else {
-            console.warn('ボックスがない')
-        }
-    }
-});
-
-socket.on("delete", (id) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const target = NoteController.getBlockById(id);
-        if(target !== undefined) {
-            target.dump();
-        } else {
-            console.warn('ボックスがない')
-        }
-    }
-});
-
-socket.on("create", (range, type, id) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const block = makeBlockObject(range, type, id);
-        NoteController.pageObjects.push(block);
-    }
-});
-
 
 function escapeHTML(str: string) {
     const temp = document.createElement('div'); 
@@ -1423,3 +1344,97 @@ function escapeHTML(str: string) {
 }
 
 NoteController.applyServerData();
+
+class SocketIOManager {
+    io: any = io;
+    constructor(io) {
+
+    }
+    listenChannel() {
+            
+        socket.on("reconnect", (attempt) => {
+            //window.location.reload(true);
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続が復旧しました',
+                3000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+            UiFunctions.applying['live']?.unlock?.();
+        });
+        socket.on("connect", () => {
+            // ...//window.location.reload(true);
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続しました',
+                3000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+        
+            UiFunctions.applying['live']?.unlock?.();
+        });
+        socket.on("disconnect", (reason, details) => {
+            // ...
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続が切れました',
+                5000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+            UiFunctions.applying['live']?.lock?.();
+        });
+    
+        socket.on("update", (target_id, update_keys, update_values) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const target = NoteController.getBlockById(target_id);
+            
+                if(target !== undefined) {
+                    target.update_parameters(update_keys, update_values);
+                    console.log(target.x,target.y,target.width,target.height,target.value);
+                    target.render();
+                } else {
+                    console.warn('ボックスがない')
+                }
+            }
+        });
+    
+        socket.on("delete", (id) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const target = NoteController.getBlockById(id);
+                if(target !== undefined) {
+                    target.dump();
+                } else {
+                    console.warn('ボックスがない')
+                }
+            }
+        });
+    
+        socket.on("create", (range, type, id) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const block = makeBlockObject(range, type, id);
+                NoteController.pageObjects.push(block);
+            }
+        });
+    }
+}
+
+if(io) {
+    const socket = io("http://localhost:3000", {
+        transportOptions: {
+            polling: {
+                extraHeaders: {
+                    "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
+                }
+            }
+        }
+    });
+
+} else {
+
+}
