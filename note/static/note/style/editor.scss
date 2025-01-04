@@ -32,7 +32,7 @@ body {
 
     margin: 0;
     box-sizing: border-box;
-    overflow: hidden;
+    //overflow: hidden;
 
     background-color: rgb(255,255,255);
 }
@@ -110,8 +110,32 @@ body {
 /* display: inlineでは使えない & overflow: visible でも使えない*/
 .resizer {
     display: block !important;
-    resize: both !important;
-    overflow: hidden !important;
+    //resize: both !important;
+    //overflow: hidden !important;
+    position: absolute;
+    background-color: rgb(255,200,0);
+    width: 16px;
+    height: 16px;
+    //border-radius: 50%;
+    visibility: hidden;
+
+    transform: translateY(-50%) translateX((-50%));
+
+    //border: solid 10px rgba(0,0,0,0);
+}
+
+.resizer.dragging {
+    visibility: visible;
+    background-color: rgba(0,235,235,0.75);
+}
+
+.box-frame.resizing > .resizer:not(.dragging) {
+    visibility: visible;
+    background-color: rgba(200,255,255,1);
+}
+
+.box-frame:hover > .resizer {
+    visibility: visible;
 }
 
 .text-view {

@@ -1,13 +1,4 @@
 
-const socket = io("http://localhost:3000", {
-    transportOptions: {
-        polling: {
-            extraHeaders: {
-                "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
-            }
-        }
-    }
-});
 // https://developer.mozilla.org/ja/docs/Learn/JavaScript/Client-side_web_APIs/Fetching_data
 
 // CSRF対策
@@ -15,19 +6,7 @@ const socket = io("http://localhost:3000", {
 const csrftoken: string = getCsrfToken();//これはサーバー側で発行されている
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
-const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
-function endLoadingAnimation() {
-    console.log('END_LOADING_ANIMATION')
-    if(contentLoadingBar && contentLoadingDisplay) {
-        contentLoadingBar.classList.remove('animate-bar');
-        //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-        contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
-        contentLoadingBar.style.transition = 'width 1s'
-        
-        contentLoadingDisplay.style.transition = 'height 1s 1s';
-        contentLoadingDisplay.style.height = '0%';
-    }
-}
+
 
 import { parse } from 'path';
 import { blockData } from '../type/blockData';
@@ -35,10 +14,6 @@ import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
-const pageObjects: Block<any,any>[] = [];
-function allBlockSyncServer() {
-    pageObjects.forEach(block=>block.syncServer());
-}
 
 class Range {
     x:number;
@@ -103,87 +78,14 @@ class ContainerManager {
         this.range = 
             new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
     }
-    normalizeCoordinate(target): Range {
-        // 幅をノーマライズの基準にする
-        const ref = this.range.width;
-
-        const targetDomRect: DOMRect = target.getBoundingClientRect();
-        const normalizedX = ( targetDomRect.left - this.range.x ) / ref;
-        const normalizedY = ( targetDomRect.top - this.range.y ) / ref;
-        const normalizedHeight = targetDomRect.height / ref;
-        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
-    }
 }
 
 const containerManager = new ContainerManager('container');
 
-class FunctionManager {
-
-    activeFunctions: {[key: string]: boolean} = {
-        'nudge': false,
-        'putbox': false,
-        'autosave': true,
-        'live': false,
-    };
-    onActivate: {[key: string]: ()=>void} = {
-        /*'putbox': ()=> {
-            if( UiDrawMode.selectedItem !== undefined ) {
-                putBox();
-            }
-        },*/
-       'autosave': allBlockSyncServer,
-    }
-    shortcutMap: {[key: string]: string} = {
-        'n': 'nudge',
-        'b': 'putbox',
-    };
-    nudgeSize: number = 32;
-
-    constructor(noteSettings: { nudgeSize?: number } = {} ) {
-        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
-        document.addEventListener('keydown', this.onKeydown.bind(this));
-        document.addEventListener('keyup', this.onKeyup.bind(this));
-    }
-
-    onKeydown(event: KeyboardEvent) {
-        this.activateFunctions(this.shortcutMap?.[event.key]);
-    }
-    onKeyup(event: KeyboardEvent) {
-        this.deactiveFunctions(this.shortcutMap?.[event.key]);
-    }
-    
-    activateFunctions(functionName: string) {  
-        if(this.activeFunctions?.[functionName] !== undefined) {
-            this.activeFunctions[functionName] = true;
-            if(functionName in this.onActivate) {
-                this.onActivate[functionName]();
-            }
-        }
-        console.table(this.activeFunctions)
-    }
-    deactiveFunctions(functionName: string) {
-        if(this.activeFunctions?.[functionName] !== undefined) {        
-            this.activeFunctions[functionName] = false;
-        }
-
-    }
-}
-
-const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
-class NoteController {
-    functionManager: FunctionManager;
-    containerManager: ContainerManager;
-    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
-        this.functionManager = functionManager;
-        this.containerManager = containerManager;
-    }
-}
-const noteController: NoteController = new NoteController(functionManager, containerManager);
-
-
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
-    
+    static minWidth: number = 100;
+    static minHeight: number = 100;
     loaderId: number; 
     
     x:number;
@@ -249,9 +151,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
-                this.x += e.clientX - sx;
-                this.y += e.clientY - sy;
-                this.relocate(this.x, this.y);
+                this.relocate(this.x + e.clientX - sx, this.y + e.clientY - sy);
                 this.boxFrameElement.removeEventListener('dragend', callback);
                 this.moving = false;
             }
@@ -287,24 +187,17 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
 
-        let resizeProcessIdCounter: number = 0;
-        const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[], observer) => {
-            const PROCESS_ID: number = ++resizeProcessIdCounter;
-            setTimeout(()=>{
-                if(PROCESS_ID === resizeProcessIdCounter) {
-                    this.resize(entries[0].contentRect.width, entries[0].contentRect.height);
-                }
-            },500);
+        this.init().then(end=>{
+            this.applyValue();//初期値の反映
         });
-        resizeObserver.observe(this.boxFrameElement);
-
-        this.init();
 
         this.assign(this.editorElement, this.displayElement, this.maskElement);
-        this.applyValue();//初期値の反映
         this.toggleToView();
         
-        
+        this.makeResizer(-1,-1);
+        this.makeResizer(1,1);
+        this.makeResizer(1,-1);
+        this.makeResizer(-1,1);
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -374,10 +267,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                                 messageText = '- 原因不明';
                         }
                         const noticeModal = new Modal(
+                            Modal.infoContainer, 
                             'info-bar', 
                             'データの反映に失敗しました\n'+messageText,
                             7000,
-                            Modal.infoContainer
                         );
                         noticeModal.init();
                         noticeModal.show();
@@ -387,9 +280,21 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         });
     }
 
+    remove() {
+        this.noteController.containerManager.container.removeChild(this.boxFrameElement);
+    }
+    
+    append() {
+        this.noteController.containerManager.container.appendChild(this.boxFrameElement);
+    }
+
     coordToString(coord: number): string {
         return `${coord}px`;
-    }   
+    }
+
+    /*coordToString(globalCoord: number): string {
+        return `${this.noteController.getLocalCoordinate(globalCoord)}px`;
+    }*/
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
@@ -410,12 +315,48 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         return content as T;
     }
     
-    makeResizer<T>(x: number, y: number):T {
-        const content: HTMLElement = document.createElement('span');
-        content.style.left = (~~(x*100))+'%';
-        content.style.top =  (~~(y*100))+'%';
-        content.classList.add('resizer');
-        return content as T;
+    makeResizer(offset_x: number, offset_y: number):HTMLElement {
+        const resizer: HTMLElement = document.createElement('div');
+        resizer.style.left = (~~((1+offset_x)/2*100))+'%';
+        resizer.style.top =  (~~((1+offset_y)/2*100))+'%';
+        resizer.classList.add('resizer', `resizer-${offset_x}-${offset_y}`);
+        resizer.setAttribute('draggable', 'true');
+        this.boxFrameElement.appendChild(resizer);
+
+        let startX: number;
+        let startY: number;
+        resizer.addEventListener('dragstart', (event: DragEvent)=>{
+            event.stopPropagation();
+            startX = event.clientX;
+            startY = event.clientY;
+            console.log(event.movementX,event.movementY);
+            console.log("drag-client",event.clientX,event.clientY);
+
+            resizer.classList.add('dragging');
+            this.boxFrameElement.classList.add('resizing');
+        })
+        resizer.addEventListener('dragend', (event: DragEvent)=>{
+            event.stopPropagation();
+            const relu = n => ( n + ( n ** 2 ) ** 0.5 ) / 2;
+            const movementX: number = event.clientX - startX;
+            const movementY: number = event.clientY - startY;
+            const resizedWidth =  this.width  + offset_x * (movementX);
+            const resizedHeight = this.height + offset_y * (movementY);
+            const lackX = relu(Block.minWidth - resizedWidth);
+            const lackY = relu(Block.minHeight - resizedHeight);
+
+            const relocatedX = this.x + relu(-offset_x) * movementX;
+            const relocatedY = this.y + relu(-offset_y) * movementY;
+
+            this.relocate(relocatedX-lackX*relu(-offset_x), relocatedY-lackY*relu(-offset_y));
+            this.resize(resizedWidth-lackX, resizedHeight-lackY);
+            console.log(event.movementX,event.movementY);
+            console.log("end-drag-client",event.clientX,event.clientY);
+
+            resizer.classList.remove('dragging');
+            this.boxFrameElement.classList.remove('resizing');
+        })
+        return resizer;
     }
     assign(...element: HTMLElement[]) {
         this.boxFrameElement.replaceChildren(...element);
@@ -490,7 +431,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     render() {
-        this.boxFrameElement.style.left = this.coordToString(this.y);
+        this.boxFrameElement.style.left = this.coordToString(this.x);
         this.boxFrameElement.style.top = this.coordToString(this.y);
         this.boxFrameElement.style.width = this.coordToString(this.width);
         this.boxFrameElement.style.height = this.coordToString(this.height);
@@ -513,19 +454,26 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    async resize(width: number, height: number): Promise<void> {
-        const applying = {
-            update_keys: ["width","height"],
-            update_values: [this.width, this.height]
-        };
+    async resize(width: number, height: number, nosynch=false): Promise<void> {
+        width = Math.max(Block.minWidth, width);
+        height = Math.max(Block.minHeight, height);
+
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             width -= width%this.noteController.functionManager.nudgeSize;
             height -= height%this.noteController.functionManager.nudgeSize;
         }
-        //this.boxFrameElement.style.width =  
+
+        this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
-        //this.boxFrameElement.style.height = 
+        this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
+        
+        const applying = {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        };
+
+        if(nosynch)return;
         
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
@@ -535,11 +483,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
     async relocate(x: number, y: number): Promise<void> {
-        console.log('relocate: ', x, y);
-        const applying = {
-            update_keys: ["x","y"],
-            update_values: [this.x, this.y]
-        };
+        console.log('relocate: ', x, y, this.type);
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.functionManager.nudgeSize;
             y -= y%this.noteController.functionManager.nudgeSize;
@@ -549,6 +493,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
         
+        const applying = {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        };
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
@@ -564,10 +512,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         element.replaceWith(clone);
         clone.remove();
     }
-    async dump(): Promise<void> {
+    async dump(nosync=false): Promise<void> {
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
+        if(nosync)return;
         /**
          * データベースから削除されているが通知が届いていない場合に、
          * 値の更新をリクエストしてしまうことを防止するためawaitしない。
@@ -585,11 +534,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
+    embedBlockList: { [key: string]: Block<any, any> } = {};
     constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
     async init() {
-        super.init();
+        await super.init();
         this.editorElement.value = this.value;
         this.editorElement.classList.add('text-editor');
 
@@ -609,7 +559,23 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     async applyValue(nosynch: boolean = false) {
         this.displayElement.innerHTML = this.parseMarkdown();
+        this.applyEmbed();
         await super.applyValue(nosynch);
+    }
+    applyEmbed() {
+        for(const [ id, block ] of Object.entries(this.embedBlockList)) {
+            const anchor = document.getElementById(this.getEmbedAnchor(id));
+            if(anchor) {
+                block.remove();
+                anchor.appendChild(block.boxFrameElement);
+            } else {
+                block.append();
+                delete this.embedBlockList[id];
+            }
+        }
+    }
+    getEmbedAnchor(id: string): string {
+        return `embed_anchor-${NOTE_ID}-${id}`;
     }
     parseMarkdown(): string {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
@@ -621,7 +587,16 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\_((.*?(\n)?)*?)\_/g, '<span class="markdown-italic">$1</span>')
         .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
-        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
+        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
+        .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
+            const target = NoteController.getBlockById(p1);
+            if(target) {
+                if(!(p1 in this.embedBlockList))this.embedBlockList.append(target);
+                return `<div id=${this.getEmbedAnchor(p1)}></div>`;
+            } else {
+                return `[embed not found]`;
+            }
+        });
         
         return parsedAsMarkdown;
     }
@@ -633,7 +608,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
 
     async init() {
-        super.init();
+        await super.init();
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -654,11 +629,21 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         });
         this.toggleToView();
     }
+    async compress(imageFile) {
+        const options = {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1024
+        }
+    
+        const compressed = await imageCompression(imageFile, options);
+        
+        return compressed;
+    }
 
     async getValue(): Promise<string> {
         const fileReader = new FileReader();
         const files = this.editorElement.files!;
-        return await new Promise<string>((resolve, reject)=>{
+        return await new Promise<string>(async(resolve, reject)=>{
             fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
                 if(e.target instanceof FileReader && typeof e.target.result === 'string') {
                     resolve(e.target.result);
@@ -668,7 +653,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             });
             //input[type="file"] と input[type="button"] を分ける型はない
             if(files.length) {
-                fileReader.readAsDataURL(files[0]);
+                fileReader.readAsDataURL(await this.compress(files[0]));
             } else {
                 resolve(SPACER_URI);
             }
@@ -681,7 +666,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
-            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width);
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, true);
         }
     }
     toggleToView() {
@@ -713,31 +698,32 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         
+        this.bindedEvents = [];
+    }
+    async init() {
+        await super.init();
+
         const editingContext = this.editorElement.getContext('2d');
         //background(非描画領域も含めた全データ)はサーバーに保存済みのデータで初期化
         // = サーバーに保存後、アプリを閉じたら非描画部分は消える
         const background = document.createElement('canvas');
-        background.width = range.width;
-        background.height = range.height;
+        background.width = this.width;
+        background.height = this.height;
         this.background = background;
         const backgroundContext = this.background.getContext('2d');
-        this.editingRange = new Range(0, 0, range.width, range.height);
+        this.editingRange = new Range(0, 0, this.width, this.height);
 
         if(backgroundContext !== null && editingContext !== null) {
             this.backgroundContext = backgroundContext;
             this.editingContext = editingContext;
-            if(URI !== SPACER_URI) {
+            if(this.value !== SPACER_URI) {
                 const image = new Image();
                 image.addEventListener("load", () => {
                     this.backgroundContext.drawImage(image, 0, 0);
                 });
-                image.src = URI;
+                image.src = this.value;
             }
         }
-        this.bindedEvents = [];
-    }
-    async init() {
-        super.init();
 
         this.editorElement.setAttribute('width', String(this.width));
         this.editorElement.setAttribute('height', String(this.height));
@@ -760,7 +746,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lockPosition();
         this.toggleToEditor();
         this.paintStart();
-        console.log('activated');
+        //console.log('activated');
 
         //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
         this.drawing = false;
@@ -770,7 +756,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.unlockPosition();
         this.toggleToView();
         this.paintEnd();
-        console.log('de activated');
+        //console.log('de activated');
 
         //キャンバスの編集を終えるときは、編集情報を適用する
         this.update();
@@ -875,7 +861,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
-    async resize(width, height) {
+    async resize(width, height, nosynch=false) {
         
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
@@ -884,17 +870,155 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
         this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
-        console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
+        //console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
         this.applyValue();
-        super.resize(width, height);
+        super.resize(width, height, nosynch);
     //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
     //    //this.editorElement.setAttribute('width', width);
     //    //this.editorElement.setAttribute('height', height);
     //    //this.applyValue();
     }
 }
+
+class NoteController {
+    functionManager: FunctionManager;
+    containerManager: ContainerManager;
+    static contentLoadingBar: HTMLElement;
+    static pageObjects: Block<any,any>[] = [];
+    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
+        this.functionManager = functionManager;
+        this.containerManager = containerManager;
+
+    }
+    normalizeRange(target: DOMRect | Range): Range {
+        // 幅をノーマライズの基準にする
+        const ref = this.containerManager.range.width;
+
+        const normalizedX = ( target.x - this.containerManager.range.x ) / ref;
+        const normalizedY = ( target.y - this.containerManager.range.y ) / ref;
+        const normalizedHeight = target.height / ref;
+        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
+    }
+    getLocalCoordinate(n: number): number {
+        return n * this.containerManager.range.width;
+    }
+    
+    static allBlockSyncServer() {
+        NoteController.pageObjects.forEach(block=>block.syncServer());
+    }
+    static async makePageData(): Promise<blockData[]> {
+        return await Promise.all(NoteController.pageObjects.map(object=>object.makeData()));
+    }
+    static applyPageData(...pageData: blockData[]): void {
+        for( const boxData of pageData ) {
+            const { range, id, type, value } = boxData;
+            NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
+        }
+        setTimeout(NoteController.endLoadingAnimation,250);
+    }
+    static applyServerData() {
+        NoteController.startLoadingAnimation();
+        fetch(NOTE_API_URL+NOTE_ID)
+            .then(result=>result.json())
+            .then(pageData=>{
+                NoteController.pageObjects.forEach(obj=>obj.dump(true));
+                const initialPageObjects = pageData.children;
+                NoteController.applyPageData(...initialPageObjects);
+            });
+    }
+    static startLoadingAnimation() {
+        if(NoteController.contentLoadingBar && contentLoadingDisplay) {
+            console.log('start_loading')
+            NoteController.contentLoadingBar.classList.add('animate-bar');
+            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+            //NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+            ///NoteController.contentLoadingBar.style.transition = 'width 1s'
+            
+            contentLoadingDisplay.style.transition = 'height 0s 0s';
+            //contentLoadingDisplay.style.transition = 'height 1s 1s';
+            contentLoadingDisplay.style.height = 'var(--loading-bar-height)';
+        }
+    }
+    static endLoadingAnimation() {
+        console.log('END_LOADING_ANIMATION')
+        if(NoteController.contentLoadingBar && contentLoadingDisplay) {
+            NoteController.contentLoadingBar.classList.remove('animate-bar');
+            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+            NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+            NoteController.contentLoadingBar.style.transition = 'width 1s'
+            
+            contentLoadingDisplay.style.transition = 'height 1s 1s';
+            contentLoadingDisplay.style.height = '0%';
+        }
+    }
+    static getBlockById(target_id: string): Block<any, any> | undefined {
+        return NoteController.pageObjects.find(object=>object.id === target_id);
+    }
+}
+
+
+const loadingBarElm = document.getElementById('content-loading-bar');
+if(loadingBarElm)NoteController.contentLoadingBar = loadingBarElm;
+class FunctionManager {
+
+    activeFunctions: {[key: string]: boolean} = {
+        'nudge': false,
+        'putbox': false,
+        'autosave': true,
+        'live': false,
+    };
+    onActivate: {[key: string]: ()=>void} = {
+        /*'putbox': ()=> {
+            if( UiDrawMode.selectedItem !== undefined ) {
+                putBox();
+            }
+        },*/
+       'live': NoteController.applyServerData,
+       'autosave': NoteController.allBlockSyncServer,
+    }
+    shortcutMap: {[key: string]: string} = {
+        'n': 'nudge',
+        'b': 'putbox',
+    };
+    nudgeSize: number = 32;
+
+    constructor(noteSettings: { nudgeSize?: number } = {} ) {
+        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
+        document.addEventListener('keydown', this.onKeydown.bind(this));
+        document.addEventListener('keyup', this.onKeyup.bind(this));
+    }
+
+    onKeydown(event: KeyboardEvent) {
+        this.activateFunctions(this.shortcutMap?.[event.key]);
+    }
+    onKeyup(event: KeyboardEvent) {
+        this.deactiveFunctions(this.shortcutMap?.[event.key]);
+    }
+    
+    activateFunctions(functionName: string) {  
+        if(this.activeFunctions?.[functionName] !== undefined) {
+            this.activeFunctions[functionName] = true;
+            if(functionName in this.onActivate) {
+                this.onActivate[functionName]();
+            }
+        }
+        console.table(this.activeFunctions)
+    }
+    deactiveFunctions(functionName: string) {
+        if(this.activeFunctions?.[functionName] !== undefined) {        
+            this.activeFunctions[functionName] = false;
+        }
+
+    }
+}
+
+const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
+
+
+const noteController: NoteController = new NoteController(functionManager, containerManager);
+
 
 
 function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
@@ -916,26 +1040,11 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
     return res;
 }
 
-async function makePageData(): Promise<blockData[]> {
-  return await Promise.all(pageObjects.map(object=>object.makeData()));
-}
 
-function applyPageData(...pageData: blockData[]): void {
-    for( const boxData of pageData ) {
-        const { range, id, type, value } = boxData;
-        pageObjects.push(makeBlockObject(range, type, id, value));
-    }
-    endLoadingAnimation();
-}
 /*applyPageData(initialPageObjects);
 pageObjects.push(...initialPageObjects);*/
 
-fetch(NOTE_API_URL+NOTE_ID)
-.then(result=>result.json())
-.then(pageData=>{
-    const initialPageObjects = pageData.children;
-    applyPageData(...initialPageObjects);
-});
+
 
 class Modal {
     static container: HTMLElement;
@@ -947,7 +1056,7 @@ class Modal {
     initialized: boolean = false;
     container: HTMLElement;
     
-    constructor(type: string, message: string, lifetime?: number, container: HTMLElement) {
+    constructor(container: HTMLElement, type: string, message: string, lifetime?: number) {
         this.type = type;
         this.message = message;
         this.lifetime = lifetime || Infinity;
@@ -1012,19 +1121,19 @@ async function sleep(time) {
     })
 }
 async function helloUser() {
-    const m1 = new Modal('info-bar', 'Hello',4000, Modal.infoContainer);
+    const m1 = new Modal(Modal.infoContainer, 'info-bar', 'Hello',4000);
     m1.init();
     m1.show();
     await sleep(650);
-    const m2 = new Modal('info-bar', 'You can use it',4000, Modal.infoContainer);
+    const m2 = new Modal(Modal.infoContainer, 'info-bar', 'You can use it',4000);
     m2.init();
     m2.show();
     await sleep(650);
-    const m3 = new Modal('info-bar', 'as you like',4000, Modal.infoContainer);
+    const m3 = new Modal(Modal.infoContainer, 'info-bar', 'as you like',4000);
     m3.init();
     m3.show();
     await sleep(650);
-    const m4 = new Modal('info-bar', '**Memolive**',4000, Modal.infoContainer);
+    const m4 = new Modal(Modal.infoContainer, 'info-bar', '**Memolive**',4000);
     m4.init();
     m4.show();
 }
@@ -1188,7 +1297,7 @@ function putBox() {
 
             //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
             const block = makeBlockObject(range, boxType, idPromise);
-            pageObjects.push(block);
+            NoteController.pageObjects.push(block);
             (async()=>{
                 const id = await Promise.any([idPromise]);
                 
@@ -1201,7 +1310,7 @@ function putBox() {
         xs = [];
         ys = [];
         noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
-        makePageData().then(console.log);
+        NoteController.makePageData().then(console.log);
     }
 
     noteController.containerManager.container.addEventListener('mousedown', onmousedown);
@@ -1213,87 +1322,19 @@ if(saveUiElement) {
     saveUiElement.addEventListener('click', (event: MouseEvent) => {
                 
         const message = new Modal(
+            Modal.infoContainer, 
             'info-bar',
             'セーブしました',
-            3000, Modal.infoContainer);
+            3000
+        );
         message.init();
         message.show();
 
-        allBlockSyncServer();
+        NoteController.allBlockSyncServer();
 
         //sendEffectBarElement.classList.add('send-effect-bar');
     });
 }
-
-socket.on("reconnect", (attempt) => {
-    //window.location.reload(true);
-    const noticeModal = new Modal(
-        'info-bar', 
-        'WebSocketサーバーへの接続が復旧しました',
-        3000,
-        Modal.infoContainer
-    );
-    noticeModal.init();
-    noticeModal.show();
-    UiFunctions.applying['live']?.unlock?.();
-});
-socket.on("connect", () => {
-    // ...//window.location.reload(true);
-    const noticeModal = new Modal(
-        'info-bar', 
-        'WebSocketサーバーへの接続しました',
-        3000,
-        Modal.infoContainer
-    );
-    noticeModal.init();
-    noticeModal.show();
-
-    UiFunctions.applying['live']?.unlock?.();
-});
-socket.on("disconnect", (reason, details) => {
-    // ...
-    const noticeModal = new Modal(
-        'info-bar', 
-        'WebSocketサーバーへの接続が切れました',
-        5000,
-        Modal.infoContainer
-    );
-    noticeModal.init();
-    noticeModal.show();
-    UiFunctions.applying['live']?.lock?.();
-});
-
-socket.on("update", (target_id, update_keys, update_values) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const target = pageObjects.find(object=>object.id === target_id);
-
-        if(target !== undefined) {
-            target.update_parameters(update_keys, update_values);
-            console.log(target.x,target.y,target.width,target.height,target.value);
-            target.render();
-        } else {
-            console.warn('ボックスがない')
-        }
-    }
-});
-
-socket.on("delete", (id) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const target = pageObjects.find(object=>object.id === id);
-        if(target !== undefined) {
-            target.dump();
-        } else {
-            console.warn('ボックスがない')
-        }
-    }
-});
-
-socket.on("create", (range, type, id) => {
-    if(noteController.functionManager.activeFunctions["live"])  {
-        const block = makeBlockObject(range, type, id);
-        pageObjects.push(block);
-    }
-});
 
 
 function escapeHTML(str: string) {
@@ -1302,3 +1343,151 @@ function escapeHTML(str: string) {
     return temp.innerHTML; 
 }
 
+NoteController.applyServerData();
+
+class SocketIOManager {
+    socket: any;
+    constructor() {
+    }
+    tryAccessServer() {
+           
+        const noticeModal = new Modal(
+            Modal.infoContainer, 
+            'info-bar', 
+            'WebSocketサーバーへ接続中...',
+            1000,
+        );
+        noticeModal.init();
+        noticeModal.show();
+
+        const script = document.createElement('script');
+        script.src = SOCKET_IO_LIBURL;
+        script.async = true;
+        console.log(SOCKET_IO_LIBURL)
+
+        // 成功時
+        script.onload = () => {
+          console.log(`socketIO lib successfully loaded`);
+          this.start.apply(this);
+        };
+        script.onerror = (e) => {
+            console.error(e);
+            setTimeout(this.tryAccessServer.bind(this),1000);
+            document.head.removeChild(script);
+        }
+        
+        document.head.appendChild(script); 
+    }
+    start() {
+        let socket;
+        try {
+            socket = this.connectSocketIO();
+        } catch(e) {
+            console.error(e);
+        }
+        if(socket) {
+            this.socket = socket;
+            this.listenChannel();
+        } else {
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続に失敗しました',
+                10000,
+            );
+            //noticeModal.init();
+            //noticeModal.show();
+            this.tryAccessServer();
+        }
+    }
+    connectSocketIO(): any|null {
+        if(io) {
+            const socket = io("http://localhost:3000", {
+                transportOptions: {
+                    polling: {
+                        extraHeaders: {
+                            "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
+                        }
+                    }
+                }
+            });
+            return socket;
+        } else {
+            return null;
+        }
+    }
+    listenChannel() {
+
+        this.socket.on("reconnect", (attempt) => {
+            //window.location.reload(true);
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続が復旧しました',
+                3000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+            UiFunctions.applying['live']?.unlock?.();
+        });
+        this.socket.on("connect", () => {
+            // ...//window.location.reload(true);
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続しました',
+                3000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+
+            UiFunctions.applying['live']?.unlock?.();
+        });
+        this.socket.on("disconnect", (reason, details) => {
+            // ...
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続が切れました',
+                5000,
+            );
+            noticeModal.init();
+            noticeModal.show();
+            UiFunctions.applying['live']?.lock?.();
+        });
+
+        this.socket.on("update", (target_id, update_keys, update_values) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const target = NoteController.getBlockById(target_id);
+
+                if(target !== undefined) {
+                    target.update_parameters(update_keys, update_values);
+                    console.log(target.x,target.y,target.width,target.height,target.value);
+                    target.render();
+                } else {
+                    console.warn('ボックスがない')
+                }
+            }
+        });
+
+        this.socket.on("delete", (id) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const target = NoteController.getBlockById(id);
+                if(target !== undefined) {
+                    target.dump();
+                } else {
+                    console.warn('ボックスがない')
+                }
+            }
+        });
+
+        this.socket.on("create", (range, type, id) => {
+            if(noteController.functionManager.activeFunctions["live"])  {
+                const block = makeBlockObject(range, type, id);
+                NoteController.pageObjects.push(block);
+            }
+        });
+    }
+}
+const socketIOManager = new SocketIOManager();
+socketIOManager.start();
