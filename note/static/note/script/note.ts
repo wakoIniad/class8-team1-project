@@ -35,10 +35,6 @@ import { rangeData } from '../type/rangeData';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
-const pageObjects: Block<any,any>[] = [];
-function allBlockSyncServer() {
-    pageObjects.forEach(block=>block.syncServer());
-}
 
 class Range {
     x:number;
@@ -121,7 +117,7 @@ class FunctionManager {
                 putBox();
             }
         },*/
-       'autosave': allBlockSyncServer,
+       'autosave': noteController.allBlockSyncServer,
     }
     shortcutMap: {[key: string]: string} = {
         'n': 'nudge',
@@ -160,28 +156,6 @@ class FunctionManager {
 }
 
 const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
-class NoteController {
-    functionManager: FunctionManager;
-    containerManager: ContainerManager;
-    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
-        this.functionManager = functionManager;
-        this.containerManager = containerManager;
-    }
-    normalizeRange(target: DOMRect | Range): Range {
-        // 幅をノーマライズの基準にする
-        const ref = this.containerManager.range.width;
-
-        const normalizedX = ( target.x - this.range.x ) / ref;
-        const normalizedY = ( target.y - this.range.y ) / ref;
-        const normalizedHeight = target.height / ref;
-        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
-    }
-    getLocalCoordinate(n: number): number {
-        return n * this.containerManager.range.width;
-    }
-}
-const noteController: NoteController = new NoteController(functionManager, containerManager);
-
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
@@ -367,10 +341,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                                 messageText = '- 原因不明';
                         }
                         const noticeModal = new Modal(
+                            Modal.infoContainer, 
                             'info-bar', 
                             'データの反映に失敗しました\n'+messageText,
                             7000,
-                            Modal.infoContainer
                         );
                         noticeModal.init();
                         noticeModal.show();
@@ -378,6 +352,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 }
             }
         });
+    }
+
+    remove() {
+        this.noteController.containerManager.container.removeChild(this.boxFrameElement);
+    }
+    
+    append() {
+        this.noteController.containerManager.container.appendChild(this.boxFrameElement);
     }
 
     coordToString(coord: number): string {
@@ -623,6 +605,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
+    embedBlockList: { [key: string]: Block<any, any> };
     constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
@@ -647,10 +630,27 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     async applyValue(nosynch: boolean = false) {
         this.displayElement.innerHTML = this.parseMarkdown();
+        this.applyEmbed();
         await super.applyValue(nosynch);
     }
+    applyEmbed() {
+        for(const block of this.embedBlockList) {
+            block.remove();
+            block.getId().then(id=>{
+                const anchor = document.getElementById(this.getEmbedAnchor(id));
+                if(anchor) {
+
+                } else {
+                    block.append();
+                }
+            })
+        }
+    }
+    getEmbedAnchor(id: string): string {
+        return `embed_anchor-${NOTE_ID}-${p1}`;
+    }
     parseMarkdown(): string {
-        const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
+        //仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
         .replace(/\*\*((.*?(\n)?)*?)\*\*/g, '<span class="markdown-bold">$1</span>')
@@ -659,7 +659,16 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\_((.*?(\n)?)*?)\_/g, '<span class="markdown-italic">$1</span>')
         .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
-        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>');
+        .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
+        .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
+            const target = this.noteController.getBlockById(p1);
+            if(target) {
+                if(!(p1 in this.embedBlockList))this.embedBlockList.append();
+                return `<div id=${this.getEmbedAnchor(p1)}></div>`;
+            } else {
+                return `[embed not found]`;
+            }
+        });
         
         return parsedAsMarkdown;
     }
@@ -934,6 +943,47 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 }
 
+class NoteController {
+    functionManager: FunctionManager;
+    containerManager: ContainerManager;
+    pageObjects: Block<any,any>[] = [];
+    constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
+        this.functionManager = functionManager;
+        this.containerManager = containerManager;
+    }
+    normalizeRange(target: DOMRect | Range): Range {
+        // 幅をノーマライズの基準にする
+        const ref = this.containerManager.range.width;
+
+        const normalizedX = ( target.x - this.range.x ) / ref;
+        const normalizedY = ( target.y - this.range.y ) / ref;
+        const normalizedHeight = target.height / ref;
+        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
+    }
+    getLocalCoordinate(n: number): number {
+        return n * this.containerManager.range.width;
+    }
+    
+    allBlockSyncServer() {
+        this.pageObjects.forEach(block=>block.syncServer());
+    }
+    async makePageData(): Promise<blockData[]> {
+        return await Promise.all(this.pageObjects.map(object=>object.makeData()));
+    }
+    applyPageData(...pageData: blockData[]): void {
+        for( const boxData of pageData ) {
+            const { range, id, type, value } = boxData;
+            this.pageObjects.push(makeBlockObject(range, type, id, value));
+        }
+        endLoadingAnimation();
+    }
+    getBlockById(target_id: string): Block<any, any> | undefined {
+        return noteController.pageObjects.find(object=>object.id === target_id);
+    }
+}
+const noteController: NoteController = new NoteController(functionManager, containerManager);
+
+
 
 function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
     let res;
@@ -954,17 +1004,7 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
     return res;
 }
 
-async function makePageData(): Promise<blockData[]> {
-  return await Promise.all(pageObjects.map(object=>object.makeData()));
-}
 
-function applyPageData(...pageData: blockData[]): void {
-    for( const boxData of pageData ) {
-        const { range, id, type, value } = boxData;
-        pageObjects.push(makeBlockObject(range, type, id, value));
-    }
-    endLoadingAnimation();
-}
 /*applyPageData(initialPageObjects);
 pageObjects.push(...initialPageObjects);*/
 
@@ -972,7 +1012,7 @@ fetch(NOTE_API_URL+NOTE_ID)
 .then(result=>result.json())
 .then(pageData=>{
     const initialPageObjects = pageData.children;
-    applyPageData(...initialPageObjects);
+    noteController.applyPageData(...initialPageObjects);
 });
 
 class Modal {
@@ -985,7 +1025,7 @@ class Modal {
     initialized: boolean = false;
     container: HTMLElement;
     
-    constructor(type: string, message: string, lifetime?: number, container: HTMLElement) {
+    constructor(container: HTMLElement, type: string, message: string, lifetime?: number) {
         this.type = type;
         this.message = message;
         this.lifetime = lifetime || Infinity;
@@ -1050,19 +1090,19 @@ async function sleep(time) {
     })
 }
 async function helloUser() {
-    const m1 = new Modal('info-bar', 'Hello',4000, Modal.infoContainer);
+    const m1 = new Modal(Modal.infoContainer, 'info-bar', 'Hello',4000);
     m1.init();
     m1.show();
     await sleep(650);
-    const m2 = new Modal('info-bar', 'You can use it',4000, Modal.infoContainer);
+    const m2 = new Modal(Modal.infoContainer, 'info-bar', 'You can use it',4000);
     m2.init();
     m2.show();
     await sleep(650);
-    const m3 = new Modal('info-bar', 'as you like',4000, Modal.infoContainer);
+    const m3 = new Modal(Modal.infoContainer, 'info-bar', 'as you like',4000);
     m3.init();
     m3.show();
     await sleep(650);
-    const m4 = new Modal('info-bar', '**Memolive**',4000, Modal.infoContainer);
+    const m4 = new Modal(Modal.infoContainer, 'info-bar', '**Memolive**',4000);
     m4.init();
     m4.show();
 }
@@ -1226,7 +1266,7 @@ function putBox() {
 
             //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
             const block = makeBlockObject(range, boxType, idPromise);
-            pageObjects.push(block);
+            noteController.pageObjects.push(block);
             (async()=>{
                 const id = await Promise.any([idPromise]);
                 
@@ -1251,13 +1291,15 @@ if(saveUiElement) {
     saveUiElement.addEventListener('click', (event: MouseEvent) => {
                 
         const message = new Modal(
+            Modal.infoContainer, 
             'info-bar',
             'セーブしました',
-            3000, Modal.infoContainer);
+            3000
+        );
         message.init();
         message.show();
 
-        allBlockSyncServer();
+        noteController.allBlockSyncServer();
 
         //sendEffectBarElement.classList.add('send-effect-bar');
     });
@@ -1266,10 +1308,10 @@ if(saveUiElement) {
 socket.on("reconnect", (attempt) => {
     //window.location.reload(true);
     const noticeModal = new Modal(
+        Modal.infoContainer, 
         'info-bar', 
         'WebSocketサーバーへの接続が復旧しました',
         3000,
-        Modal.infoContainer
     );
     noticeModal.init();
     noticeModal.show();
@@ -1278,10 +1320,10 @@ socket.on("reconnect", (attempt) => {
 socket.on("connect", () => {
     // ...//window.location.reload(true);
     const noticeModal = new Modal(
+        Modal.infoContainer, 
         'info-bar', 
         'WebSocketサーバーへの接続しました',
         3000,
-        Modal.infoContainer
     );
     noticeModal.init();
     noticeModal.show();
@@ -1291,10 +1333,10 @@ socket.on("connect", () => {
 socket.on("disconnect", (reason, details) => {
     // ...
     const noticeModal = new Modal(
+        Modal.infoContainer, 
         'info-bar', 
         'WebSocketサーバーへの接続が切れました',
         5000,
-        Modal.infoContainer
     );
     noticeModal.init();
     noticeModal.show();
@@ -1303,7 +1345,7 @@ socket.on("disconnect", (reason, details) => {
 
 socket.on("update", (target_id, update_keys, update_values) => {
     if(noteController.functionManager.activeFunctions["live"])  {
-        const target = pageObjects.find(object=>object.id === target_id);
+        const target = noteController.getBlockById(target_id);
 
         if(target !== undefined) {
             target.update_parameters(update_keys, update_values);
@@ -1317,7 +1359,7 @@ socket.on("update", (target_id, update_keys, update_values) => {
 
 socket.on("delete", (id) => {
     if(noteController.functionManager.activeFunctions["live"])  {
-        const target = pageObjects.find(object=>object.id === id);
+        const target = noteController.getBlockById(id);
         if(target !== undefined) {
             target.dump();
         } else {
@@ -1329,7 +1371,7 @@ socket.on("delete", (id) => {
 socket.on("create", (range, type, id) => {
     if(noteController.functionManager.activeFunctions["live"])  {
         const block = makeBlockObject(range, type, id);
-        pageObjects.push(block);
+        noteController.pageObjects.push(block);
     }
 });
 
