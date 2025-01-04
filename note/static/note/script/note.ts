@@ -575,11 +575,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
     async relocate(x: number, y: number): Promise<void> {
-        console.log('relocate: ', x, y);
-        const applying = {
-            update_keys: ["x","y"],
-            update_values: [this.x, this.y]
-        };
+        console.log('relocate: ', x, y, this.type);
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.functionManager.nudgeSize;
             y -= y%this.noteController.functionManager.nudgeSize;
@@ -589,6 +585,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.style.left = this.coordToString(x);
         this.boxFrameElement.style.top =  this.coordToString(y);
         
+        const applying = {
+            update_keys: ["x","y"],
+            update_values: [this.x, this.y]
+        };
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
         }
