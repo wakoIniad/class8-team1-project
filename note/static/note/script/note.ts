@@ -149,10 +149,16 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.maskElement.classList.add('box-mask');
 
         this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+
+            //伝搬防止
+            e.stopPropagation();
+
             //仕様: 編集中は動かさない
             if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
+                //伝搬防止
+                e.stopPropagation();
                 this.relocate(this.x + e.clientX - sx, this.y + e.clientY - sy);
                 this.boxFrameElement.removeEventListener('dragend', callback);
                 this.moving = false;
@@ -751,7 +757,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt', '');
-        this.boxFrameElement.addEventListener('dblclick', ()=>{
+        this.boxFrameElement.addEventListener('dblclick', e=>{
             
             //イベントの伝搬を中止
             e.stopPropagation();
