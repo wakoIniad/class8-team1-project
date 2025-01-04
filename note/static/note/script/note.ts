@@ -252,9 +252,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
-                this.x += e.clientX - sx;
-                this.y += e.clientY - sy;
-                this.relocate(this.x, this.y);
+                this.relocate(this.x + e.clientX - sx, this.y + e.clientY - sy);
                 this.boxFrameElement.removeEventListener('dragend', callback);
                 this.moving = false;
             }
@@ -525,7 +523,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
 
     render() {
-        this.boxFrameElement.style.left = this.coordToString(this.y);
+        this.boxFrameElement.style.left = this.coordToString(this.x);
         this.boxFrameElement.style.top = this.coordToString(this.y);
         this.boxFrameElement.style.width = this.coordToString(this.width);
         this.boxFrameElement.style.height = this.coordToString(this.height);
