@@ -552,6 +552,9 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.displayElement.classList.add('markdown-text-default');
         
         this.boxFrameElement.addEventListener('dblclick', (e)=>{
+            
+            //イベントの伝搬を中止
+            e.stopPropagation();
             if(this.editorIsActive) {
                 this.update();
                 this.toggleToView();
@@ -749,6 +752,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt', '');
         this.boxFrameElement.addEventListener('dblclick', ()=>{
+            
+            //イベントの伝搬を中止
+            e.stopPropagation();
             if(this.editorIsActive) {
                 this.deactivateCanvasEditor();
             } else {
