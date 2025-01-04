@@ -142,6 +142,10 @@ body {
     visibility: visible;
 }
 
+.box-frame.no-focus-editor:hover > .resizer {
+    visibility: visible;
+}
+
 .data-type-icon {
     position: absolute;
     display: block;

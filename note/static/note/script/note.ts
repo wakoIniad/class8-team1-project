@@ -719,6 +719,8 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 
     async init() {
         await super.init();
+        this.boxFrameElement.classList.add('no-focus-editor');
+
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -787,9 +789,15 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         }
         //this.assign(this.displayElement);
     }
-    dropped(block: Block<any, any>): void {
+    async dropped(block: Block<any, any>) {
         if(block instanceof CanvasBlock) {
-            this.value = block.getValue();
+            this.value = block.value;
+            this.applyValue();
+            //block.dump();
+        } else
+        if(block instanceof ImageBlock) {
+            console.log('apply image', )
+            this.value = block.value;
             this.applyValue();
             //block.dump();
         }
