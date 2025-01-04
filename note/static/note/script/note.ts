@@ -350,30 +350,33 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
             
-            //オリジナルの関数(3つの値に変化するのでternary)
-            /**
+            /**条件分岐なしで、拡大縮小・移動・全ての座標の計算を同じ式で行うための
+             * 自作の関数
              * @param n = -1, 0, 1
-             * @returns 0, 0, 1
-             * @returns 1, 1, 0
+             * @returns 0, 1, 1
              * 
-             * @returns 0, 0.5, 1
+             * - n = 1 0 -1
+             * - ternary(1, 0, -1) = -1 -1 0
+             * ternary(-1 -1 0) = 0 0 1
+             * ternary(-ternary(-n)) = relu
              * 
+             * (n**∞ + 1)**(1/∞): 0 -> 1, n -> n
              * 
-             * @returns 
              */
-            const ternary = n => 1 + ( ( n + (n ** 2) ** 0.5 ) / 2 - n );
+            const ternary = n => ( (n**64 + 1)**(1/64) ) + ( n - ( n + (n ** 2) ** 0.5 ) / 2 );
+            console.log('ternary: ',ternary(-1),ternary(0),ternary(1))
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
-            //const lackX = ternary(Block.minWidth - resizedWidth);
-            //const lackY = ternary(Block.minHeight - resizedHeight);
-
+            const lackX = ternary(Block.minWidth - resizedWidth  );
+            const lackY = ternary(Block.minHeight - resizedHeight);
+            console.log(lackX, lackY)
             const relocatedX = this.x + ternary(-offset_x) * movementX;
             const relocatedY = this.y + ternary(-offset_y) * movementY;
 
-            this.relocate(relocatedX-0/*lackX*/*ternary(-offset_x), relocatedY-     0/*lackY*/*ternary(-offset_y));
-            this.resize(resizedWidth-0/*lackX*/,                    resizedHeight - 0/*lackY*/);
+            this.relocate(relocatedX-lackX*ternary(-ternary(offset_x)), relocatedY-     lackY*ternary(-ternary(offset_y)));
+            this.resize(resizedWidth-lackX,                    resizedHeight - lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
 
