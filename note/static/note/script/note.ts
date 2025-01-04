@@ -208,10 +208,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.setAttribute('tabindex', '-1');
         this.boxFrameElement.classList.add(`${type}-box-frame`)
 
-        this.init();
+        this.init().then(end=>{
+            this.applyValue();//初期値の反映
+        });
 
         this.assign(this.editorElement, this.displayElement, this.maskElement);
-        this.applyValue();//初期値の反映
         this.toggleToView();
         
         this.makeResizer(-1,-1);
@@ -556,7 +557,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
     async init() {
-        super.init();
+        await super.init();
         this.editorElement.value = this.value;
         this.editorElement.classList.add('text-editor');
 
@@ -608,7 +609,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
             const target = NoteController.getBlockById(p1);
             if(target) {
-                if(!(p1 in this.embedBlockList))this.embedBlockList.append();
+                if(!(p1 in this.embedBlockList))this.embedBlockList.append(target);
                 return `<div id=${this.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
@@ -625,7 +626,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
 
     async init() {
-        super.init();
+        await super.init();
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -705,31 +706,32 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     constructor( range: rangeData, URI: string = SPACER_URI, id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         
+        this.bindedEvents = [];
+    }
+    async init() {
+        await super.init();
+
         const editingContext = this.editorElement.getContext('2d');
         //background(非描画領域も含めた全データ)はサーバーに保存済みのデータで初期化
         // = サーバーに保存後、アプリを閉じたら非描画部分は消える
         const background = document.createElement('canvas');
-        background.width = range.width;
-        background.height = range.height;
+        background.width = this.width;
+        background.height = this.height;
         this.background = background;
         const backgroundContext = this.background.getContext('2d');
-        this.editingRange = new Range(0, 0, range.width, range.height);
+        this.editingRange = new Range(0, 0, this.width, this.height);
 
         if(backgroundContext !== null && editingContext !== null) {
             this.backgroundContext = backgroundContext;
             this.editingContext = editingContext;
-            if(URI !== SPACER_URI) {
+            if(this.value !== SPACER_URI) {
                 const image = new Image();
                 image.addEventListener("load", () => {
                     this.backgroundContext.drawImage(image, 0, 0);
                 });
-                image.src = URI;
+                image.src = this.value;
             }
         }
-        this.bindedEvents = [];
-    }
-    async init() {
-        super.init();
 
         this.editorElement.setAttribute('width', String(this.width));
         this.editorElement.setAttribute('height', String(this.height));
