@@ -214,7 +214,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement.appendChild(this.dataTypeIconElement);
 
         this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
-            event.dataTransfer.setData("text/plain", ); 
+            console.log(event.dataTransfer)
         });
         
     }
@@ -360,8 +360,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             event.stopPropagation();
             startX = event.clientX;
             startY = event.clientY;
-            console.log(event.movementX,event.movementY);
-            console.log("drag-client",event.clientX,event.clientY);
 
             resizer.classList.add('dragging');
             this.boxFrameElement.classList.add('resizing');
@@ -383,22 +381,20 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
              * 
              */
             const ternary = n => ( (n**64 + 1)**(1/64) ) + ( n - ( n + (n ** 2) ** 0.5 ) / 2 );
-            console.log('ternary: ',ternary(-1),ternary(0),ternary(1))
+            
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
             const lackX = ternary(Block.minWidth - resizedWidth  );
             const lackY = ternary(Block.minHeight - resizedHeight);
-            console.log(lackX, lackY)
+
             const relocatedX = this.x + ternary(-offset_x) * movementX;
             const relocatedY = this.y + ternary(-offset_y) * movementY;
 
             this.relocate(relocatedX-lackX*ternary(-ternary(offset_x)), relocatedY-     lackY*ternary(-ternary(offset_y)));
             this.resize(resizedWidth-lackX,                    resizedHeight - lackY);
-            console.log(event.movementX,event.movementY);
-            console.log("end-drag-client",event.clientX,event.clientY);
-
+            
             resizer.classList.remove('dragging');
             this.boxFrameElement.classList.remove('resizing');
         })
@@ -529,7 +525,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
     async relocate(x: number, y: number): Promise<void> {
-        console.log('relocate: ', x, y, this.type);
+        //console.log('relocate: ', x, y, this.type);
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.functionManager.nudgeSize;
             y -= y%this.noteController.functionManager.nudgeSize;
@@ -811,7 +807,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lockPosition();
         this.toggleToEditor();
         this.paintStart();
-        //console.log('activated');
 
         //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
         this.drawing = false;
@@ -821,7 +816,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.unlockPosition();
         this.toggleToView();
         this.paintEnd();
-        //console.log('de activated');
 
         //キャンバスの編集を終えるときは、編集情報を適用する
         this.update();
@@ -935,15 +929,10 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
         this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
-        //console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
         this.applyValue();
         super.resize(width, height, nosynch);
-    //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
-    //    //this.editorElement.setAttribute('width', width);
-    //    //this.editorElement.setAttribute('height', height);
-    //    //this.applyValue();
     }
 }
 
@@ -995,14 +984,9 @@ class NoteController {
     }
     static startLoadingAnimation() {
         if(NoteController.contentLoadingBar && contentLoadingDisplay) {
-            console.log('start_loading')
             NoteController.contentLoadingBar.classList.add('animate-bar');
-            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-            //NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
-            ///NoteController.contentLoadingBar.style.transition = 'width 1s'
             
             contentLoadingDisplay.style.transition = 'height 0s 0s';
-            //contentLoadingDisplay.style.transition = 'height 1s 1s';
             contentLoadingDisplay.style.height = 'var(--loading-bar-height)';
         }
     }
@@ -1315,7 +1299,6 @@ function putBox() {
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-        console.log('start:', e.clientX, e.clientY);
         noteController.containerManager.container.removeEventListener('mousedown', onmousedown);
 
         // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
@@ -1327,7 +1310,6 @@ function putBox() {
         const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
-        console.log('end:', e.clientX, e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
@@ -1428,11 +1410,10 @@ class SocketIOManager {
         const script = document.createElement('script');
         script.src = SOCKET_IO_LIBURL;
         script.async = true;
-        console.log(SOCKET_IO_LIBURL)
 
         // 成功時
         script.onload = () => {
-          console.log(`socketIO lib successfully loaded`);
+          console.log(`socketIO successfully loaded`);
           this.start.apply(this);
         };
         script.onerror = (e) => {
