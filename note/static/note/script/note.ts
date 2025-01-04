@@ -193,7 +193,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.applyValue();//初期値の反映
         });
 
-        this.assign(this.displayElement, this.editorElement, this.maskElement);
+        this.assign(this.editorElement, this.displayElement, this.maskElement);
         this.toggleToView();
         
         this.makeResizer(-1,-1);
@@ -553,17 +553,14 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         
         this.boxFrameElement.addEventListener('dblclick', (e)=>{
             if(this.editorIsActive) {
-                this.editorElement.classList.add('deactivated');
                 this.update();
                 this.toggleToView();
             } else {
-                this.editorElement.classList.remove('deactivated');
                 this.toggleToEditor();
             }
         });
         this.boxFrameElement.addEventListener('focusout', (e)=>{
             if(this.editorIsActive) {
-                this.editorElement.classList.add('deactivated');
                 this.update();
                 this.toggleToView();
             }

@@ -108,7 +108,7 @@ body {
 }
 
 .deactivated  {
-    display: none !important;
+    //visibility: hidden !important;
 }
 
 /* display: inlineでは使えない & overflow: visible でも使えない*/
@@ -204,4 +204,5 @@ opacity:0;	○	○
 .embed-anchor {
     overflow: hidden;
     position: relative;
+    pointer-events: all;
 }
