@@ -103,60 +103,6 @@ class ContainerManager {
 
 const containerManager = new ContainerManager('container');
 
-class FunctionManager {
-
-    activeFunctions: {[key: string]: boolean} = {
-        'nudge': false,
-        'putbox': false,
-        'autosave': true,
-        'live': false,
-    };
-    onActivate: {[key: string]: ()=>void} = {
-        /*'putbox': ()=> {
-            if( UiDrawMode.selectedItem !== undefined ) {
-                putBox();
-            }
-        },*/
-       'autosave': noteController.allBlockSyncServer,
-    }
-    shortcutMap: {[key: string]: string} = {
-        'n': 'nudge',
-        'b': 'putbox',
-    };
-    nudgeSize: number = 32;
-
-    constructor(noteSettings: { nudgeSize?: number } = {} ) {
-        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
-        document.addEventListener('keydown', this.onKeydown.bind(this));
-        document.addEventListener('keyup', this.onKeyup.bind(this));
-    }
-
-    onKeydown(event: KeyboardEvent) {
-        this.activateFunctions(this.shortcutMap?.[event.key]);
-    }
-    onKeyup(event: KeyboardEvent) {
-        this.deactiveFunctions(this.shortcutMap?.[event.key]);
-    }
-    
-    activateFunctions(functionName: string) {  
-        if(this.activeFunctions?.[functionName] !== undefined) {
-            this.activeFunctions[functionName] = true;
-            if(functionName in this.onActivate) {
-                this.onActivate[functionName]();
-            }
-        }
-        console.table(this.activeFunctions)
-    }
-    deactiveFunctions(functionName: string) {
-        if(this.activeFunctions?.[functionName] !== undefined) {        
-            this.activeFunctions[functionName] = false;
-        }
-
-    }
-}
-
-const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
-
 class Block<T extends HTMLElement,S extends HTMLElement>{
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     static minWidth: number = 100;
@@ -646,10 +592,10 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         }
     }
     getEmbedAnchor(id: string): string {
-        return `embed_anchor-${NOTE_ID}-${p1}`;
+        return `embed_anchor-${NOTE_ID}-${id}`;
     }
     parseMarkdown(): string {
-        //仕方なくinnerHTML使用中:ミス注意。
+        const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
         
         const parsedAsMarkdown: string = escapedStr 
         .replace(/\*\*((.*?(\n)?)*?)\*\*/g, '<span class="markdown-bold">$1</span>')
@@ -660,7 +606,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
         .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
         .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
-            const target = this.noteController.getBlockById(p1);
+            const target = NoteController.getBlockById(p1);
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList.append();
                 return `<div id=${this.getEmbedAnchor(p1)}></div>`;
@@ -945,7 +891,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 class NoteController {
     functionManager: FunctionManager;
     containerManager: ContainerManager;
-    pageObjects: Block<any,any>[] = [];
+    static pageObjects: Block<any,any>[] = [];
     constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
@@ -954,8 +900,8 @@ class NoteController {
         // 幅をノーマライズの基準にする
         const ref = this.containerManager.range.width;
 
-        const normalizedX = ( target.x - this.range.x ) / ref;
-        const normalizedY = ( target.y - this.range.y ) / ref;
+        const normalizedX = ( target.x - this.containerManager.range.x ) / ref;
+        const normalizedY = ( target.y - this.containerManager.range.y ) / ref;
         const normalizedHeight = target.height / ref;
         return new Range(normalizedX, normalizedY, 1, normalizedHeight);
     }
@@ -963,23 +909,80 @@ class NoteController {
         return n * this.containerManager.range.width;
     }
     
-    allBlockSyncServer() {
-        this.pageObjects.forEach(block=>block.syncServer());
+    static allBlockSyncServer() {
+        NoteController.pageObjects.forEach(block=>block.syncServer());
     }
-    async makePageData(): Promise<blockData[]> {
-        return await Promise.all(this.pageObjects.map(object=>object.makeData()));
+    static async makePageData(): Promise<blockData[]> {
+        return await Promise.all(NoteController.pageObjects.map(object=>object.makeData()));
     }
-    applyPageData(...pageData: blockData[]): void {
+    static applyPageData(...pageData: blockData[]): void {
         for( const boxData of pageData ) {
             const { range, id, type, value } = boxData;
-            this.pageObjects.push(makeBlockObject(range, type, id, value));
+            NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
         }
         endLoadingAnimation();
     }
-    getBlockById(target_id: string): Block<any, any> | undefined {
-        return noteController.pageObjects.find(object=>object.id === target_id);
+    static getBlockById(target_id: string): Block<any, any> | undefined {
+        return NoteController.pageObjects.find(object=>object.id === target_id);
     }
 }
+
+
+class FunctionManager {
+
+    activeFunctions: {[key: string]: boolean} = {
+        'nudge': false,
+        'putbox': false,
+        'autosave': true,
+        'live': false,
+    };
+    onActivate: {[key: string]: ()=>void} = {
+        /*'putbox': ()=> {
+            if( UiDrawMode.selectedItem !== undefined ) {
+                putBox();
+            }
+        },*/
+       'autosave': NoteController.allBlockSyncServer,
+    }
+    shortcutMap: {[key: string]: string} = {
+        'n': 'nudge',
+        'b': 'putbox',
+    };
+    nudgeSize: number = 32;
+
+    constructor(noteSettings: { nudgeSize?: number } = {} ) {
+        if(noteSettings.nudgeSize) this.nudgeSize = noteSettings.nudgeSize;
+        document.addEventListener('keydown', this.onKeydown.bind(this));
+        document.addEventListener('keyup', this.onKeyup.bind(this));
+    }
+
+    onKeydown(event: KeyboardEvent) {
+        this.activateFunctions(this.shortcutMap?.[event.key]);
+    }
+    onKeyup(event: KeyboardEvent) {
+        this.deactiveFunctions(this.shortcutMap?.[event.key]);
+    }
+    
+    activateFunctions(functionName: string) {  
+        if(this.activeFunctions?.[functionName] !== undefined) {
+            this.activeFunctions[functionName] = true;
+            if(functionName in this.onActivate) {
+                this.onActivate[functionName]();
+            }
+        }
+        console.table(this.activeFunctions)
+    }
+    deactiveFunctions(functionName: string) {
+        if(this.activeFunctions?.[functionName] !== undefined) {        
+            this.activeFunctions[functionName] = false;
+        }
+
+    }
+}
+
+const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
+
+
 const noteController: NoteController = new NoteController(functionManager, containerManager);
 
 
@@ -1011,7 +1014,7 @@ fetch(NOTE_API_URL+NOTE_ID)
 .then(result=>result.json())
 .then(pageData=>{
     const initialPageObjects = pageData.children;
-    noteController.applyPageData(...initialPageObjects);
+    NoteController.applyPageData(...initialPageObjects);
 });
 
 class Modal {
@@ -1265,7 +1268,7 @@ function putBox() {
 
             //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
             const block = makeBlockObject(range, boxType, idPromise);
-            noteController.pageObjects.push(block);
+            NoteController.pageObjects.push(block);
             (async()=>{
                 const id = await Promise.any([idPromise]);
                 
@@ -1278,7 +1281,7 @@ function putBox() {
         xs = [];
         ys = [];
         noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
-        makePageData().then(console.log);
+        NoteController.makePageData().then(console.log);
     }
 
     noteController.containerManager.container.addEventListener('mousedown', onmousedown);
@@ -1298,7 +1301,7 @@ if(saveUiElement) {
         message.init();
         message.show();
 
-        noteController.allBlockSyncServer();
+        NoteController.allBlockSyncServer();
 
         //sendEffectBarElement.classList.add('send-effect-bar');
     });
@@ -1344,7 +1347,7 @@ socket.on("disconnect", (reason, details) => {
 
 socket.on("update", (target_id, update_keys, update_values) => {
     if(noteController.functionManager.activeFunctions["live"])  {
-        const target = noteController.getBlockById(target_id);
+        const target = NoteController.getBlockById(target_id);
 
         if(target !== undefined) {
             target.update_parameters(update_keys, update_values);
@@ -1358,7 +1361,7 @@ socket.on("update", (target_id, update_keys, update_values) => {
 
 socket.on("delete", (id) => {
     if(noteController.functionManager.activeFunctions["live"])  {
-        const target = noteController.getBlockById(id);
+        const target = NoteController.getBlockById(id);
         if(target !== undefined) {
             target.dump();
         } else {
@@ -1370,7 +1373,7 @@ socket.on("delete", (id) => {
 socket.on("create", (range, type, id) => {
     if(noteController.functionManager.activeFunctions["live"])  {
         const block = makeBlockObject(range, type, id);
-        noteController.pageObjects.push(block);
+        NoteController.pageObjects.push(block);
     }
 });
 
