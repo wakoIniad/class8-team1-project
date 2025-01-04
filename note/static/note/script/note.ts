@@ -1346,13 +1346,77 @@ function escapeHTML(str: string) {
 NoteController.applyServerData();
 
 class SocketIOManager {
-    io: any = io;
-    constructor(io) {
+    socket: any;
+    constructor() {
+    }
+    tryAccessServer() {
+           
+        const noticeModal = new Modal(
+            Modal.infoContainer, 
+            'info-bar', 
+            'WebSocketサーバーへ接続中...',
+            1000,
+        );
+        noticeModal.init();
+        noticeModal.show();
 
+        const script = document.createElement('script');
+        script.src = SOCKET_IO_LIBURL;
+        script.async = true;
+        console.log(SOCKET_IO_LIBURL)
+
+        // 成功時
+        script.onload = () => {
+          console.log(`socketIO lib successfully loaded`);
+          this.start.apply(this);
+        };
+        script.onerror = (e) => {
+            console.error(e);
+            setTimeout(this.tryAccessServer.bind(this),1000);
+            document.head.removeChild(script);
+        }
+        
+        document.head.appendChild(script); 
+    }
+    start() {
+        let socket;
+        try {
+            socket = this.connectSocketIO();
+        } catch(e) {
+            console.error(e);
+        }
+        if(socket) {
+            this.socket = socket;
+            this.listenChannel();
+        } else {
+            const noticeModal = new Modal(
+                Modal.infoContainer, 
+                'info-bar', 
+                'WebSocketサーバーへの接続に失敗しました',
+                10000,
+            );
+            this.tryAccessServer();
+        }
+    }
+    connectSocketIO(): any|null {
+        if(io) {
+            const socket = io("http://localhost:3000", {
+                transportOptions: {
+                    polling: {
+                        extraHeaders: {
+                            "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
+                        }
+                    }
+                }
+            });
+            return socket;
+        } else {
+            return null;
+        }
     }
     listenChannel() {
-            
-        socket.on("reconnect", (attempt) => {
+
+        this.socket.on("reconnect", (attempt) => {
             //window.location.reload(true);
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1364,7 +1428,7 @@ class SocketIOManager {
             noticeModal.show();
             UiFunctions.applying['live']?.unlock?.();
         });
-        socket.on("connect", () => {
+        this.socket.on("connect", () => {
             // ...//window.location.reload(true);
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1374,10 +1438,10 @@ class SocketIOManager {
             );
             noticeModal.init();
             noticeModal.show();
-        
+
             UiFunctions.applying['live']?.unlock?.();
         });
-        socket.on("disconnect", (reason, details) => {
+        this.socket.on("disconnect", (reason, details) => {
             // ...
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1389,11 +1453,11 @@ class SocketIOManager {
             noticeModal.show();
             UiFunctions.applying['live']?.lock?.();
         });
-    
-        socket.on("update", (target_id, update_keys, update_values) => {
+
+        this.socket.on("update", (target_id, update_keys, update_values) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const target = NoteController.getBlockById(target_id);
-            
+
                 if(target !== undefined) {
                     target.update_parameters(update_keys, update_values);
                     console.log(target.x,target.y,target.width,target.height,target.value);
@@ -1403,8 +1467,8 @@ class SocketIOManager {
                 }
             }
         });
-    
-        socket.on("delete", (id) => {
+
+        this.socket.on("delete", (id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const target = NoteController.getBlockById(id);
                 if(target !== undefined) {
@@ -1414,8 +1478,8 @@ class SocketIOManager {
                 }
             }
         });
-    
-        socket.on("create", (range, type, id) => {
+
+        this.socket.on("create", (range, type, id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const block = makeBlockObject(range, type, id);
                 NoteController.pageObjects.push(block);
@@ -1423,18 +1487,5 @@ class SocketIOManager {
         });
     }
 }
-
-if(io) {
-    const socket = io("http://localhost:3000", {
-        transportOptions: {
-            polling: {
-                extraHeaders: {
-                    "self-proclaimed-referer": window.location.href,  //書き換えられるリスクあり
-                }
-            }
-        }
-    });
-
-} else {
-
-}
+const socketIOManager = new SocketIOManager();
+socketIOManager.start();
