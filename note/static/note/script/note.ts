@@ -772,9 +772,16 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         }
         //this.assign(this.displayElement);
     }
+    dropped(block: Block<any, any>): void {
+        if(block instanceof CanvasBlock) {
+            this.value = block.getValue();
+            this.applyValue();
+            //block.dump();
+        }
+    }
 }
 
-class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     private lastX: number | null;
     private lastY: number | null;
 
@@ -971,6 +978,18 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.applyValue();
         super.resize(width, height, nosynch);
     }
+    dropped(block: Block<any, any>): void {
+        if(block instanceof ImageBlock) {
+            this.editingContext.drawImage(block.displayElement, 0, 0, this.width, block.height / (block.width / this.width));
+            this.value = this.getValue();
+            this.applyValue();
+        } else 
+        if(block instanceof CanvasBlock) {
+            this.editingContext.drawImage(block.editorElement, 0, 0, this.width, block.height / (block.width / this.width));
+            this.value = this.getValue();
+            this.applyValue();
+        }
+    }
 }
 
 class NoteController {
@@ -1123,7 +1142,7 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
             res = new ImageBlock(range, value, id, noteController);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value, id, noteController);
+            res = new CanvasBlock(range, value, id, noteController);
             break;
     }
     if(id) {
