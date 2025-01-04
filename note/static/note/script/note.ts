@@ -216,14 +216,20 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.getId()
         .then(id => {
             this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
+                console.log("ev-t-setdata",event.dataTransfer?.setData)
                 event.dataTransfer?.setData("application/drag-box-id", id);
-                console.log(event.dataTransfer)
+                //console.log(event.dataTransfer)
                 console.log(event.dataTransfer?.items)
             });
         });
 
+        this.boxFrameElement.addEventListener("dragover", (event) => {
+            // ドロップできるように既定の動作を停止
+            event.preventDefault();
+        });
         this.boxFrameElement.addEventListener('drop', (event: DragEvent) => {
             const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+            
             const droppedBlock = NoteController.getBlockById(droppedElementId);
             if(droppedBlock)this.dropped(droppedBlock);
         });
@@ -682,9 +688,12 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
 
     async dropped(block: Block<any, any>): void {
+
         const objectId = NoteController.getObjectIdFromFullObjectId(await block.getId());
-        this.value += `[embed=${objectId}]\n`;
-        this.applyValue();
+        
+        this.value += `\n[embed=${objectId}]`;
+        this.editorElement.value = this.value;
+        await this.applyValue();
     }
 }
 
