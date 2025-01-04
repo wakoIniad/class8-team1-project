@@ -605,7 +605,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 }
 
 class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
-    embedBlockList: { [key: string]: Block<any, any> };
+    embedBlockList: { [key: string]: Block<any, any> } = {};
     constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'text', );
     }
@@ -634,16 +634,15 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         await super.applyValue(nosynch);
     }
     applyEmbed() {
-        for(const block of this.embedBlockList) {
-            block.remove();
-            block.getId().then(id=>{
-                const anchor = document.getElementById(this.getEmbedAnchor(id));
-                if(anchor) {
-
-                } else {
-                    block.append();
-                }
-            })
+        for(const [ id, block ] of Object.entries(this.embedBlockList)) {
+            const anchor = document.getElementById(this.getEmbedAnchor(id));
+            if(anchor) {
+                block.remove();
+                anchor.appendChild(block.boxFrameElement);
+            } else {
+                block.append();
+                delete this.embedBlockList[id];
+            }
         }
     }
     getEmbedAnchor(id: string): string {
