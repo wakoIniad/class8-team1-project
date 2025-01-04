@@ -15,19 +15,7 @@ const socket = io("http://localhost:3000", {
 const csrftoken: string = getCsrfToken();//これはサーバー側で発行されている
 
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
-const contentLoadingBar: HTMLElement|null = document.getElementById('content-loading-bar');
-function endLoadingAnimation() {
-    console.log('END_LOADING_ANIMATION')
-    if(contentLoadingBar && contentLoadingDisplay) {
-        contentLoadingBar.classList.remove('animate-bar');
-        //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-        contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
-        contentLoadingBar.style.transition = 'width 1s'
-        
-        contentLoadingDisplay.style.transition = 'height 1s 1s';
-        contentLoadingDisplay.style.height = '0%';
-    }
-}
+
 
 import { parse } from 'path';
 import { blockData } from '../type/blockData';
@@ -475,7 +463,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    async resize(width: number, height: number): Promise<void> {
+    async resize(width: number, height: number, nosynch=false): Promise<void> {
         width = Math.max(Block.minWidth, width);
         height = Math.max(Block.minHeight, height);
 
@@ -493,6 +481,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             update_keys: ["width","height"],
             update_values: [this.width, this.height]
         };
+
+        if(nosynch)return;
         
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
@@ -647,11 +637,21 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         });
         this.toggleToView();
     }
+    async compress(imageFile) {
+        const options = {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1024
+        }
+    
+        const compressed = await imageCompression(imageFile, options);
+        
+        return compressed;
+    }
 
     async getValue(): Promise<string> {
         const fileReader = new FileReader();
         const files = this.editorElement.files!;
-        return await new Promise<string>((resolve, reject)=>{
+        return await new Promise<string>(async(resolve, reject)=>{
             fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
                 if(e.target instanceof FileReader && typeof e.target.result === 'string') {
                     resolve(e.target.result);
@@ -661,7 +661,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             });
             //input[type="file"] と input[type="button"] を分ける型はない
             if(files.length) {
-                fileReader.readAsDataURL(files[0]);
+                fileReader.readAsDataURL(await this.compress(files[0]));
             } else {
                 resolve(SPACER_URI);
             }
@@ -674,7 +674,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
-            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width);
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, true);
         }
     }
     toggleToView() {
@@ -869,7 +869,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
-    async resize(width, height) {
+    async resize(width, height, nosynch=false) {
         
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
@@ -882,7 +882,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         
         this.value = this.getValue();
         this.applyValue();
-        super.resize(width, height);
+        super.resize(width, height, nosynch);
     //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
     //    //this.editorElement.setAttribute('width', width);
     //    //this.editorElement.setAttribute('height', height);
@@ -893,10 +893,14 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 class NoteController {
     functionManager: FunctionManager;
     containerManager: ContainerManager;
+    contentLoadingBar: HTMLElement;
     static pageObjects: Block<any,any>[] = [];
     constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
+        const loadingBarElm = document.getElementById('content-loading-bar');
+        if(loadingBarElm)this.contentLoadingBar = loadingBarElm;
+
     }
     normalizeRange(target: DOMRect | Range): Range {
         // 幅をノーマライズの基準にする
@@ -922,7 +926,29 @@ class NoteController {
             const { range, id, type, value } = boxData;
             NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
         }
-        endLoadingAnimation();
+        this.endLoadingAnimation();
+    }
+    applyServerData() {
+        this.contentLoadingBar.classList.add('animate-bar');
+        fetch(NOTE_API_URL+NOTE_ID)
+            .then(result=>result.json())
+            .then(pageData=>{
+                NoteController.pageObjects.forEach(obj=>obj.dump());
+                const initialPageObjects = pageData.children;
+                NoteController.applyPageData(...initialPageObjects);
+            });
+    }
+    endLoadingAnimation() {
+        console.log('END_LOADING_ANIMATION')
+        if(this.contentLoadingBar && contentLoadingDisplay) {
+            this.contentLoadingBar.classList.remove('animate-bar');
+            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+            this.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+            this.contentLoadingBar.style.transition = 'width 1s'
+            
+            contentLoadingDisplay.style.transition = 'height 1s 1s';
+            contentLoadingDisplay.style.height = '0%';
+        }
     }
     static getBlockById(target_id: string): Block<any, any> | undefined {
         return NoteController.pageObjects.find(object=>object.id === target_id);
@@ -1012,12 +1038,7 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
 /*applyPageData(initialPageObjects);
 pageObjects.push(...initialPageObjects);*/
 
-fetch(NOTE_API_URL+NOTE_ID)
-.then(result=>result.json())
-.then(pageData=>{
-    const initialPageObjects = pageData.children;
-    NoteController.applyPageData(...initialPageObjects);
-});
+
 
 class Modal {
     static container: HTMLElement;
