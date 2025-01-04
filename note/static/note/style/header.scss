@@ -5,11 +5,12 @@ body {
 
 :root {
     --memolive-logo-bar-height: 80px;
+    --loading-bar-height: 24px;
 }
 
 .note-info {
     width: 100%;
-    height: 24px;
+    height: var(--loading-bar-height);
 /*    background: #11631c;*/
     //background-color: rgb(37,153,118);
 //    background-color: rgb(37,118,153);

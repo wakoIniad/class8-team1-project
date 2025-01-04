@@ -521,10 +521,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         element.replaceWith(clone);
         clone.remove();
     }
-    async dump(): Promise<void> {
+    async dump(nosync=false): Promise<void> {
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
+        if(nosync)return;
         /**
          * データベースから削除されているが通知が届いていない場合に、
          * 値の更新をリクエストしてしまうことを防止するためawaitしない。
@@ -893,13 +894,11 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 class NoteController {
     functionManager: FunctionManager;
     containerManager: ContainerManager;
-    contentLoadingBar: HTMLElement;
+    static contentLoadingBar: HTMLElement;
     static pageObjects: Block<any,any>[] = [];
     constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
-        const loadingBarElm = document.getElementById('content-loading-bar');
-        if(loadingBarElm)this.contentLoadingBar = loadingBarElm;
 
     }
     normalizeRange(target: DOMRect | Range): Range {
@@ -921,30 +920,43 @@ class NoteController {
     static async makePageData(): Promise<blockData[]> {
         return await Promise.all(NoteController.pageObjects.map(object=>object.makeData()));
     }
-    applyPageData(...pageData: blockData[]): void {
+    static applyPageData(...pageData: blockData[]): void {
         for( const boxData of pageData ) {
             const { range, id, type, value } = boxData;
             NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
         }
-        this.endLoadingAnimation();
+        setTimeout(NoteController.endLoadingAnimation,250);
     }
-    applyServerData() {
-        this.contentLoadingBar.classList.add('animate-bar');
+    static applyServerData() {
+        NoteController.startLoadingAnimation();
         fetch(NOTE_API_URL+NOTE_ID)
             .then(result=>result.json())
             .then(pageData=>{
-                NoteController.pageObjects.forEach(obj=>obj.dump());
+                NoteController.pageObjects.forEach(obj=>obj.dump(true));
                 const initialPageObjects = pageData.children;
-                this.applyPageData(...initialPageObjects);
+                NoteController.applyPageData(...initialPageObjects);
             });
     }
-    endLoadingAnimation() {
-        console.log('END_LOADING_ANIMATION')
-        if(this.contentLoadingBar && contentLoadingDisplay) {
-            this.contentLoadingBar.classList.remove('animate-bar');
+    static startLoadingAnimation() {
+        if(NoteController.contentLoadingBar && contentLoadingDisplay) {
+            console.log('start_loading')
+            NoteController.contentLoadingBar.classList.add('animate-bar');
             //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-            this.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
-            this.contentLoadingBar.style.transition = 'width 1s'
+            //NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+            ///NoteController.contentLoadingBar.style.transition = 'width 1s'
+            
+            contentLoadingDisplay.style.transition = 'height 0s 0s';
+            //contentLoadingDisplay.style.transition = 'height 1s 1s';
+            contentLoadingDisplay.style.height = 'var(--loading-bar-height)';
+        }
+    }
+    static endLoadingAnimation() {
+        console.log('END_LOADING_ANIMATION')
+        if(NoteController.contentLoadingBar && contentLoadingDisplay) {
+            NoteController.contentLoadingBar.classList.remove('animate-bar');
+            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
+            NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
+            NoteController.contentLoadingBar.style.transition = 'width 1s'
             
             contentLoadingDisplay.style.transition = 'height 1s 1s';
             contentLoadingDisplay.style.height = '0%';
@@ -956,6 +968,8 @@ class NoteController {
 }
 
 
+const loadingBarElm = document.getElementById('content-loading-bar');
+if(loadingBarElm)NoteController.contentLoadingBar = loadingBarElm;
 class FunctionManager {
 
     activeFunctions: {[key: string]: boolean} = {
@@ -970,6 +984,7 @@ class FunctionManager {
                 putBox();
             }
         },*/
+       'live': NoteController.applyServerData,
        'autosave': NoteController.allBlockSyncServer,
     }
     shortcutMap: {[key: string]: string} = {
@@ -1407,3 +1422,4 @@ function escapeHTML(str: string) {
     return temp.innerHTML; 
 }
 
+NoteController.applyServerData();
