@@ -213,11 +213,33 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.dataTypeIconElement.setAttribute('draggable', 'true')
         this.boxFrameElement.appendChild(this.dataTypeIconElement);
 
-        this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
-            console.log(event.dataTransfer)
+        this.getId()
+        .then(id => {
+            this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
+                event.dataTransfer?.setData("application/drag-box-id", id);
+                console.log(event.dataTransfer)
+                console.log(event.dataTransfer?.items)
+            });
+        });
+
+        this.boxFrameElement.addEventListener('drop', (event: DragEvent) => {
+            const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+            const droppedBlock = NoteController.getBlockById(droppedElementId);
+            if(droppedBlock)this.dropped(droppedBlock);
         });
         
     }
+    dropped(block: Block<any, any>) {
+        switch(block.type) {
+            case 'image':
+                break;
+            case 'text':
+                break;
+            case 'canvas':
+                break;
+        }
+    }
+
     createIcon(imageSrc, className): HTMLDivElement {
         const iconFrame = document.createElement('div');
         const img: HTMLImageElement = document.createElement('img');
@@ -633,7 +655,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         }
     }
     getEmbedAnchor(id: string): string {
-        return `embed_anchor-${NOTE_ID}-${id}`;
+        return `embed_anchor-${NoteController.getFullObjectIdByObjectId(id)}`;
     }
     parseMarkdown(): string {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
@@ -647,7 +669,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
         .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
         .replace(/\[embed\=([A-Za-z0-9]+?)\]/g, (function(match, p1: string): string {
-            const target = NoteController.getBlockById(`${NOTE_ID}-${p1}`);
+            const target = NoteController.getBlockById(NoteController.getFullObjectIdByObjectId(p1));
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
                 return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
@@ -657,6 +679,12 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         }).bind(this));
         
         return parsedAsMarkdown;
+    }
+
+    async dropped(block: Block<any, any>): void {
+        const objectId = NoteController.getObjectIdFromFullObjectId(await block.getId());
+        this.value += `[embed=${objectId}]\n`;
+        this.applyValue();
     }
 }
 
@@ -945,6 +973,12 @@ class NoteController {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
 
+    }
+    static getFullObjectIdByObjectId(objectId: string): string {
+        return NOTE_ID + '-' + objectId;
+    }
+    static getObjectIdFromFullObjectId(fullObjectId: string): string {
+        return fullObjectId.split('-')[1];
     }
     normalizeRange(target: DOMRect | Range): Range {
         // 幅をノーマライズの基準にする
