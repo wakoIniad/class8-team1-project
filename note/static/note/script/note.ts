@@ -110,6 +110,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     moving: boolean = false;
     positionLocked: boolean = false;
     editorIsActive: boolean = false;
+    onContainer: boolean = false;
 
     noteController: NoteController;
 
@@ -142,6 +143,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
         this.boxFrameElement.setAttribute('draggable', 'true');
         this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
+        this.append();
 
         this.maskElement = this.makeBoxContent<HTMLDivElement>('div');
         this.maskElement.classList.add('box-mask');
@@ -282,10 +284,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     remove() {
         this.noteController.containerManager.container.removeChild(this.boxFrameElement);
+        
+        this.onContainer = false;
     }
     
     append() {
         this.noteController.containerManager.container.appendChild(this.boxFrameElement);
+        
+        this.onContainer = true;
     }
 
     coordToString(coord: number): string {
@@ -298,7 +304,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        this.noteController.containerManager.append(box);
         box.style.left =   this.coordToString(this.x);
         box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
@@ -546,13 +551,22 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.displayElement.classList.add('text-view');
         this.displayElement.classList.add('markdown-text-default');
         
-        this.boxFrameElement.addEventListener('focusin', (e)=>{
-            this.toggleToEditor();
-        }, {capture: true});
-        this.boxFrameElement.addEventListener('focusout', (e)=>{
-            this.update();
-            this.toggleToView();
+        this.boxFrameElement.addEventListener('dblclick', (e)=>{
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            } else {
+                this.toggleToEditor();
+            }
         });
+        this.boxFrameElement.addEventListener('focusout', (e)=>{
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            }
+        })
+        //this.boxFrameElement.addEventListener('focusout', (e)=>{
+        //});
     }
     getValue() {
         return this.editorElement.value;
@@ -566,10 +580,14 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         for(const [ id, block ] of Object.entries(this.embedBlockList)) {
             const anchor = document.getElementById(this.getEmbedAnchor(id));
             if(anchor) {
-                block.remove();
+                if(block.onContainer)block.remove();
+                block.boxFrameElement.style.position = 'static';
+                
+                //document.replaceChild(block.boxFrameElement, anchor);
                 anchor.appendChild(block.boxFrameElement);
             } else {
-                block.append();
+                if(!block.onContainer)block.append();
+                block.boxFrameElement.style.position = 'absolute';
                 delete this.embedBlockList[id];
             }
         }
@@ -588,15 +606,15 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
         .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
-        .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
-            const target = NoteController.getBlockById(p1);
+        .replace(/\[embed\=([A-Za-z0-9]+?)\]/g, (function(match, p1: string): string {
+            const target = NoteController.getBlockById(`${NOTE_ID}-${p1}`);
             if(target) {
-                if(!(p1 in this.embedBlockList))this.embedBlockList.append(target);
-                return `<div id=${this.getEmbedAnchor(p1)}></div>`;
+                if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
+                return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
             }
-        });
+        }).bind(this));
         
         return parsedAsMarkdown;
     }
