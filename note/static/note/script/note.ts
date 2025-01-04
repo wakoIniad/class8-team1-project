@@ -588,15 +588,15 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\~\~((.*?(\n)?)*?)\~\~/g, '<span class="markdown-strike-through">$1</span>')
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
         .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
-        .replace(/\[embed=[a-z0-9]+\]/g, function(match, p1: string): string {
-            const target = NoteController.getBlockById(p1);
+        .replace(/\[embed\=([A-Za-z0-9]+?)\]/g, (function(match, p1: string): string {
+            const target = NoteController.getBlockById(`${NOTE_ID}-${p1}`);
             if(target) {
-                if(!(p1 in this.embedBlockList))this.embedBlockList.append(target);
+                if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
                 return `<div id=${this.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
             }
-        });
+        }).bind(this));
         
         return parsedAsMarkdown;
     }
