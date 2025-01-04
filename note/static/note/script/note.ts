@@ -963,6 +963,20 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
      */
 
     async applyValue(nosynch: boolean = false) {
+        if(this.editingRange.width < 0) {
+            this.background.width -= this.editingRange.width;
+            const copy = this.background.cloneNode(); 
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
+            this.editingRange.width = 0;
+        }
+        if(this.editingRange.height < 0) {
+            this.background.height -= this.editingRange.height;
+            const copy = this.background.cloneNode(); 
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copy, -this.editingRange.y, 0);
+            this.editingRange.height = 0;
+        }
         //左上から拡大・縮小されることは想定していない
         if(this.background.width < this.editingRange.width) {
             //this.background.setAttribute('width', String(this.editingRange.width));
