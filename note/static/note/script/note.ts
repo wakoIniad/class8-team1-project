@@ -422,7 +422,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const relocatedX = this.x + ternary(-offset_x) * movementX;
             const relocatedY = this.y + ternary(-offset_y) * movementY;
 
-            this.relocate(relocatedX-lackX*ternary(-ternary(offset_x)), relocatedY-     lackY*ternary(-ternary(offset_y)));
+            this.relocate(
+                relocatedX - lackX*ternary(-ternary(offset_x)), 
+                relocatedY - lackY*ternary(-ternary(offset_y)),
+                offset_x, 
+                offset_y,
+                ternary(-offset_x) * movementX,
+                ternary(-offset_y) * movementY,
+            );
             this.resize(resizedWidth-lackX,                    resizedHeight - lackY);
             
             resizer.classList.remove('dragging');
@@ -554,7 +561,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
-    async relocate(x: number, y: number): Promise<void> {
+    async relocate(
+        x: number, y: number, 
+        offset_x?: number, offset_y?: number,
+        delta_x?: number, delta_y?: number,
+    ): Promise<void> {
         //console.log('relocate: ', x, y, this.type);
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.functionManager.nudgeSize;
@@ -950,6 +961,7 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
      * 
      * 
      */
+
     async applyValue(nosynch: boolean = false) {
         //左上から拡大・縮小されることは想定していない
         if(this.background.width < this.editingRange.width) {
@@ -966,6 +978,18 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
+
+    async relocate(
+        x: number, y: number, 
+        offset_x: number, offset_y: number,
+        delta_x: number, delta_y: number,
+    ): Promise<void> {
+        this.editingRange.x += delta_x * (((-offset_x)+1)/2)*offset_x;
+        this.editingRange.y += delta_y * (((-offset_y)+1)/2)*offset_y;
+        
+        super.relocate(x, y, offset_x, offset_y);
+    }
+
     async resize(width, height, nosynch=false) {
         
         this.editorElement.setAttribute('width', width);
