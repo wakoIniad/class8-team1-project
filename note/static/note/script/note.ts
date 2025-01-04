@@ -571,13 +571,11 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         for(const [ id, block ] of Object.entries(this.embedBlockList)) {
             const anchor = document.getElementById(this.getEmbedAnchor(id));
             if(anchor) {
-                console.log('ANARI')
                 if(block.onContainer)block.remove();
                 block.boxFrameElement.style.position = 'static';
                 //document.replaceChild(block.boxFrameElement, anchor);
                 anchor.appendChild(block.boxFrameElement);
             } else {
-                console.log('ANASHI')
                 if(!block.onContainer)block.append();
                 block.boxFrameElement.style.position = 'absolute';
                 delete this.embedBlockList[id];
@@ -602,7 +600,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             const target = NoteController.getBlockById(`${NOTE_ID}-${p1}`);
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
-                return `<div id=${this.getEmbedAnchor(p1)}></div>`;
+                return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
             }
