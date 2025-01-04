@@ -206,6 +206,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.makeResizer(1,1);
         this.makeResizer(1,-1);
         this.makeResizer(-1,1);
+        this.makeResizer(0,0);
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -348,18 +349,20 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
-            const relu = n => ( n + ( n ** 2 ) ** 0.5 ) / 2;
+            
+            //オリジナルの関数(3つの値に変化するのでternary)
+            const ternary = n => ( n + 1 ** 0.5 ) / 2;
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
-            const lackX = relu(Block.minWidth - resizedWidth);
-            const lackY = relu(Block.minHeight - resizedHeight);
+            const lackX = ternary(Block.minWidth - resizedWidth);
+            const lackY = ternary(Block.minHeight - resizedHeight);
 
-            const relocatedX = this.x + relu(-offset_x) * movementX;
-            const relocatedY = this.y + relu(-offset_y) * movementY;
+            const relocatedX = this.x + ternary(-offset_x) * movementX;
+            const relocatedY = this.y + ternary(-offset_y) * movementY;
 
-            this.relocate(relocatedX-lackX*relu(-offset_x), relocatedY-lackY*relu(-offset_y));
+            this.relocate(relocatedX-lackX*ternary(-offset_x), relocatedY-lackY*ternary(-offset_y));
             this.resize(resizedWidth-lackX, resizedHeight-lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
