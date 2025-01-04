@@ -107,6 +107,10 @@ body {
     opacity: 1 !important;
 }
 
+.deactivated  {
+    display: none !important;
+}
+
 /* display: inlineでは使えない & overflow: visible でも使えない*/
 .resizer {
     display: block !important;
@@ -198,9 +202,6 @@ opacity:0;	○	○
 
 
 .embed-anchor {
+    overflow: hidden;
     position: relative;
-
-    overflow-x: hidden; /* 子要素がはみ出しても表示 */
-    overflow-y: visible;
-    height: 100px;
 }
