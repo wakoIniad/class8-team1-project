@@ -1395,6 +1395,8 @@ class SocketIOManager {
                 'WebSocketサーバーへの接続に失敗しました',
                 10000,
             );
+            //noticeModal.init();
+            //noticeModal.show();
             this.tryAccessServer();
         }
     }
