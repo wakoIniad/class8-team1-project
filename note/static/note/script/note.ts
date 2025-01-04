@@ -98,6 +98,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
     maskElement: HTMLDivElement;
+    dataTypeIconElement: HTMLDivElement;
 
     value: string;
     id: string | Promise<string>;
@@ -207,7 +208,25 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.makeResizer(1,-1);
         this.makeResizer(-1,1);
         this.makeResizer(0,0);
+
+        this.dataTypeIconElement = this.createIcon(this.type, 'data-type-icon');
+        this.dataTypeIconElement.setAttribute('draggable', 'true')
+        this.boxFrameElement.appendChild(this.dataTypeIconElement);
+
+        this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
+            event.dataTransfer.setData("text/plain", ); 
+        });
+        
     }
+    createIcon(imageSrc, className): HTMLDivElement {
+        const iconFrame = document.createElement('div');
+        const img: HTMLImageElement = document.createElement('img');
+        img.src = `${window.location.origin}/static/note/image/ui_icon_${imageSrc}.png`;
+        iconFrame.classList.add(className);
+        iconFrame.appendChild(img);
+        return iconFrame;
+    }
+
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
     }
