@@ -429,7 +429,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.resize(
                 resizedWidth - lackX,                    
                 resizedHeight - lackY,
-                
+                offset_x, offset_y,
                 ternary(-offset_x) * movementX,
                 ternary(-offset_y) * movementY,
             );
@@ -535,7 +535,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    async resize(width: number, height: number, offset_x: number, offset_y: number, nosynch=false): Promise<void> {
+    async resize(
+        width: number, height: number, 
+        offset_x: number, offset_y: number, 
+        delta_x: number, delta_y: number, 
+        nosynch=false
+    ): Promise<void> {
         width = Math.max(Block.minWidth, width);
         height = Math.max(Block.minHeight, height);
 
@@ -778,7 +783,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
-            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, 0, 0, true);
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, 0, 0, 0, 0, true);
         }
     }
     toggleToView() {
@@ -1007,31 +1012,40 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         super.relocate(x, y);
     }
 
-    async resize(width, height, offset_x, offset_y, nosynch=false) {
+    async resize(
+        width: number, height: number, 
+        offset_x: number, offset_y: number,
+        delta_x: number, delta_y: number, 
+        nosynch=false
+    ) {
         console.log(1,this.editingRange)
+        // 0, 1が 0。-1が-1
+        const activater_x = Math.round((((-offset_x)+1)/2)*offset_x);
+        const activater_y = Math.round((((-offset_y)+1)/2)*offset_y);
+
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
         this.editingRange.width = width;
         this.editingRange.height = height;
-
-        this.editingRange.x += offset_x;
-        this.editingRange.y += offset_y;
+        
+        this.editingRange.x += offset_x *  activater_x;
+        this.editingRange.y += offset_y *  activater_y;
         
 
-        //if(this.editingRange.x < 0) {
-        //    this.background.width -= this.editingRange.x;
-        //    const copy = this.background.cloneNode(); 
-        //    this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-        //    this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
-        //    this.editingRange.x = 0;
-        //}
-        //if(this.editingRange.y < 0) {
-        //    this.background.height -= this.editingRange.y;
-        //    const copy = this.background.cloneNode(); 
-        //    this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-        //    this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
-        //    this.editingRange.y = 0;
-        //}
+        if(this.editingRange.x < 0) {
+            this.background.width -= this.editingRange.x;
+            const copy = this.background.cloneNode(); 
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
+            this.editingRange.x = 0;
+        }
+        if(this.editingRange.y < 0) {
+            this.background.height -= this.editingRange.y;
+            const copy = this.background.cloneNode(); 
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
+            this.editingRange.y = 0;
+        }
         console.log(2,this.editingRange)
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
@@ -1039,7 +1053,7 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         
         this.value = this.getValue();
         this.applyValue();
-        super.resize(width, height, offset_x, offset_y, nosynch);
+        super.resize(width, height, offset_x, offset_y, delta_x, delta_y, nosynch);
     }
     dropped(block: Block<any, any>): void {
         if(block instanceof ImageBlock) {
