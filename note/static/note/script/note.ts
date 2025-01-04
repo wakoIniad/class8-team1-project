@@ -967,13 +967,13 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     async applyValue(nosynch: boolean = false) {
         
         //左上から拡大・縮小されることは想定していない
-        if(this.background.width < this.editingRange.x + this.editingRange.width) {
+        if(this.background.width < this.editingRange.width) {
             //this.background.setAttribute('width', String(this.editingRange.width));
-            this.background.width = this.editingRange.x + this.editingRange.width;
+            this.background.width = this.editingRange.width;
         }
         
-        if(this.background.height < this.editingRange.y + this.editingRange.height) {
-            this.background.height = this.editingRange.y + this.editingRange.height;
+        if(this.background.height < this.editingRange.height) {
+            this.background.height = this.editingRange.height;
            // this.background.setAttribute('height', String(this.editingRange.height));
         }
         this.backgroundContext.clearRect(...this.editingRange.spread());
@@ -1000,28 +1000,31 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     }
 
     async resize(width, height, offset_x, offset_y, nosynch=false) {
-        this.editingRange.x += offset_x;
-        this.editingRange.y += offset_y;
-
-        if(this.editingRange.x < 0) {
-            this.background.width -= this.editingRange.x;
-            const copy = this.background.cloneNode(); 
-            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
-            this.editingRange.x = 0;
-        }
-        if(this.editingRange.y < 0) {
-            this.background.height -= this.editingRange.y;
-            const copy = this.background.cloneNode(); 
-            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
-            this.editingRange.y = 0;
-        }
-
+        console.log(1,this.editingRange)
         this.editorElement.setAttribute('width', width);
         this.editorElement.setAttribute('height', height);
         this.editingRange.width = width;
         this.editingRange.height = height;
+
+        this.editingRange.x += offset_x;
+        this.editingRange.y += offset_y;
+        
+
+        //if(this.editingRange.x < 0) {
+        //    this.background.width -= this.editingRange.x;
+        //    const copy = this.background.cloneNode(); 
+        //    this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+        //    this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
+        //    this.editingRange.x = 0;
+        //}
+        //if(this.editingRange.y < 0) {
+        //    this.background.height -= this.editingRange.y;
+        //    const copy = this.background.cloneNode(); 
+        //    this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+        //    this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
+        //    this.editingRange.y = 0;
+        //}
+        console.log(2,this.editingRange)
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
         this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
