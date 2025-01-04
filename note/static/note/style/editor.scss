@@ -198,6 +198,9 @@ opacity:0;	○	○
 
 
 .embed-anchor {
-    overflow: hidden;
     position: relative;
+
+    overflow-x: hidden; /* 子要素がはみ出しても表示 */
+    overflow-y: visible;
+    height: 100px;
 }

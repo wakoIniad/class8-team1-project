@@ -572,7 +572,10 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             const anchor = document.getElementById(this.getEmbedAnchor(id));
             if(anchor) {
                 if(block.onContainer)block.remove();
-                block.boxFrameElement.style.position = 'static';
+                //block.boxFrameElement.style.position = 'absolute';
+                block.boxFrameElement.style.left = '0';
+                block.boxFrameElement.style.top = '0';
+                
                 //document.replaceChild(block.boxFrameElement, anchor);
                 anchor.appendChild(block.boxFrameElement);
             } else {
