@@ -228,6 +228,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             event.preventDefault();
         });
         this.boxFrameElement.addEventListener('drop', (event: DragEvent) => {
+            
+            event.stopPropagation();
             const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
             
             const droppedBlock = NoteController.getBlockById(droppedElementId);
@@ -1035,13 +1037,15 @@ class NoteController {
         setTimeout(NoteController.endLoadingAnimation,250);
     }
     static applyServerData() {
+        
         NoteController.startLoadingAnimation();
         fetch(NOTE_API_URL+NOTE_ID)
             .then(result=>result.json())
             .then(pageData=>{
                 NoteController.pageObjects.forEach(obj=>obj.dump(true));
-                const initialPageObjects = pageData.children;
-                NoteController.applyPageData(...initialPageObjects);
+                NoteController.pageObjects = [];
+                const serverPageObjects = pageData.children;
+                NoteController.applyPageData(...serverPageObjects);
             });
     }
     static startLoadingAnimation() {
