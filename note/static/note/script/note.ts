@@ -141,18 +141,24 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('box-view');
 
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
-        this.boxFrameElement.setAttribute('draggable', 'true');
+        //this.boxFrameElement.setAttribute('draggable', 'true');
         this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
         this.append();
 
         this.maskElement = this.makeBoxContent<HTMLDivElement>('div');
         this.maskElement.classList.add('box-mask');
 
-        this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+        /*this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+
+            //伝搬防止
+            e.stopPropagation();
+
             //仕様: 編集中は動かさない
             if(this.positionLocked)return;
             this.moving = true;
             const callback = (e: DragEvent) => {
+                //伝搬防止
+                e.stopPropagation();
                 this.relocate(this.x + e.clientX - sx, this.y + e.clientY - sy);
                 this.boxFrameElement.removeEventListener('dragend', callback);
                 this.moving = false;
@@ -160,7 +166,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
             const sy: number = e.clientY;
-        })
+        })*/
 
         this.boxFrameElement.addEventListener("keydown", (function(e) {
             /**
@@ -200,6 +206,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.makeResizer(1,1);
         this.makeResizer(1,-1);
         this.makeResizer(-1,1);
+        this.makeResizer(0,0);
     }
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
@@ -342,19 +349,34 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         })
         resizer.addEventListener('dragend', (event: DragEvent)=>{
             event.stopPropagation();
-            const relu = n => ( n + ( n ** 2 ) ** 0.5 ) / 2;
+            
+            /**条件分岐なしで、拡大縮小・移動・全ての座標の計算を同じ式で行うための
+             * 自作の関数
+             * @param n = -1, 0, 1
+             * @returns 0, 1, 1
+             * 
+             * - n = 1 0 -1
+             * - ternary(1, 0, -1) = -1 -1 0
+             * ternary(-1 -1 0) = 0 0 1
+             * ternary(-ternary(-n)) = relu
+             * 
+             * (n**∞ + 1)**(1/∞): 0 -> 1, n -> n
+             * 
+             */
+            const ternary = n => ( (n**64 + 1)**(1/64) ) + ( n - ( n + (n ** 2) ** 0.5 ) / 2 );
+            console.log('ternary: ',ternary(-1),ternary(0),ternary(1))
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
-            const lackX = relu(Block.minWidth - resizedWidth);
-            const lackY = relu(Block.minHeight - resizedHeight);
+            const lackX = ternary(Block.minWidth - resizedWidth  );
+            const lackY = ternary(Block.minHeight - resizedHeight);
+            console.log(lackX, lackY)
+            const relocatedX = this.x + ternary(-offset_x) * movementX;
+            const relocatedY = this.y + ternary(-offset_y) * movementY;
 
-            const relocatedX = this.x + relu(-offset_x) * movementX;
-            const relocatedY = this.y + relu(-offset_y) * movementY;
-
-            this.relocate(relocatedX-lackX*relu(-offset_x), relocatedY-lackY*relu(-offset_y));
-            this.resize(resizedWidth-lackX, resizedHeight-lackY);
+            this.relocate(relocatedX-lackX*ternary(-ternary(offset_x)), relocatedY-     lackY*ternary(-ternary(offset_y)));
+            this.resize(resizedWidth-lackX,                    resizedHeight - lackY);
             console.log(event.movementX,event.movementY);
             console.log("end-drag-client",event.clientX,event.clientY);
 
@@ -384,12 +406,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     lockPosition() {
         this.positionLocked = true;
-        this.boxFrameElement.setAttribute('draggable', 'false');
+        //this.boxFrameElement.setAttribute('draggable', 'false');
     }
     
     unlockPosition() {
         this.positionLocked = false;
-        this.boxFrameElement.setAttribute('draggable', 'true');
+        //this.boxFrameElement.setAttribute('draggable', 'true');
     }
     async makeData(): Promise<blockData> {
         return {
@@ -751,7 +773,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.displayElement.setAttribute('src', this.value);
         this.displayElement.setAttribute('alt', '');
-        this.boxFrameElement.addEventListener('dblclick', ()=>{
+        this.boxFrameElement.addEventListener('dblclick', e=>{
             
             //イベントの伝搬を中止
             e.stopPropagation();
