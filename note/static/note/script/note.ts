@@ -110,6 +110,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     moving: boolean = false;
     positionLocked: boolean = false;
     editorIsActive: boolean = false;
+    onContainer: boolean = false;
 
     noteController: NoteController;
 
@@ -142,6 +143,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
         this.boxFrameElement.setAttribute('draggable', 'true');
         this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
+        this.append();
 
         this.maskElement = this.makeBoxContent<HTMLDivElement>('div');
         this.maskElement.classList.add('box-mask');
@@ -282,10 +284,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     remove() {
         this.noteController.containerManager.container.removeChild(this.boxFrameElement);
+        
+        this.onContainer = false;
     }
     
     append() {
         this.noteController.containerManager.container.appendChild(this.boxFrameElement);
+        
+        this.onContainer = true;
     }
 
     coordToString(coord: number): string {
@@ -298,7 +304,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
-        this.noteController.containerManager.append(box);
         box.style.left =   this.coordToString(this.x);
         box.style.top =    this.coordToString(this.y);
         box.style.width =  this.coordToString(this.width);
@@ -566,10 +571,15 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         for(const [ id, block ] of Object.entries(this.embedBlockList)) {
             const anchor = document.getElementById(this.getEmbedAnchor(id));
             if(anchor) {
-                block.remove();
+                console.log('ANARI')
+                if(block.onContainer)block.remove();
+                block.boxFrameElement.style.position = 'static';
+                //document.replaceChild(block.boxFrameElement, anchor);
                 anchor.appendChild(block.boxFrameElement);
             } else {
-                block.append();
+                console.log('ANASHI')
+                if(!block.onContainer)block.append();
+                block.boxFrameElement.style.position = 'absolute';
                 delete this.embedBlockList[id];
             }
         }
