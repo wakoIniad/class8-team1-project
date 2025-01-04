@@ -141,14 +141,14 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.displayElement.classList.add('box-view');
 
         this.boxFrameElement = this.makeBoxFrame<HTMLDivElement>('div');
-        this.boxFrameElement.setAttribute('draggable', 'true');
+        //this.boxFrameElement.setAttribute('draggable', 'true');
         this.boxFrameElement.setAttribute('id', `pending-${this.loaderId}`);
         this.append();
 
         this.maskElement = this.makeBoxContent<HTMLDivElement>('div');
         this.maskElement.classList.add('box-mask');
 
-        this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
+        /*this.boxFrameElement.addEventListener('dragstart', (e: DragEvent) => {
 
             //伝搬防止
             e.stopPropagation();
@@ -166,7 +166,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             this.boxFrameElement.addEventListener('dragend', callback);
             const sx: number = e.clientX; 
             const sy: number = e.clientY;
-        })
+        })*/
 
         this.boxFrameElement.addEventListener("keydown", (function(e) {
             /**
@@ -406,12 +406,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     }
     lockPosition() {
         this.positionLocked = true;
-        this.boxFrameElement.setAttribute('draggable', 'false');
+        //this.boxFrameElement.setAttribute('draggable', 'false');
     }
     
     unlockPosition() {
         this.positionLocked = false;
-        this.boxFrameElement.setAttribute('draggable', 'true');
+        //this.boxFrameElement.setAttribute('draggable', 'true');
     }
     async makeData(): Promise<blockData> {
         return {
