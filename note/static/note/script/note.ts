@@ -103,16 +103,6 @@ class ContainerManager {
         this.range = 
             new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
     }
-    normalizeCoordinate(target): Range {
-        // 幅をノーマライズの基準にする
-        const ref = this.range.width;
-
-        const targetDomRect: DOMRect = target.getBoundingClientRect();
-        const normalizedX = ( targetDomRect.left - this.range.x ) / ref;
-        const normalizedY = ( targetDomRect.top - this.range.y ) / ref;
-        const normalizedHeight = targetDomRect.height / ref;
-        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
-    }
 }
 
 const containerManager = new ContainerManager('container');
@@ -176,6 +166,18 @@ class NoteController {
     constructor(functionManager: FunctionManager, containerManager: ContainerManager) {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
+    }
+    normalizeRange(target: DOMRect | Range): Range {
+        // 幅をノーマライズの基準にする
+        const ref = this.containerManager.range.width;
+
+        const normalizedX = ( target.x - this.range.x ) / ref;
+        const normalizedY = ( target.y - this.range.y ) / ref;
+        const normalizedHeight = target.height / ref;
+        return new Range(normalizedX, normalizedY, 1, normalizedHeight);
+    }
+    getLocalCoordinate(n: number): number {
+        return n * this.containerManager.range.width;
     }
 }
 const noteController: NoteController = new NoteController(functionManager, containerManager);
@@ -382,7 +384,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     coordToString(coord: number): string {
         return `${coord}px`;
-    }   
+    }
+
+    /*coordToString(globalCoord: number): string {
+        return `${this.noteController.getLocalCoordinate(globalCoord)}px`;
+    }*/
 
     makeBoxFrame<T>(tagName: string):T {
         const box: HTMLElement = document.createElement(tagName);
@@ -545,18 +551,21 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     async resize(width: number, height: number): Promise<void> {
         width = Math.max(Block.minWidth, width);
         height = Math.max(Block.minHeight, height);
-        const applying = {
-            update_keys: ["width","height"],
-            update_values: [this.width, this.height]
-        };
+
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             width -= width%this.noteController.functionManager.nudgeSize;
             height -= height%this.noteController.functionManager.nudgeSize;
         }
+
         this.boxFrameElement.style.width =  
             this.coordToString(this.width = width);
         this.boxFrameElement.style.height = 
             this.coordToString(this.height = height);
+        
+        const applying = {
+            update_keys: ["width","height"],
+            update_values: [this.width, this.height]
+        };
         
         if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
             await this.callAPI('POST', { body: applying});
@@ -791,7 +800,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lockPosition();
         this.toggleToEditor();
         this.paintStart();
-        console.log('activated');
+        //console.log('activated');
 
         //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
         this.drawing = false;
@@ -801,7 +810,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.unlockPosition();
         this.toggleToView();
         this.paintEnd();
-        console.log('de activated');
+        //console.log('de activated');
 
         //キャンバスの編集を終えるときは、編集情報を適用する
         this.update();
@@ -915,7 +924,7 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.editingContext.clearRect(...this.editingRange.shape().spread());
         this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
-        console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
+        //console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
         
         this.value = this.getValue();
         this.applyValue();
