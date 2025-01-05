@@ -254,11 +254,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     set type(type: string | undefined) {
         this.type_ = type;
-        this.callAPI('POST', { body: {
-            update_keys: ["type"],
-            update_values: [type],
-        }});
-        this.dump();
+        this.callAPI('POST', { 
+            body: {
+                update_keys: ["type"],
+                update_values: [type],
+            }, 
+            force: true
+        }).then(()=>{
+            this.dump();
+        });
         
         const range = new Range(this.x ,this.y, this.width, this.height);
         NoteController.makeBlockObject(range, type, this.id, this.value);
@@ -266,7 +270,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     get type(): string | undefined {
         return this.type_;
     }
-    changeBlockType(value: string, type: string){
+    changeBlockType(type: string, value: string){
         this.value = value;
         this.type = type;
     }
@@ -328,6 +332,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
+        console.log('request', TARGET_URL)
         
         //console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
@@ -700,7 +705,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     applyEmbed() {
         for(const [ id, block ] of Object.entries(this.embedBlockList)) {
-            const anchor = document.getElementById(this.getEmbedAnchor(id));
+            const anchor = document.getElementById(TextBlock.getEmbedAnchor(id));
             if(anchor) {
                 if(block.onContainer)block.remove();
                 block.boxFrameElement.style.position = 'static';
@@ -714,7 +719,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             }
         }
     }
-    getEmbedAnchor(id: string): string {
+    static getEmbedAnchor(id: string): string {
         return `embed_anchor-${NoteController.getFullObjectIdByObjectId(id)}`;
     }
     parseMarkdown(): string {
@@ -732,7 +737,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             const target = NoteController.getBlockById(NoteController.getFullObjectIdByObjectId(p1));
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
-                return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
+                return `<div class="embed-anchor" id=${TextBlock.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
             }
@@ -1181,9 +1186,6 @@ class NoteController {
                 res = new CanvasBlock(range, value, id, noteController);
                 break;
         }
-        if(id) {
-            res.id = id;
-        }
         NoteController.pageObjects.push(res);
         return res;
     }
@@ -1480,6 +1482,10 @@ class UiDrawMode {
             const droppedBlock = NoteController.getBlockById(droppedElementId);
             if(droppedBlock)this.dropped(droppedBlock);
         });
+        this.element.addEventListener("dragover", (event) => {
+            // ドロップできるように既定の動作を停止
+            event.preventDefault();
+        });
     }
     async dropped(block: Block<any, any>) {
         if(block instanceof TextBlock) {
@@ -1492,6 +1498,12 @@ class UiDrawMode {
                     break;
                 case 'text':                
                     //埋め込み
+                    NoteController.makeBlockObject(
+                        block.getRange(), 
+                        'text', 
+                        block.id, 
+                        `[embed=${TextBlock.getEmbedAnchor(await block.getId())}]`,
+                    );
                     break;
             }
         }
@@ -1617,7 +1629,7 @@ function putBox() {
         };*/
         
         if(UiDrawMode.selectedItem && PROCESS_ID === putBoxId) {
-            noteController.createBlock(range, UiDrawMode.selectedItem.type);
+            NoteController.createBlock(range, UiDrawMode.selectedItem.type);
         }
 
         UiDrawMode.selectedItem?.unselected();
