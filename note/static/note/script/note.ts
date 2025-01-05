@@ -1048,12 +1048,12 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             console.error('TIMEX')
             //this.background.width -= this.editingRange.x;
             const copiedCanvas = this.copyCanvas(this.background);
-            if(!copiedCanvas)return;
+            //if(!copiedCanvas)return;
             const imageData = this.backgroundContext.getImageData(0, 0, this.background.width, this.background.height);
             
             
-            //this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            //this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
             //this.backgroundContext.putImageData(imageData, 0, 0);
 
             this.editingRange.x = 0;
@@ -1062,9 +1062,12 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             console.error('TIMEY')
             //this.background.height -= this.editingRange.y;
             const copiedCanvas = this.copyCanvas(this.background);
-            if(!copiedCanvas)return;
-            //this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            //this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
+            const imageData = this.backgroundContext.getImageData(0, 0, this.background.width, this.background.height);
+            
+//            if(!copiedCanvas)return;
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
+            //this.backgroundContext.putImageData(imageData, 0, 0);
             this.editingRange.y = 0;
         }
         console.log(2,this.editingRange)
