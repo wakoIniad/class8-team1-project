@@ -10,7 +10,9 @@
         <h1 class="logo-font d-inline-block app-name">
             Memolive
         </h1>
+        {% if note and note.name %}
         <p class="d-inline-block jost-400">@{{note.name}}</p>
+        {% endif %}
     </div>
 
     <div class="note-info" id="content-loading-display"><div id="content-loading-bar" class="animation-bar animate-bar"></div></div>

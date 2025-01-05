@@ -844,7 +844,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
               maxSizeMB: 0.8,
               maxWidthOrHeight: 1024
             }
-        
+            
             const compressed = await imageCompression(imageFile, options);
 
             return compressed;
