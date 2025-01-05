@@ -1039,36 +1039,32 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.width = width;
         this.editingRange.height = height;
         
-        this.editingRange.x += delta_x *  activater_x;
-        this.editingRange.y += delta_y *  activater_y;
+        this.editingRange.x += delta_x * activater_x;
+        this.editingRange.y += delta_y * activater_y;
     
         
         console.log(this.editingRange)
         if(this.editingRange.x < 0) {
             console.error('TIMEX')
-            this.background.width -= this.editingRange.x;
+            //this.background.width -= this.editingRange.x;
             const copiedCanvas = this.copyCanvas(this.background);
             if(!copiedCanvas)return;
-            copiedCanvas.convertToBlob().then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    // Data URIを取得
-                    const dataURI = reader.result;
-                    console.log('Data URI:', dataURI);
-                };
-                reader.readAsDataURL(blob); 
-            })
+            const imageData = this.backgroundContext.getImageData(0, 0, this.background.width, this.background.height);
+            
+            
             //this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
+            //this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
+            //this.backgroundContext.putImageData(imageData, 0, 0);
+
             this.editingRange.x = 0;
         }
         if(this.editingRange.y < 0) {
             console.error('TIMEY')
-            this.background.height -= this.editingRange.y;
+            //this.background.height -= this.editingRange.y;
             const copiedCanvas = this.copyCanvas(this.background);
             if(!copiedCanvas)return;
-            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
+            //this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            //this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
             this.editingRange.y = 0;
         }
         console.log(2,this.editingRange)
