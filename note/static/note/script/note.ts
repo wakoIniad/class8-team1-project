@@ -254,18 +254,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     set type(type: string | undefined) {
         this.type_ = type;
-        this.callAPI('POST', { 
-            body: {
-                update_keys: ["type"],
-                update_values: [type],
-            }, 
-            force: true
-        }).then(()=>{
-            this.dump(true);
+        this.getId().then(id=>{
+            NoteController.deleteBlockById(id);
+            const range = new Range(this.x ,this.y, this.width, this.height);
+            const newBlock = NoteController.makeBlockObject(range, type, this.id, this.value);
+            if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
+                newBlock.syncServer();
+            }
         });
-        
-        const range = new Range(this.x ,this.y, this.width, this.height);
-        NoteController.makeBlockObject(range, type, this.id, this.value);
+        this.dump(true);
     }
     get type(): string | undefined {
         return this.type_;
@@ -645,7 +642,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
-        if(nosync)return;
         /**
          * データベースから削除されているが通知が届いていない場合に、
          * 値の更新をリクエストしてしまうことを防止するためawaitしない。
@@ -653,12 +649,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 
          * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
          */ 
-        await this.callAPI('DELETE', { force: true } );
-        this.dumped = true;
+        if(!nosync) {
+            await this.callAPI('DELETE', { force: true } );
 
-        if(this.noteController.functionManager.activeFunctions['live']) {
-            Block.socket?.emit?.("delete", this.id);
+            if(this.noteController.functionManager.activeFunctions['live']) {
+                Block.socket?.emit?.("delete", this.id);
+            }
         }
+        
+        this.dumped = true;
     }
 }
 
@@ -719,8 +718,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             }
         }
     }
-    static getEmbedAnchor(id: string): string {
-        return `embed_anchor-${NoteController.getFullObjectIdByObjectId(id)}`;
+    static getEmbedAnchor(id: string, full_id=false): string {
+        return `embed_anchor-${full_id ? id : NoteController.getFullObjectIdByObjectId(id)}`;
     }
     parseMarkdown(): string {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
@@ -867,13 +866,11 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         if(block instanceof CanvasBlock) {
             this.value = block.value;
             this.applyValue();
-            //block.dump();
         } else
         if(block instanceof ImageBlock) {
             console.log('apply image', )
             this.value = block.value;
             this.applyValue();
-            //block.dump();
         } else 
         if (block instanceof TextBlock) {
             const src: string = await block.toImage();
@@ -1172,6 +1169,11 @@ class NoteController {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
 
+    }
+    static deleteBlockById(id: string) {
+        console.log(NoteController.pageObjects.length);
+        NoteController.pageObjects = NoteController.pageObjects.filter(obj=>obj.id !== id);
+        console.log(NoteController.pageObjects.length);
     }
     static makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string): Block<any, any> {
         let res;
@@ -1505,11 +1507,11 @@ class UiDrawMode {
                     break;
                 case 'text':                
                     //埋め込み
-                    NoteController.makeBlockObject(
+                    let id = await block.getId();
+                    NoteController.createBlock(
                         block.getRange(), 
                         'text', 
-                        block.id, 
-                        `[embed=${TextBlock.getEmbedAnchor(await block.getId())}]`,
+                        `[embed=${NoteController.getObjectIdFromFullObjectId(await block.getId())}]`,
                     );
                     break;
             }
