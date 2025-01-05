@@ -244,3 +244,7 @@ opacity:0;	○	○
 .text-editor.visible ~ .text-view {
     display: none;
 }
+
+/*.text-view {
+    overflow-y: scroll;
+}*/
