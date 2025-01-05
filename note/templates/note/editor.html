@@ -3,8 +3,8 @@
 {% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.0/dist/browser-image-compression.js"></script>
-
+    <script src="{% static 'note/script/ex_lib/html2canvas/html2canvas.min.js' %}"></script>
+    <script src="{% static 'note/script/ex_lib/browser-image-compression@2.0.0/browser-image-compression.js' %}"></script>
     <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
 
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>

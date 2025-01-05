@@ -8,9 +8,12 @@ const csrftoken: string = getCsrfToken();//これはサーバー側で発行さ�
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
 
 
-import { parse } from 'path';
+import { parse, resolve } from 'path';
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
+import { rejects } from 'assert';
+import { error } from 'console';
+import e from 'cors';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
@@ -49,8 +52,17 @@ class Range {
             this.height  
         );
     }
+    getRangeData(): rangeData {
+        return {
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height,
+        }    
+    }
 }
 
+// #manager-container #controller-container
 class ContainerManager {
     container: HTMLElement;
     range: Range;
@@ -62,9 +74,24 @@ class ContainerManager {
             
             this.range = 
                 new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+            this.container.addEventListener('drop', (event: DragEvent) => {
+                event.stopPropagation();
+                const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+                
+                const droppedBlock = NoteController.getBlockById(droppedElementId);
+                if(droppedBlock)this.dropped(droppedBlock, event);
+            });
+            this.container.addEventListener("dragover", (event) => {
+                // ドロップできるように既定の動作を停止
+                event.preventDefault();
+            });
         } else {
             this.error('コンテナの取得に失敗しました');
         }
+    }
+    dropped(block: Block<any,any>, event: DragEvent) {
+        block.duplicate();
+        block.relocate(...this.getPos(event.clientX, event.clientY));
     }
     append(target: HTMLElement) {
         this.container.appendChild(target);
@@ -78,11 +105,17 @@ class ContainerManager {
         this.range = 
             new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
     }
+    getPos(clientX, clientY): [number, number] {
+        const rect = noteController.containerManager.container.getBoundingClientRect();
+        
+        return [ clientX - rect.left, clientY - rect.top ];
+    }
 }
 
 const containerManager = new ContainerManager('container');
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
+    static socket;
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     static minWidth: number = 100;
     static minHeight: number = 100;
@@ -102,7 +135,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     value: string;
     id: string | Promise<string>;
-    type?: string;
+    private type_?: string;
 
     pendingRequest?: Promise<any>;
 
@@ -128,7 +161,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.pendingSync = false;
 
         this.id = id;
-        this.type = type || undefined;
+        this.type_ = type || undefined;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -237,6 +270,35 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         });
         
     }
+    duplicate() {
+        if(this.type) {
+            NoteController.createBlock(this.getRange(), this.type, this.value);
+        }
+    }
+    getRange(): Range {
+        return new Range(this.x, this.y, this.width, this.height);
+    }
+
+    set type(type: string | undefined) {
+        this.type_ = type;
+        this.getId().then(id=>{
+            NoteController.deleteBlockById(id);
+            const range = new Range(this.x ,this.y, this.width, this.height);
+            const newBlock = NoteController.makeBlockObject(range, type, this.id, this.value);
+            if(this.noteController.functionManager.activeFunctions['autosave'] === true) {
+                newBlock.syncServer();
+            }
+        });
+        this.dump(true);
+    }
+    get type(): string | undefined {
+        return this.type_;
+    }
+    changeBlockType(type: string, value: string){
+        this.value = value;
+        this.type = type;
+    }
+
     dropped(block: Block<any, any>) {
         switch(block.type) {
             case 'image':
@@ -294,6 +356,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
+        console.log('request', TARGET_URL)
         
         //console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
@@ -500,8 +563,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async syncServer() {
         this.callAPI('POST', { body: {
-            update_keys: ["x", "y", "width", "height", "value"],
-            update_values: [this.x, this.y, this.width, this.height, this.value]
+            update_keys: ["x", "y", "width", "height", "value", "type"],
+            update_values: [this.x, this.y, this.width, this.height, this.value, this.type]
         }});
     }
 
@@ -530,7 +593,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 await this.callAPI('POST', { body: applying});
             }
             if(this.noteController.functionManager.activeFunctions['live']) {
-                socket.emit("update", this.id, applying.update_keys, applying.update_values);
+                Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
             }
         }
     }
@@ -565,7 +628,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             await this.callAPI('POST', { body: applying});
         }
         if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(
@@ -591,7 +654,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             await this.callAPI('POST', { body: applying});
         }
         if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     relayout() {
@@ -606,7 +669,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.deleteElement(this.editorElement);
         this.deleteElement(this.displayElement);
         this.deleteElement(this.boxFrameElement);
-        if(nosync)return;
         /**
          * データベースから削除されているが通知が届いていない場合に、
          * 値の更新をリクエストしてしまうことを防止するためawaitしない。
@@ -614,12 +676,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
          * 
          * 削除リクエスト ⇒ データベースから削除 ⇒ 通知
          */ 
-        await this.callAPI('DELETE', { force: true } );
-        this.dumped = true;
+        if(!nosync) {
+            await this.callAPI('DELETE', { force: true } );
 
-        if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("delete", this.id);
+            if(this.noteController.functionManager.activeFunctions['live']) {
+                Block.socket?.emit?.("delete", this.id);
+            }
         }
+        
+        this.dumped = true;
     }
 }
 
@@ -666,7 +731,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
     applyEmbed() {
         for(const [ id, block ] of Object.entries(this.embedBlockList)) {
-            const anchor = document.getElementById(this.getEmbedAnchor(id));
+            const anchor = document.getElementById(TextBlock.getEmbedAnchor(id));
             if(anchor) {
                 if(block.onContainer)block.remove();
                 block.boxFrameElement.style.position = 'static';
@@ -680,8 +745,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             }
         }
     }
-    getEmbedAnchor(id: string): string {
-        return `embed_anchor-${NoteController.getFullObjectIdByObjectId(id)}`;
+    static getEmbedAnchor(id: string, full_id=false): string {
+        return `embed_anchor-${full_id ? id : NoteController.getFullObjectIdByObjectId(id)}`;
     }
     parseMarkdown(): string {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
@@ -698,7 +763,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             const target = NoteController.getBlockById(NoteController.getFullObjectIdByObjectId(p1));
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
-                return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
+                return `<div class="embed-anchor" id=${TextBlock.getEmbedAnchor(p1)}></div>`;
             } else {
                 return `[embed not found]`;
             }
@@ -714,6 +779,31 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.value += `\n[embed=${objectId}]`;
         this.editorElement.value = this.value;
         await this.applyValue();
+    }
+    async toImage(): Promise<string> {
+        const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
+        return result.toDataURL("image/png");
+    }
+    async toImage_old(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if(this.onContainer) {
+                const scale = 1;
+//              const quality = 50;
+
+                const e2i = new Elem2Img();
+                e2i.save_png(function (img_data) {
+                    //const img_elem = document.createElement("img");
+                    //img_elem.src = img_data;
+                    resolve(img_data);
+                    //document.getElementsByTagName("body")[0].appendChild(img_elem);
+
+                    //表示と同時にダウンロードもさせる場合
+                    //Elem2Img.save_image(img_data, "Sample.jpeg");
+                }, this.boxFrameElement, scale);
+            } else {
+                reject(new Error('HTML上に存在しないため画像を作成できません。'));
+            };
+        });
     }
 }
 
@@ -747,14 +837,19 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.toggleToView();
     }
     async compress(imageFile) {
-        const options = {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1024
-        }
-    
-        const compressed = await imageCompression(imageFile, options);
+        try {
+            const options = {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 1024
+            }
         
-        return compressed;
+            const compressed = await imageCompression(imageFile, options);
+
+            return compressed;
+        } catch {
+            NoteController.alertMessage('画像圧縮に失敗しました。\nそのまま送信されます。');
+            return imageFile;
+        }
     }
 
     async getValue(): Promise<string> {
@@ -798,13 +893,16 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         if(block instanceof CanvasBlock) {
             this.value = block.value;
             this.applyValue();
-            //block.dump();
         } else
         if(block instanceof ImageBlock) {
             console.log('apply image', )
             this.value = block.value;
             this.applyValue();
-            //block.dump();
+        } else 
+        if (block instanceof TextBlock) {
+            const src: string = await block.toImage();
+            this.value = src;
+            this.applyValue();
         }
     }
 }
@@ -1070,7 +1168,7 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.applyValue();
         super.resize(width, height, offset_x, offset_y, delta_x, delta_y, nosynch);
     }
-    dropped(block: Block<any, any>): void {
+    async dropped(block: Block<any, any>): void {
         if(block instanceof ImageBlock) {
             this.editingContext.drawImage(block.displayElement, 0, 0, this.width, block.height / (block.width / this.width));
             this.value = this.getValue();
@@ -1079,6 +1177,11 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         if(block instanceof CanvasBlock) {
             this.editingContext.drawImage(block.editorElement, 0, 0, this.width, block.height / (block.width / this.width));
             this.value = this.getValue();
+            this.applyValue();
+        } else 
+        if (block instanceof TextBlock) {
+            const src: string = await block.toImage();
+            this.value = src;
             this.applyValue();
         }
     }
@@ -1093,6 +1196,59 @@ class NoteController {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
 
+    }
+    static deleteBlockById(id: string) {
+        console.log(NoteController.pageObjects.length);
+        NoteController.pageObjects = NoteController.pageObjects.filter(obj=>obj.id !== id);
+        console.log(NoteController.pageObjects.length);
+    }
+    static makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string): Block<any, any> {
+        let res;
+        switch(type) {
+            case 'text':
+                res = new TextBlock(range, value, id, noteController);
+                break;
+            case 'image':
+                res = new ImageBlock(range, value, id, noteController);
+                break;
+            case 'canvas':
+                res = new CanvasBlock(range, value, id, noteController);
+                break;
+        }
+        NoteController.pageObjects.push(res);
+        return res;
+    }
+    static createBlock(rangeObject: Range, type: string, value?: string): Block<any,any> {
+        const range: rangeData = rangeObject.getRangeData();
+        const boxType = type;
+        const putData = {
+            range: range, type: boxType
+        }
+        const idPromise = (async function() {
+            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+            const response = await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify(putData),
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'X-CSRFToken': csrftoken,
+                },
+            });
+            //try
+            const parsed = await response.json();
+            return parsed['assigned_id'];
+            //} catch(e) {
+            //}
+        })();
+
+        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+        const block: Block<any,any> = NoteController.makeBlockObject(range, boxType, idPromise, value);
+        (async()=>{
+            const id = await Promise.any([idPromise]);
+            
+            Block.socket?.emit?.('create', range, boxType, id);
+        })();
+        return block;
     }
     static getFullObjectIdByObjectId(objectId: string): string {
         return NOTE_ID + '-' + objectId;
@@ -1122,7 +1278,7 @@ class NoteController {
     static applyPageData(...pageData: blockData[]): void {
         for( const boxData of pageData ) {
             const { range, id, type, value } = boxData;
-            NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
+            NoteController.makeBlockObject(range, type, id, value);
         }
         setTimeout(NoteController.endLoadingAnimation,250);
     }
@@ -1160,6 +1316,12 @@ class NoteController {
     }
     static getBlockById(target_id: string): Block<any, any> | undefined {
         return NoteController.pageObjects.find(object=>object.id === target_id);
+    }
+
+    static alertMessage(message: string) {
+        const m = new Modal(Modal.infoContainer, 'info-bar', message,4000);
+        m.init();
+        m.show();
     }
 }
 
@@ -1224,26 +1386,6 @@ const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
 
 const noteController: NoteController = new NoteController(functionManager, containerManager);
 
-
-
-function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
-    let res;
-    switch(type) {
-        case 'text':
-            res = new TextBlock(range, value, id, noteController);
-            break;
-        case 'image':
-            res = new ImageBlock(range, value, id, noteController);
-            break;
-        case 'canvas':
-            res = new CanvasBlock(range, value, id, noteController);
-            break;
-    }
-    if(id) {
-        res.id = id;
-    }
-    return res;
-}
 
 
 /*applyPageData(initialPageObjects);
@@ -1362,6 +1504,45 @@ class UiDrawMode {
         this.element.addEventListener('mouseleave', (event: MouseEvent) => {
             if(UiDrawMode.selectedItem !== undefined)UiDrawMode.selectedItem.focused();
         });
+        this.element.addEventListener('drop', (event: DragEvent) => {
+            event.stopPropagation();
+            const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+            
+            const droppedBlock = NoteController.getBlockById(droppedElementId);
+            if(droppedBlock)this.dropped(droppedBlock);
+        });
+        this.element.addEventListener("dragover", (event) => {
+            // ドロップできるように既定の動作を停止
+            event.preventDefault();
+        });
+    }
+    async dropped(block: Block<any, any>) {
+        if(block instanceof TextBlock) {
+            switch(this.type) {
+                case 'image':
+                case 'canvas':
+                    block.changeBlockType(this.type, await block.toImage());
+                    break;
+                case 'text': 
+                    break;
+            }
+        } else if(block instanceof ImageBlock || block instanceof CanvasBlock) {
+            switch(this.type) {
+                case 'image':
+                case 'canvas':
+                    block.changeBlockType(this.type, block.value);
+                    break;
+                case 'text':                
+                    //埋め込み
+                    let id = await block.getId();
+                    NoteController.createBlock(
+                        block.getRange(), 
+                        'text', 
+                        `[embed=${NoteController.getObjectIdFromFullObjectId(await block.getId())}]`,
+                    );
+                    break;
+            }
+        }
     }
     selected() {
         if(UiDrawMode.selectedItem && this.type === UiDrawMode.selectedItem.type) {
@@ -1463,49 +1644,29 @@ function putBox() {
         noteController.containerManager.container.addEventListener('onmouseleave', cancel);
     }
     const onmouseup = (e)=>{
-        const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
-        const range = {
+        const rect = noteController.containerManager.container.getBoundingClientRect();
+        
+        const range = new Range(
+            mx - rect.left,
+            my - rect.top,
+            Math.max(Mx - mx,150),
+            Math.max(My - my, 100),
+        );
+        /*{
             x: mx - rect.left,
             y: my - rect.top,
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
-        };
+        };*/
+        
         if(UiDrawMode.selectedItem && PROCESS_ID === putBoxId) {
-            const boxType = UiDrawMode.selectedItem.type;
-            const putData = {
-                range: range, type: boxType
-            }
-            const idPromise = (async function() {
-                const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    body: JSON.stringify(putData),
-                    headers: {
-                      'Content-Type': 'application/json; charset=utf-8',
-                      'X-CSRFToken': csrftoken,
-                    },
-                });
-                //try
-                const parsed = await response.json();
-                return parsed['assigned_id'];
-                //} catch(e) {
-                //}
-            })();
-
-            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-            const block = makeBlockObject(range, boxType, idPromise);
-            NoteController.pageObjects.push(block);
-            (async()=>{
-                const id = await Promise.any([idPromise]);
-                
-                socket.emit('create', range, boxType, id);
-            })();
+            NoteController.createBlock(range, UiDrawMode.selectedItem.type);
         }
 
         UiDrawMode.selectedItem?.unselected();
@@ -1545,7 +1706,6 @@ function escapeHTML(str: string) {
     temp.textContent = str; 
     return temp.innerHTML; 
 }
-
 NoteController.applyServerData();
 
 class SocketIOManager {
@@ -1588,6 +1748,7 @@ class SocketIOManager {
             console.error(e);
         }
         if(socket) {
+            Block.socket = socketIOManager.socket;
             this.socket = socket;
             this.listenChannel();
         } else {
@@ -1685,7 +1846,7 @@ class SocketIOManager {
 
         this.socket.on("create", (range, type, id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
-                const block = makeBlockObject(range, type, id);
+                const block = NoteController.makeBlockObject(range, type, id);
                 NoteController.pageObjects.push(block);
             }
         });
