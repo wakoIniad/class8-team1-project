@@ -8,9 +8,10 @@ const csrftoken: string = getCsrfToken();//これはサーバー側で発行さ�
 const contentLoadingDisplay: HTMLElement|null = document.getElementById('content-loading-display');
 
 
-import { parse } from 'path';
+import { parse, resolve } from 'path';
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
+import { rejects } from 'assert';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
@@ -83,6 +84,7 @@ class ContainerManager {
 const containerManager = new ContainerManager('container');
 
 class Block<T extends HTMLElement,S extends HTMLElement>{
+    static socket;
     //連続編集時に、より前の変更処理が後から終わって古い情報が反映されるのを防ぐ用
     static minWidth: number = 100;
     static minHeight: number = 100;
@@ -530,7 +532,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
                 await this.callAPI('POST', { body: applying});
             }
             if(this.noteController.functionManager.activeFunctions['live']) {
-                socket.emit("update", this.id, applying.update_keys, applying.update_values);
+                Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
             }
         }
     }
@@ -565,7 +567,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             await this.callAPI('POST', { body: applying});
         }
         if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     async relocate(
@@ -591,7 +593,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             await this.callAPI('POST', { body: applying});
         }
         if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("update", this.id, applying.update_keys, applying.update_values);
+            Block.socket?.emit?.("update", this.id, applying.update_keys, applying.update_values);
         }
     }
     relayout() {
@@ -618,7 +620,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.dumped = true;
 
         if(this.noteController.functionManager.activeFunctions['live']) {
-            socket.emit("delete", this.id);
+            Block.socket?.emit?.("delete", this.id);
         }
     }
 }
@@ -715,6 +717,31 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         this.editorElement.value = this.value;
         await this.applyValue();
     }
+    async toImage(): Promise<string> {
+        const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
+        return result.toDataURL("image/png");
+    }
+    async toImage_old(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if(this.onContainer) {
+                const scale = 1;
+//              const quality = 50;
+
+                const e2i = new Elem2Img();
+                e2i.save_png(function (img_data) {
+                    //const img_elem = document.createElement("img");
+                    //img_elem.src = img_data;
+                    resolve(img_data);
+                    //document.getElementsByTagName("body")[0].appendChild(img_elem);
+
+                    //表示と同時にダウンロードもさせる場合
+                    //Elem2Img.save_image(img_data, "Sample.jpeg");
+                }, this.boxFrameElement, scale);
+            } else {
+                reject(new Error('HTML上に存在しないため画像を作成できません。'));
+            };
+        });
+    }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
@@ -805,6 +832,11 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             this.value = block.value;
             this.applyValue();
             //block.dump();
+        } else 
+        if (block instanceof TextBlock) {
+            const src: string = await block.toImage();
+            this.value = src;
+            this.applyValue();
         }
     }
 }
@@ -1070,7 +1102,7 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.applyValue();
         super.resize(width, height, offset_x, offset_y, delta_x, delta_y, nosynch);
     }
-    dropped(block: Block<any, any>): void {
+    async dropped(block: Block<any, any>): void {
         if(block instanceof ImageBlock) {
             this.editingContext.drawImage(block.displayElement, 0, 0, this.width, block.height / (block.width / this.width));
             this.value = this.getValue();
@@ -1079,6 +1111,11 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         if(block instanceof CanvasBlock) {
             this.editingContext.drawImage(block.editorElement, 0, 0, this.width, block.height / (block.width / this.width));
             this.value = this.getValue();
+            this.applyValue();
+        } else 
+        if (block instanceof TextBlock) {
+            const src: string = await block.toImage();
+            this.value = src;
             this.applyValue();
         }
     }
@@ -1504,7 +1541,7 @@ function putBox() {
             (async()=>{
                 const id = await Promise.any([idPromise]);
                 
-                socket.emit('create', range, boxType, id);
+                Block.socket?.emit?.('create', range, boxType, id);
             })();
         }
 
@@ -1545,7 +1582,6 @@ function escapeHTML(str: string) {
     temp.textContent = str; 
     return temp.innerHTML; 
 }
-
 NoteController.applyServerData();
 
 class SocketIOManager {
@@ -1588,6 +1624,7 @@ class SocketIOManager {
             console.error(e);
         }
         if(socket) {
+            Block.socket = socketIOManager.socket;
             this.socket = socket;
             this.listenChannel();
         } else {

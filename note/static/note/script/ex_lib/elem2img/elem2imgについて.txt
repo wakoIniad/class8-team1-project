@@ -1,0 +1,81 @@
+========================================================================
+
+  elem2img.js
+
+  無権利創作機構(非法人) Midari Create  https://create.2pd.jp/
+
+========================================================================
+
+elem2img.jsはHTML上の要素をスクリーンショットのように画像化し、必要に応じてそのファイルを画面表示やダウンロードさせることができる軽量Javascriptライブラリです。
+文字にwebフォントを使用している場合でも表示通り画像化することができ、保存形式はwebp、PNG、JPEGから選択できます。
+また、本ライブラリは画面キャプチャAPIを使用していないため、ユーザーに確認ダイアログを提示することなく処理を実行できるほか、画面外にある要素を画像化することも可能です。
+
+なお、ライブラリ本体及びサンプルコードは著作権フリー(パブリックドメイン)であり、営利・非営利を問わず無料でご利用いただけます。
+
+
+_/_/_/_/ 使用方法 _/_/_/_/
+
+(1) ダウンロードしたZIPファイルを解凍し、elem2img.jsをwebアプリケーションのフォルダ内にコピーします。
+
+(2) HTMLファイルのheadタグ内に以下のコードを記載してelem2img.jsを読み込みます。ファイルパスは環境に応じて変更してください。
+      <script src="elem2img.js"></script>
+
+(3) Elem2Imgクラスをインスタンス化して要素の画像化処理を実行します。
+  ・IDが「sample」の要素を拡大率等倍で品質75のwebp画像としてダウンロードさせる場合は以下のようにします。
+
+      var elem = document.getElementById("sample");
+      var file_name = "Sample.webp";
+      var scale = 1;
+      var quality = 75;
+
+      var e2i = new Elem2Img();
+      e2i.save_webp(elem, file_name, scale, quality);
+
+    なお、JPEG画像とする場合はsave_jpeg、PNG画像とする場合はsave_pngを使用します。
+    save_pngでは品質値を使用しないため、引数はelem、file_name、scaleの3つとなります。
+
+  ・IDが「sample」の要素を拡大率2倍で品質50のJPEG画像として表示させる場合は以下のようにします。
+
+      var elem = document.getElementById("sample");
+      var scale = 2;
+      var quality = 50;
+
+      var e2i = new Elem2Img();
+      e2i.get_jpeg(function (img_data) {
+          var img_elem = document.createElement("img");
+          img_elem.src = img_data;
+          document.getElementsByTagName("body")[0].appendChild(img_elem);
+
+          //表示と同時にダウンロードもさせる場合
+          Elem2Img.save_image(img_data, "Sample.jpeg");
+      }, elem, scale, quality);
+
+    なお、webp画像とする場合はget_webp、PNG画像とする場合はget_pngを使用します。
+    get_pngではsave_pngと同様品質値を使用しません。
+    また、webp画像とJPEG画像を扱うメソッドでは、品質を最高(100)とする場合は品質値を省略可能です。
+
+
+_/_/_/_/ 制約 _/_/_/_/
+
+ブラウザのセキュリティ関連の仕様等に従い、本ライブラリでの画像化処理には以下のような動作の制約が存在します。
+
+・ドキュメントが別ドメインのファイル(CSS、画像、webフォント等)を呼び出している場合、そのファイルのヘッダーにAccess-Control-Allow-Originが適切に指定されていなければ、本ライブラリはそのファイルを無視します。
+・上記の動作により、本ライブラリをローカルファイル(localhostを除く)で実行した場合、画像やlinkタグで呼び出されるスタイルシートは全て無視されます。
+・画像化対象の要素の中に動画やインラインフレームを埋め込むことはできません。
+・inputタグの入力内容やリンクやボタンなどのマウスホバー時のスタイル変化は画像に反映されません。
+・HTML上に存在していない要素(document.createElementで要素が作成されたあと、appendChildによる親要素の指定が行われていない場合など)は要素の表示サイズが不確定であるため、画像化を実行できません。
+・Safariでは、get_webpとsave_webpが正常に利用できません。
+・Safariでは、多数のIMGタグを含む要素を画像化した場合、IMGタグの画像が出力画像に表示されない場合があります。
+
+
+_/_/_/_/ ライセンス _/_/_/_/
+
+このソフトウェアは、無権利創作機構 無権利創作宣言に基づいて著作権放棄されています。
+いかなる利用に対しても著作権による制限は発生しません。営利・非営利を問わず、どなたでも自由に複製、改変、転載等していただけます。
+なお、無権利創作宣言の全文は　https://www.2pd.jp/license/　をご覧ください。
+
+
+:::::::::::: あとがき ::::::::::::
+
+ご質問・バグの報告等は、Midari Create(https://create.2pd.jp/)へお願いいたします。
+

@@ -3,7 +3,8 @@
 {% load sass_tags %}
 {% block content %}
     {% include 'note/header-ui.html' %}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.0/dist/browser-image-compression.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="{% static 'note/script/ex_lib/elem2img/elem2img.js' %}"></script>
 
     <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
 
