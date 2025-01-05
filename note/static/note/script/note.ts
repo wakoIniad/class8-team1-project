@@ -261,7 +261,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             }, 
             force: true
         }).then(()=>{
-            this.dump();
+            this.dump(true);
         });
         
         const range = new Range(this.x ,this.y, this.width, this.height);
@@ -539,8 +539,8 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     async syncServer() {
         this.callAPI('POST', { body: {
-            update_keys: ["x", "y", "width", "height", "value"],
-            update_values: [this.x, this.y, this.width, this.height, this.value]
+            update_keys: ["x", "y", "width", "height", "value", "type"],
+            update_values: [this.x, this.y, this.width, this.height, this.value, this.type]
         }});
     }
 
@@ -1489,7 +1489,14 @@ class UiDrawMode {
     }
     async dropped(block: Block<any, any>) {
         if(block instanceof TextBlock) {
-            block.changeBlockType(this.type, await block.toImage());
+            switch(this.type) {
+                case 'image':
+                case 'canvas':
+                    block.changeBlockType(this.type, await block.toImage());
+                    break;
+                case 'text': 
+                    break;
+            }
         } else if(block instanceof ImageBlock || block instanceof CanvasBlock) {
             switch(this.type) {
                 case 'image':
