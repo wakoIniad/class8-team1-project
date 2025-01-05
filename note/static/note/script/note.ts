@@ -266,7 +266,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
             
             const droppedBlock = NoteController.getBlockById(droppedElementId);
-            if(droppedBlock)this.dropped(droppedBlock);
+            if(droppedBlock && droppedBlock.id !== this.id) {
+                this.dropped(droppedBlock);
+            }
         });
         
     }
@@ -1709,7 +1711,7 @@ function escapeHTML(str: string) {
 NoteController.applyServerData();
 
 class SocketIOManager {
-    socket: any;
+    static socket: any;
     constructor() {
     }
     tryAccessServer() {
@@ -1748,8 +1750,8 @@ class SocketIOManager {
             console.error(e);
         }
         if(socket) {
-            Block.socket = socketIOManager.socket;
-            this.socket = socket;
+            SocketIOManager.socket = socket;
+            Block.socket = socket;
             this.listenChannel();
         } else {
             const noticeModal = new Modal(
@@ -1781,7 +1783,7 @@ class SocketIOManager {
     }
     listenChannel() {
 
-        this.socket.on("reconnect", (attempt) => {
+        SocketIOManager.socket.on("reconnect", (attempt) => {
             //window.location.reload(true);
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1793,7 +1795,7 @@ class SocketIOManager {
             noticeModal.show();
             UiFunctions.applying['live']?.unlock?.();
         });
-        this.socket.on("connect", () => {
+        SocketIOManager.socket.on("connect", () => {
             // ...//window.location.reload(true);
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1806,7 +1808,7 @@ class SocketIOManager {
 
             UiFunctions.applying['live']?.unlock?.();
         });
-        this.socket.on("disconnect", (reason, details) => {
+        SocketIOManager.socket.on("disconnect", (reason, details) => {
             // ...
             const noticeModal = new Modal(
                 Modal.infoContainer, 
@@ -1819,7 +1821,7 @@ class SocketIOManager {
             UiFunctions.applying['live']?.lock?.();
         });
 
-        this.socket.on("update", (target_id, update_keys, update_values) => {
+        SocketIOManager.socket.on("update", (target_id, update_keys, update_values) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const target = NoteController.getBlockById(target_id);
 
@@ -1833,7 +1835,7 @@ class SocketIOManager {
             }
         });
 
-        this.socket.on("delete", (id) => {
+        SocketIOManager.socket.on("delete", (id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const target = NoteController.getBlockById(id);
                 if(target !== undefined) {
@@ -1844,7 +1846,7 @@ class SocketIOManager {
             }
         });
 
-        this.socket.on("create", (range, type, id) => {
+        SocketIOManager.socket.on("create", (range, type, id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
                 const block = NoteController.makeBlockObject(range, type, id);
                 NoteController.pageObjects.push(block);
