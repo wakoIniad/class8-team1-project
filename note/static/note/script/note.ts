@@ -216,10 +216,10 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.getId()
         .then(id => {
             this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
-                console.log("ev-t-setdata",event.dataTransfer?.setData)
+                //console.log("ev-t-setdata",event.dataTransfer?.setData)
                 event.dataTransfer?.setData("application/drag-box-id", id);
                 //console.log(event.dataTransfer)
-                console.log(event.dataTransfer?.items)
+                //console.log(event.dataTransfer?.items)
             });
         });
 
@@ -295,7 +295,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
         
-        console.log('request: ',TARGET_URL);
+        //console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
         
         this.maskElement.classList.add('loading');
@@ -1024,24 +1024,28 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         ((((-offset_x)+1)/2)*offset_x);
         const activater_y = /*Math.round*/
         ((((-offset_y)+1)/2)*offset_y);
-
-        this.editorElement.setAttribute('width', width);
-        this.editorElement.setAttribute('height', height);
+        console.warn(activater_x, activater_y);
+        
+        this.editorElement.setAttribute('width',  String(width));
+        this.editorElement.setAttribute('height', String(height));
         this.editingRange.width = width;
         this.editingRange.height = height;
         
         this.editingRange.x += delta_x *  activater_x;
         this.editingRange.y += delta_y *  activater_y;
+    
         
-
         if(this.editingRange.x < 0) {
+            console.log('TIMEX')
             this.background.width -= this.editingRange.x;
             const copy = this.background.cloneNode(); 
+            console.log(copy?.toDataURL());
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
             this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
             this.editingRange.x = 0;
         }
         if(this.editingRange.y < 0) {
+            console.log('TIMEY')
             this.background.height -= this.editingRange.y;
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
@@ -1500,7 +1504,7 @@ function putBox() {
         xs = [];
         ys = [];
         noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
-        NoteController.makePageData().then(console.log);
+        //NoteController.makePageData().then(console.log);
     }
 
     noteController.containerManager.container.addEventListener('mousedown', onmousedown);
@@ -1651,7 +1655,7 @@ class SocketIOManager {
 
                 if(target !== undefined) {
                     target.update_parameters(update_keys, update_values);
-                    console.log(target.x,target.y,target.width,target.height,target.value);
+                    //console.log(target.x,target.y,target.width,target.height,target.value);
                     target.render();
                 } else {
                     console.warn('ボックスがない')
