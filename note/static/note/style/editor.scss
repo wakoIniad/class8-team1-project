@@ -138,9 +138,38 @@ body {
     background-color: rgba(200,255,255,1);
 }
 
-.box-frame:hover > .resizer {
+.box-frame:hover > .box-editor:not(.visible) ~ .resizer {
     visibility: visible;
 }
+
+.box-frame.no-focus-editor:hover > .resizer {
+    visibility: visible;
+}
+
+.data-type-icon {
+    position: absolute;
+    display: block;
+    bottom: 100%;
+    left: 100%;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 25%;
+    border-bottom-left-radius: 0%;
+    visibility: hidden;
+    background-color: rgb(255,255,255);
+    padding: 10px;
+}
+
+.data-type-icon > img {
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.box-frame:hover > .data-type-icon {
+    visibility: visible;
+    
+} 
 
 .text-view {
     white-space: pre !important;
@@ -202,7 +231,7 @@ opacity:0;	○	○
 
 
 .embed-anchor {
-    display: block;
+    display: inline-block;
     overflow: hidden;
     position: relative;
     pointer-events: all;

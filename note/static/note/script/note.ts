@@ -43,8 +43,8 @@ class Range {
     }
     relative(ref: Range): Range {
         return new Range( 
-            ref.x-this.x,
-            ref.y-this.y,
+            this.x-ref.x,
+            this.y-ref.y,
             this.width,
             this.height  
         );
@@ -98,6 +98,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     boxFrameElement: HTMLDivElement;
     resizerElement: HTMLSpanElement;
     maskElement: HTMLDivElement;
+    dataTypeIconElement: HTMLDivElement;
 
     value: string;
     id: string | Promise<string>;
@@ -207,7 +208,55 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.makeResizer(1,-1);
         this.makeResizer(-1,1);
         this.makeResizer(0,0);
+
+        this.dataTypeIconElement = this.createIcon(this.type, 'data-type-icon');
+        this.dataTypeIconElement.setAttribute('draggable', 'true')
+        this.boxFrameElement.appendChild(this.dataTypeIconElement);
+
+        this.getId()
+        .then(id => {
+            this.dataTypeIconElement.addEventListener('dragstart', (event: DragEvent) => {
+                //console.log("ev-t-setdata",event.dataTransfer?.setData)
+                event.dataTransfer?.setData("application/drag-box-id", id);
+                //console.log(event.dataTransfer)
+                //console.log(event.dataTransfer?.items)
+            });
+        });
+
+        this.boxFrameElement.addEventListener("dragover", (event) => {
+            // ドロップできるように既定の動作を停止
+            event.preventDefault();
+        });
+        this.boxFrameElement.addEventListener('drop', (event: DragEvent) => {
+            
+            event.stopPropagation();
+            const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+            
+            const droppedBlock = NoteController.getBlockById(droppedElementId);
+            if(droppedBlock)this.dropped(droppedBlock);
+        });
+        
     }
+    dropped(block: Block<any, any>) {
+        switch(block.type) {
+            case 'image':
+                break;
+            case 'text':
+                break;
+            case 'canvas':
+                break;
+        }
+    }
+
+    createIcon(imageSrc, className): HTMLDivElement {
+        const iconFrame = document.createElement('div');
+        const img: HTMLImageElement = document.createElement('img');
+        img.src = `${window.location.origin}/static/note/image/ui_icon_${imageSrc}.png`;
+        iconFrame.classList.add(className);
+        iconFrame.appendChild(img);
+        return iconFrame;
+    }
+
     resetMaskUI() {
         this.maskElement.classList.remove('loading-error');
     }
@@ -246,7 +295,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
         if(this.dumped) return; //廃棄している場合リクエストは送らない。
         
-        console.log('request: ',TARGET_URL);
+        //console.log('request: ',TARGET_URL);
         this.pendingRequest = fetch(TARGET_URL, config);
         
         this.maskElement.classList.add('loading');
@@ -341,8 +390,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             event.stopPropagation();
             startX = event.clientX;
             startY = event.clientY;
-            console.log(event.movementX,event.movementY);
-            console.log("drag-client",event.clientX,event.clientY);
 
             resizer.classList.add('dragging');
             this.boxFrameElement.classList.add('resizing');
@@ -364,22 +411,29 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
              * 
              */
             const ternary = n => ( (n**64 + 1)**(1/64) ) + ( n - ( n + (n ** 2) ** 0.5 ) / 2 );
-            console.log('ternary: ',ternary(-1),ternary(0),ternary(1))
+            
             const movementX: number = event.clientX - startX;
             const movementY: number = event.clientY - startY;
             const resizedWidth =  this.width  + offset_x * (movementX);
             const resizedHeight = this.height + offset_y * (movementY);
             const lackX = ternary(Block.minWidth - resizedWidth  );
             const lackY = ternary(Block.minHeight - resizedHeight);
-            console.log(lackX, lackY)
+
             const relocatedX = this.x + ternary(-offset_x) * movementX;
             const relocatedY = this.y + ternary(-offset_y) * movementY;
 
-            this.relocate(relocatedX-lackX*ternary(-ternary(offset_x)), relocatedY-     lackY*ternary(-ternary(offset_y)));
-            this.resize(resizedWidth-lackX,                    resizedHeight - lackY);
-            console.log(event.movementX,event.movementY);
-            console.log("end-drag-client",event.clientX,event.clientY);
-
+            this.relocate(
+                relocatedX - lackX*ternary(-ternary(offset_x)), 
+                relocatedY - lackY*ternary(-ternary(offset_y)),
+            );
+            this.resize(
+                resizedWidth - lackX,                    
+                resizedHeight - lackY,
+                offset_x, offset_y,
+                ternary(-offset_x) * movementX - lackX*ternary(-ternary(offset_x)),
+                ternary(-offset_y) * movementY - lackY*ternary(-ternary(offset_y)),
+            );
+            
             resizer.classList.remove('dragging');
             this.boxFrameElement.classList.remove('resizing');
         })
@@ -481,7 +535,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         }
     }
 
-    async resize(width: number, height: number, nosynch=false): Promise<void> {
+    async resize(
+        width: number, height: number, 
+        offset_x: number, offset_y: number, 
+        delta_x: number, delta_y: number, 
+        nosynch=false
+    ): Promise<void> {
         width = Math.max(Block.minWidth, width);
         height = Math.max(Block.minHeight, height);
 
@@ -509,8 +568,12 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             socket.emit("update", this.id, applying.update_keys, applying.update_values);
         }
     }
-    async relocate(x: number, y: number): Promise<void> {
-        console.log('relocate: ', x, y, this.type);
+    async relocate(
+        x: number, y: number, 
+        offset_x?: number, offset_y?: number,
+        delta_x?: number, delta_y?: number,
+    ): Promise<void> {
+        //console.log('relocate: ', x, y, this.type);
         if(this.noteController.functionManager.activeFunctions['nudge'] === true) {
             x -= x%this.noteController.functionManager.nudgeSize;
             y -= y%this.noteController.functionManager.nudgeSize;
@@ -618,7 +681,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         }
     }
     getEmbedAnchor(id: string): string {
-        return `embed_anchor-${NOTE_ID}-${id}`;
+        return `embed_anchor-${NoteController.getFullObjectIdByObjectId(id)}`;
     }
     parseMarkdown(): string {
         const escapedStr: string = escapeHTML(this.value);//仕方なくinnerHTML使用中:ミス注意。
@@ -632,7 +695,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         .replace(/\[color\=([a-z]+?)\]((.*?(\n)?)*?)\[\/color\]/g,'<span style="color:$1">$2</span>')
         .replace(/\[size\=([0-9]+?)\]((.*?(\n)?)*?)\[\/size\]/g,'<span style="font-size:$1px">$2</span>')
         .replace(/\[embed\=([A-Za-z0-9]+?)\]/g, (function(match, p1: string): string {
-            const target = NoteController.getBlockById(`${NOTE_ID}-${p1}`);
+            const target = NoteController.getBlockById(NoteController.getFullObjectIdByObjectId(p1));
             if(target) {
                 if(!(p1 in this.embedBlockList))this.embedBlockList[p1] = target;
                 return `<div class="embed-anchor" id=${this.getEmbedAnchor(p1)}></div>`;
@@ -643,6 +706,15 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         
         return parsedAsMarkdown;
     }
+
+    async dropped(block: Block<any, any>): void {
+
+        const objectId = NoteController.getObjectIdFromFullObjectId(await block.getId());
+        
+        this.value += `\n[embed=${objectId}]`;
+        this.editorElement.value = this.value;
+        await this.applyValue();
+    }
 }
 
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
@@ -652,6 +724,8 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
 
     async init() {
         await super.init();
+        this.boxFrameElement.classList.add('no-focus-editor');
+
         this.editorElement.setAttribute('type', 'file');
         this.editorElement.setAttribute('accept', 'image/*');
 
@@ -709,7 +783,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
-            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, true);
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, 0, 0, 0, 0, true);
         }
     }
     toggleToView() {
@@ -720,9 +794,22 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         }
         //this.assign(this.displayElement);
     }
+    async dropped(block: Block<any, any>) {
+        if(block instanceof CanvasBlock) {
+            this.value = block.value;
+            this.applyValue();
+            //block.dump();
+        } else
+        if(block instanceof ImageBlock) {
+            console.log('apply image', )
+            this.value = block.value;
+            this.applyValue();
+            //block.dump();
+        }
+    }
 }
 
-class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
+class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     private lastX: number | null;
     private lastY: number | null;
 
@@ -792,7 +879,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.lockPosition();
         this.toggleToEditor();
         this.paintStart();
-        //console.log('activated');
 
         //新しく書き始めるときは描画システム関連用の変数の状態をリセットする
         this.drawing = false;
@@ -802,7 +888,6 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.unlockPosition();
         this.toggleToView();
         this.paintEnd();
-        //console.log('de activated');
 
         //キャンバスの編集を終えるときは、編集情報を適用する
         this.update();
@@ -891,7 +976,9 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
      * 
      * 
      */
+
     async applyValue(nosynch: boolean = false) {
+        
         //左上から拡大・縮小されることは想定していない
         if(this.background.width < this.editingRange.width) {
             //this.background.setAttribute('width', String(this.editingRange.width));
@@ -907,24 +994,93 @@ class canvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.displayElement.setAttribute('src', this.value);
         await super.applyValue(nosynch);
     }
-    async resize(width, height, nosynch=false) {
+
+    async relocate(
+        x: number, y: number, 
+        //offset_x: number, offset_y: number,
+        //delta_x: number, delta_y: number,
+    ): Promise<void> {
+        //const activater_x = ~~((((-offset_x)+1)/2)*offset_x);
+        //const activater_y = ~~((((-offset_y)+1)/2)*offset_y);
+        //this.editingRange.x += delta_x * activater_x;
+        //this.editingRange.y += delta_y * activater_y;
+        //console.log(
+        //    delta_x * activater_x,
+        //    delta_y * activater_y
+        //)
         
-        this.editorElement.setAttribute('width', width);
-        this.editorElement.setAttribute('height', height);
+        super.relocate(x, y);
+    }
+
+    copyCanvas(originalCanvas): OffscreenCanvas | null {
+        const offscreenCanvas: OffscreenCanvas = new OffscreenCanvas(this.background.width, this.background.height);
+        const offscreenCtx: OffscreenCanvasRenderingContext2D | null = offscreenCanvas.getContext('2d');
+        if(!offscreenCtx)return null;
+        offscreenCtx.drawImage(originalCanvas, 0, 0);
+        return offscreenCanvas;
+    }
+
+    async resize(
+        width: number, height: number, 
+        offset_x: number, offset_y: number,
+        delta_x: number, delta_y: number, 
+        nosynch=false
+    ) {
+        console.log(1,this.editingRange)
+        // 0, 1が 0。-1が-1
+        const activater_x = /*Math.round*/
+        -((((-offset_x)+1)/2)*offset_x);
+        const activater_y = /*Math.round*/
+        -((((-offset_y)+1)/2)*offset_y);
+        console.warn(activater_x, activater_y);
+        
+        this.editorElement.setAttribute('width',  String(width));
+        this.editorElement.setAttribute('height', String(height));
         this.editingRange.width = width;
         this.editingRange.height = height;
+        
+        this.editingRange.x += delta_x * activater_x;
+        this.editingRange.y += delta_y * activater_y;
+    
+        
+        console.log(this.editingRange)
+        if(this.editingRange.x < 0) {
+            const copiedCanvas = this.copyCanvas(this.background);
+            if(!copiedCanvas)return;
+            this.background.width -= this.editingRange.x;
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
+            this.editingRange.x = 0;
+        }
+        if(this.editingRange.y < 0) {
+            const copiedCanvas = this.copyCanvas(this.background);
+            if(!copiedCanvas)return;
+            this.background.height -= this.editingRange.y;
+            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
+            this.editingRange.y = 0;
+        }
+        console.log(2,this.editingRange)
 
+        const backgroundRange = new Range(0, 0, this.background.width, this.background.height);
         this.editingContext.clearRect(...this.editingRange.shape().spread());
-        this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
-        //console.log('resizer', this.background.width, this.background.height, this.editorElement.width,this.editorElement.height);
+        this.editingContext.drawImage(this.background, ...backgroundRange.relative(this.editingRange).spread());
         
         this.value = this.getValue();
         this.applyValue();
-        super.resize(width, height, nosynch);
-    //    console.log('resize-test', this.editorElement.width, this.editorElement.height);
-    //    //this.editorElement.setAttribute('width', width);
-    //    //this.editorElement.setAttribute('height', height);
-    //    //this.applyValue();
+        super.resize(width, height, offset_x, offset_y, delta_x, delta_y, nosynch);
+    }
+    dropped(block: Block<any, any>): void {
+        if(block instanceof ImageBlock) {
+            this.editingContext.drawImage(block.displayElement, 0, 0, this.width, block.height / (block.width / this.width));
+            this.value = this.getValue();
+            this.applyValue();
+        } else 
+        if(block instanceof CanvasBlock) {
+            this.editingContext.drawImage(block.editorElement, 0, 0, this.width, block.height / (block.width / this.width));
+            this.value = this.getValue();
+            this.applyValue();
+        }
     }
 }
 
@@ -937,6 +1093,12 @@ class NoteController {
         this.functionManager = functionManager;
         this.containerManager = containerManager;
 
+    }
+    static getFullObjectIdByObjectId(objectId: string): string {
+        return NOTE_ID + '-' + objectId;
+    }
+    static getObjectIdFromFullObjectId(fullObjectId: string): string {
+        return fullObjectId.split('-')[1];
     }
     normalizeRange(target: DOMRect | Range): Range {
         // 幅をノーマライズの基準にする
@@ -965,25 +1127,22 @@ class NoteController {
         setTimeout(NoteController.endLoadingAnimation,250);
     }
     static applyServerData() {
+        
         NoteController.startLoadingAnimation();
         fetch(NOTE_API_URL+NOTE_ID)
             .then(result=>result.json())
             .then(pageData=>{
                 NoteController.pageObjects.forEach(obj=>obj.dump(true));
-                const initialPageObjects = pageData.children;
-                NoteController.applyPageData(...initialPageObjects);
+                NoteController.pageObjects = [];
+                const serverPageObjects = pageData.children;
+                NoteController.applyPageData(...serverPageObjects);
             });
     }
     static startLoadingAnimation() {
         if(NoteController.contentLoadingBar && contentLoadingDisplay) {
-            console.log('start_loading')
             NoteController.contentLoadingBar.classList.add('animate-bar');
-            //contentLoadingBar.style.animationPlayState = 'paused'; // ロード完了時にアニメーションを停止
-            //NoteController.contentLoadingBar.style.width = '100%'; // 最後にバーを100%に設定
-            ///NoteController.contentLoadingBar.style.transition = 'width 1s'
             
             contentLoadingDisplay.style.transition = 'height 0s 0s';
-            //contentLoadingDisplay.style.transition = 'height 1s 1s';
             contentLoadingDisplay.style.height = 'var(--loading-bar-height)';
         }
     }
@@ -1077,7 +1236,7 @@ function makeBlockObject(range: rangeData, type, id: string|Promise<string>, val
             res = new ImageBlock(range, value, id, noteController);
             break;
         case 'canvas':
-            res = new canvasBlock(range, value, id, noteController);
+            res = new CanvasBlock(range, value, id, noteController);
             break;
     }
     if(id) {
@@ -1296,7 +1455,6 @@ function putBox() {
     const onmousedown = (e)=>{
         xs.push(e.clientX);
         ys.push(e.clientY);
-        console.log('start:', e.clientX, e.clientY);
         noteController.containerManager.container.removeEventListener('mousedown', onmousedown);
 
         // mouseupは離した地点の要素に対して行われるので、要素買いに出た場合の処理が必要
@@ -1308,7 +1466,6 @@ function putBox() {
         const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
-        console.log('end:', e.clientX, e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
@@ -1356,7 +1513,7 @@ function putBox() {
         xs = [];
         ys = [];
         noteController.containerManager.container.removeEventListener('mouseup', onmouseup);
-        NoteController.makePageData().then(console.log);
+        //NoteController.makePageData().then(console.log);
     }
 
     noteController.containerManager.container.addEventListener('mousedown', onmousedown);
@@ -1409,11 +1566,10 @@ class SocketIOManager {
         const script = document.createElement('script');
         script.src = SOCKET_IO_LIBURL;
         script.async = true;
-        console.log(SOCKET_IO_LIBURL)
 
         // 成功時
         script.onload = () => {
-          console.log(`socketIO lib successfully loaded`);
+          console.log(`socketIO successfully loaded`);
           this.start.apply(this);
         };
         script.onerror = (e) => {
@@ -1508,7 +1664,7 @@ class SocketIOManager {
 
                 if(target !== undefined) {
                     target.update_parameters(update_keys, update_values);
-                    console.log(target.x,target.y,target.width,target.height,target.value);
+                    //console.log(target.x,target.y,target.width,target.height,target.value);
                     target.render();
                 } else {
                     console.warn('ボックスがない')

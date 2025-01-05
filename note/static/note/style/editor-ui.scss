@@ -19,6 +19,7 @@ $breakpoint: 200px;
     height: 80px;
     bottom: 0;
     left: 0;
+    pointer-events: none;
 }
 
 .ui-spacer {
@@ -41,6 +42,8 @@ $breakpoint: 200px;
     background-color: rgba(255,255,255,0.15);
     border: none;
     border-radius: 50px;
+    
+    pointer-events: all;
 }
 
 .ui-item.ui-button {
