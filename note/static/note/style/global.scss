@@ -108,3 +108,18 @@ a {
 a:hover {
   color: $accent-color;
 }
+
+.text-font {
+  @extend .jost-400;
+}
+
+.position-central {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.position-top {
+  position: absolute;
+  top: 0;
+}

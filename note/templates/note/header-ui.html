@@ -6,12 +6,14 @@
 <header class="header">
 
     <div class="note-logo-bar">
-        <image class="app-icon d-inline" src="{% static 'note/image/memolive_icon.jpg' %}">
+        <a href="/note">
+            <image class="app-icon d-inline" src="{% static 'note/image/memolive_icon.jpg' %}">
+        </a>
         <h1 class="logo-font d-inline-block app-name">
             Memolive
         </h1>
         {% if note and note.name %}
-        <p class="d-inline-block jost-400">@{{note.name}}</p>
+        <p class="d-inline-block text-font">@{{note.name}}</p>
         {% endif %}
     </div>
 
