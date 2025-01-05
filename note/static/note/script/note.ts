@@ -43,8 +43,8 @@ class Range {
     }
     relative(ref: Range): Range {
         return new Range( 
-            ref.x-this.x,
-            ref.y-this.y,
+            this.x-ref.x,
+            this.y-ref.y,
             this.width,
             this.height  
         );
@@ -1021,9 +1021,9 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         console.log(1,this.editingRange)
         // 0, 1が 0。-1が-1
         const activater_x = /*Math.round*/
-        ((((-offset_x)+1)/2)*offset_x);
+        -((((-offset_x)+1)/2)*offset_x);
         const activater_y = /*Math.round*/
-        ((((-offset_y)+1)/2)*offset_y);
+        -((((-offset_y)+1)/2)*offset_y);
         console.warn(activater_x, activater_y);
         
         this.editorElement.setAttribute('width',  String(width));
@@ -1035,8 +1035,9 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         this.editingRange.y += delta_y *  activater_y;
     
         
+        console.log(this.editingRange)
         if(this.editingRange.x < 0) {
-            console.log('TIMEX')
+            console.error('TIMEX')
             this.background.width -= this.editingRange.x;
             const copy = this.background.cloneNode(); 
             console.log(copy?.toDataURL());
@@ -1045,7 +1046,7 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
             this.editingRange.x = 0;
         }
         if(this.editingRange.y < 0) {
-            console.log('TIMEY')
+            console.error('TIMEY')
             this.background.height -= this.editingRange.y;
             const copy = this.background.cloneNode(); 
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
@@ -1054,8 +1055,9 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         }
         console.log(2,this.editingRange)
 
+        const backgroundRange = new Range(0, 0, this.background.width, this.background.height);
         this.editingContext.clearRect(...this.editingRange.shape().spread());
-        this.editingContext.drawImage(this.background, ...new Range(0, 0, this.background.width, this.background.height).relative(this.editingRange).spread());
+        this.editingContext.drawImage(this.background, ...backgroundRange.relative(this.editingRange).spread());
         
         this.value = this.getValue();
         this.applyValue();
