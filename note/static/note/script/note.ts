@@ -50,6 +50,14 @@ class Range {
             this.height  
         );
     }
+    getRangeData(): rangeData {
+        return {
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height,
+        }    
+    }
 }
 
 class ContainerManager {
@@ -104,7 +112,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 
     value: string;
     id: string | Promise<string>;
-    type?: string;
+    private type_?: string;
 
     pendingRequest?: Promise<any>;
 
@@ -130,7 +138,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.pendingSync = false;
 
         this.id = id;
-        this.type = type || undefined;
+        this.type_ = type || undefined;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -239,6 +247,29 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         });
         
     }
+    getRange(): Range {
+        return new Range(this.x, this.y, this.width, this.height);
+    }
+
+    set type(type: string | undefined) {
+        this.type_ = type;
+        this.callAPI('POST', { body: {
+            update_keys: ["type"],
+            update_values: [type],
+        }});
+        this.dump();
+        
+        const range = new Range(this.x ,this.y, this.width, this.height);
+        NoteController.makeBlockObject(range, type, this.id, this.value);
+    }
+    get type(): string | undefined {
+        return this.type_;
+    }
+    changeBlockType(value: string, type: string){
+        this.value = value;
+        this.type = type;
+    }
+
     dropped(block: Block<any, any>) {
         switch(block.type) {
             case 'image':
@@ -1131,6 +1162,57 @@ class NoteController {
         this.containerManager = containerManager;
 
     }
+    static makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string): Block<any, any> {
+        let res;
+        switch(type) {
+            case 'text':
+                res = new TextBlock(range, value, id, noteController);
+                break;
+            case 'image':
+                res = new ImageBlock(range, value, id, noteController);
+                break;
+            case 'canvas':
+                res = new CanvasBlock(range, value, id, noteController);
+                break;
+        }
+        if(id) {
+            res.id = id;
+        }
+        NoteController.pageObjects.push(res);
+        return res;
+    }
+    static createBlock(rangeObject: Range, type: string, value?: string): Block<any,any> {
+        const range: rangeData = rangeObject.getRangeData();
+        const boxType = type;
+        const putData = {
+            range: range, type: boxType
+        }
+        const idPromise = (async function() {
+            const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
+            const response = await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify(putData),
+                headers: {
+                  'Content-Type': 'application/json; charset=utf-8',
+                  'X-CSRFToken': csrftoken,
+                },
+            });
+            //try
+            const parsed = await response.json();
+            return parsed['assigned_id'];
+            //} catch(e) {
+            //}
+        })();
+
+        //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
+        const block: Block<any,any> = NoteController.makeBlockObject(range, boxType, idPromise, value);
+        (async()=>{
+            const id = await Promise.any([idPromise]);
+            
+            Block.socket?.emit?.('create', range, boxType, id);
+        })();
+        return block;
+    }
     static getFullObjectIdByObjectId(objectId: string): string {
         return NOTE_ID + '-' + objectId;
     }
@@ -1159,7 +1241,7 @@ class NoteController {
     static applyPageData(...pageData: blockData[]): void {
         for( const boxData of pageData ) {
             const { range, id, type, value } = boxData;
-            NoteController.pageObjects.push(makeBlockObject(range, type, id, value));
+            NoteController.makeBlockObject(range, type, id, value);
         }
         setTimeout(NoteController.endLoadingAnimation,250);
     }
@@ -1261,26 +1343,6 @@ const functionManager: FunctionManager = new FunctionManager({ nudgeSize: 32 });
 
 const noteController: NoteController = new NoteController(functionManager, containerManager);
 
-
-
-function makeBlockObject(range: rangeData, type, id: string|Promise<string>, value?: string) {
-    let res;
-    switch(type) {
-        case 'text':
-            res = new TextBlock(range, value, id, noteController);
-            break;
-        case 'image':
-            res = new ImageBlock(range, value, id, noteController);
-            break;
-        case 'canvas':
-            res = new CanvasBlock(range, value, id, noteController);
-            break;
-    }
-    if(id) {
-        res.id = id;
-    }
-    return res;
-}
 
 
 /*applyPageData(initialPageObjects);
@@ -1399,6 +1461,28 @@ class UiDrawMode {
         this.element.addEventListener('mouseleave', (event: MouseEvent) => {
             if(UiDrawMode.selectedItem !== undefined)UiDrawMode.selectedItem.focused();
         });
+        this.element.addEventListener('drop', (event: DragEvent) => {
+            event.stopPropagation();
+            const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+            
+            const droppedBlock = NoteController.getBlockById(droppedElementId);
+            if(droppedBlock)this.dropped(droppedBlock);
+        });
+    }
+    async dropped(block: Block<any, any>) {
+        if(block instanceof TextBlock) {
+            block.changeBlockType(this.type, await block.toImage());
+        } else if(block instanceof ImageBlock || block instanceof CanvasBlock) {
+            switch(this.type) {
+                case 'image':
+                case 'canvas':
+                    block.changeBlockType(this.type, block.value);
+                    break;
+                case 'text':                
+                    //埋め込み
+                    break;
+            }
+        }
     }
     selected() {
         if(UiDrawMode.selectedItem && this.type === UiDrawMode.selectedItem.type) {
@@ -1507,42 +1591,21 @@ function putBox() {
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
-        const range = {
+        const range = new Range(
+            mx - rect.left,
+            my - rect.top,
+            Math.max(Mx - mx,150),
+            Math.max(My - my, 100),
+        );
+        /*{
             x: mx - rect.left,
             y: my - rect.top,
             width: Math.max(Mx - mx,150), 
             height: Math.max(My - my, 100)
-        };
+        };*/
+        
         if(UiDrawMode.selectedItem && PROCESS_ID === putBoxId) {
-            const boxType = UiDrawMode.selectedItem.type;
-            const putData = {
-                range: range, type: boxType
-            }
-            const idPromise = (async function() {
-                const url = `${NOTE_API_URL+NOTE_ID}/${SYSTEM_API_PATH_SEGMENT}/`
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    body: JSON.stringify(putData),
-                    headers: {
-                      'Content-Type': 'application/json; charset=utf-8',
-                      'X-CSRFToken': csrftoken,
-                    },
-                });
-                //try
-                const parsed = await response.json();
-                return parsed['assigned_id'];
-                //} catch(e) {
-                //}
-            })();
-
-            //登録が完了したときに、cssアニメーションで作成後のボックスのふちを光らせる
-            const block = makeBlockObject(range, boxType, idPromise);
-            NoteController.pageObjects.push(block);
-            (async()=>{
-                const id = await Promise.any([idPromise]);
-                
-                Block.socket?.emit?.('create', range, boxType, id);
-            })();
+            noteController.createBlock(range, UiDrawMode.selectedItem.type);
         }
 
         UiDrawMode.selectedItem?.unselected();
@@ -1722,7 +1785,7 @@ class SocketIOManager {
 
         this.socket.on("create", (range, type, id) => {
             if(noteController.functionManager.activeFunctions["live"])  {
-                const block = makeBlockObject(range, type, id);
+                const block = NoteController.makeBlockObject(range, type, id);
                 NoteController.pageObjects.push(block);
             }
         });
