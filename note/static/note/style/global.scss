@@ -1,6 +1,12 @@
 $clear-blue: rgb(13, 110, 253);
 $main-color: rgb(57,123,108);
 $accent-color: rgb(71, 255, 206);
+:root {
+  --main-color: rgb(57,123,108);
+  --accent-color: rgb(71, 255, 206);
+  --accent-color2: rgb(13, 110, 253);
+}
+
 
 html,
 body {
