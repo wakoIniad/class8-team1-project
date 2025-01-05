@@ -12,6 +12,7 @@ import { parse, resolve } from 'path';
 import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 import { rejects } from 'assert';
+import { error } from 'console';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
@@ -805,14 +806,19 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.toggleToView();
     }
     async compress(imageFile) {
-        const options = {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1024
-        }
-    
-        const compressed = await imageCompression(imageFile, options);
+        try {
+            const options = {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 1024
+            }
         
-        return compressed;
+            const compressed = await imageCompression(imageFile, options);
+
+            return compressed;
+        } catch {
+            NoteController.alertMessage('画像圧縮に失敗しました。\nそのまま送信されます。');
+            return imageFile;
+        }
     }
 
     async getValue(): Promise<string> {
@@ -1279,6 +1285,12 @@ class NoteController {
     }
     static getBlockById(target_id: string): Block<any, any> | undefined {
         return NoteController.pageObjects.find(object=>object.id === target_id);
+    }
+
+    static alertMessage(message: string) {
+        const m = new Modal(Modal.infoContainer, 'info-bar', message,4000);
+        m.init();
+        m.show();
     }
 }
 
