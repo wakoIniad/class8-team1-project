@@ -1012,6 +1012,14 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         super.relocate(x, y);
     }
 
+    copyCanvas(originalCanvas): OffscreenCanvas | null {
+        const offscreenCanvas: OffscreenCanvas = new OffscreenCanvas(this.background.width, this.background.height);
+        const offscreenCtx: OffscreenCanvasRenderingContext2D | null = offscreenCanvas.getContext('2d');
+        if(!offscreenCtx)return null;
+        offscreenCtx.drawImage(originalCanvas, 0, 0);
+        return offscreenCanvas;
+    }
+
     async resize(
         width: number, height: number, 
         offset_x: number, offset_y: number,
@@ -1039,18 +1047,28 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         if(this.editingRange.x < 0) {
             console.error('TIMEX')
             this.background.width -= this.editingRange.x;
-            const copy = this.background.cloneNode(); 
-            console.log(copy?.toDataURL());
-            this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copy, -this.editingRange.x, 0);
+            const copiedCanvas = this.copyCanvas(this.background);
+            if(!copiedCanvas)return;
+            copiedCanvas.convertToBlob().then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    // Data URIを取得
+                    const dataURI = reader.result;
+                    console.log('Data URI:', dataURI);
+                };
+                reader.readAsDataURL(blob); 
+            })
+            //this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
+            this.backgroundContext.drawImage(copiedCanvas, -this.editingRange.x, 0);
             this.editingRange.x = 0;
         }
         if(this.editingRange.y < 0) {
             console.error('TIMEY')
             this.background.height -= this.editingRange.y;
-            const copy = this.background.cloneNode(); 
+            const copiedCanvas = this.copyCanvas(this.background);
+            if(!copiedCanvas)return;
             this.backgroundContext.clearRect(0, 0, this.background.width, this.background.height);
-            this.backgroundContext.drawImage(copy, 0, -this.editingRange.y);
+            this.backgroundContext.drawImage(copiedCanvas, 0, -this.editingRange.y);
             this.editingRange.y = 0;
         }
         console.log(2,this.editingRange)
