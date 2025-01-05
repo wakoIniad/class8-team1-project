@@ -13,6 +13,7 @@ import { blockData } from '../type/blockData';
 import { rangeData } from '../type/rangeData';
 import { rejects } from 'assert';
 import { error } from 'console';
+import e from 'cors';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
@@ -61,6 +62,7 @@ class Range {
     }
 }
 
+// #manager-container #controller-container
 class ContainerManager {
     container: HTMLElement;
     range: Range;
@@ -72,9 +74,24 @@ class ContainerManager {
             
             this.range = 
                 new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+            this.container.addEventListener('drop', (event: DragEvent) => {
+                event.stopPropagation();
+                const droppedElementId: string = String(event.dataTransfer?.getData("application/drag-box-id"));
+                
+                const droppedBlock = NoteController.getBlockById(droppedElementId);
+                if(droppedBlock)this.dropped(droppedBlock, event);
+            });
+            this.container.addEventListener("dragover", (event) => {
+                // ドロップできるように既定の動作を停止
+                event.preventDefault();
+            });
         } else {
             this.error('コンテナの取得に失敗しました');
         }
+    }
+    dropped(block: Block<any,any>, event: DragEvent) {
+        block.duplicate();
+        block.relocate(...this.getPos(event.clientX, event.clientY));
     }
     append(target: HTMLElement) {
         this.container.appendChild(target);
@@ -87,6 +104,11 @@ class ContainerManager {
             
         this.range = 
             new Range(containerDomRect.left, containerDomRect.top, containerDomRect.width, containerDomRect.height);
+    }
+    getPos(clientX, clientY): [number, number] {
+        const rect = noteController.containerManager.container.getBoundingClientRect();
+        
+        return [ clientX - rect.left, clientY - rect.top ];
     }
 }
 
@@ -247,6 +269,11 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             if(droppedBlock)this.dropped(droppedBlock);
         });
         
+    }
+    duplicate() {
+        if(this.type) {
+            NoteController.createBlock(this.getRange(), this.type, this.value);
+        }
     }
     getRange(): Range {
         return new Range(this.x, this.y, this.width, this.height);
@@ -1617,13 +1644,14 @@ function putBox() {
         noteController.containerManager.container.addEventListener('onmouseleave', cancel);
     }
     const onmouseup = (e)=>{
-        const rect = noteController.containerManager.container.getBoundingClientRect();
         xs.push(e.clientX);
         ys.push(e.clientY);
         const mx = Math.min(...xs);
         const my = Math.min(...ys);
         const Mx = Math.max(...xs);
         const My = Math.max(...ys);
+        const rect = noteController.containerManager.container.getBoundingClientRect();
+        
         const range = new Range(
             mx - rect.left,
             my - rect.top,
