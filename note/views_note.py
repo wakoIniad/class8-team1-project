@@ -70,3 +70,7 @@ def home(request):
 #          print(line.strip())  # 出力を1行ずつ処理して表示
 #  except KeyboardInterrupt:
 #      print("プロセスを終了します。")
+@never_cache
+def display404(request):
+
+    return render(request,'note/404.html')

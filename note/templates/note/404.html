@@ -1,0 +1,20 @@
+{% extends 'note/base.html' %}
+{% load static %}
+{% block content %}
+<body>
+    <link rel="stylesheet" href='{% static "note/style/404.css" %}'>
+    <div id="contaner">
+        <h1>
+            404
+        </h1>
+        <p>
+            このページは表示できません
+        </p>
+    </div>
+   
+
+    <img class="bear" src='{% static "note/image/bear.png" %}'>
+</body>
+
+
+{% endblock content %}
