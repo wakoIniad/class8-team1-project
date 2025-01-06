@@ -4,7 +4,10 @@ const { Server } = require("socket.io");
 const httpServer = createServer();
 const io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:8000", // Djangoサーバーからのアクセスを許可する！
+      origin: [ 
+        "http://localhost:8000", // Djangoサーバーからのアクセスを許可する！
+        //"'https://earwig-ruling-forcibly.ngrok-free.app'", //#本番環境では削除
+      ],
       methods: ["GET", "POST"],
       allowedHeaders: ["self-proclaimed-referer"],  // クライアントから送るカスタムヘッダーを指定
       credentials: true,
