@@ -12,8 +12,10 @@ const io = new Server(server, {
   //path: '/socket', // "/socket" のパスを指定
   cors: {
     origin: [
-        'http://localhost', 
-        'http://127.0.0.1',
+        'http://localhost:8000', 
+        'http://127.0.0.1:8000',
+        'http://localhost:80', 
+        'http://127.0.0.1:80',
     ],
       //"http://localhost:8000", // Djangoサーバーからのアクセスを許可する！
       //"'https://earwig-ruling-forcibly.ngrok-free.app'", //#本番環境では削除
