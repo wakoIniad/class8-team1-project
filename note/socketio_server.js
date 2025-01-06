@@ -5,6 +5,16 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
+app.use((req, res, next) => {
+    const method = req.method;  // リクエストメソッド（GET, POST など）
+    const url = req.url;        // リクエストURL
+    const timestamp = new Date().toISOString();  // 現在時刻
+  
+    console.log(`[${timestamp}] ${method} ${url}`);  // ログをコンソールに出力
+  
+    next();  // 次のミドルウェアやルートハンドラーを呼び出す
+});
+
 const server = http.createServer(app);
 
 // "/socket" に限定して Socket.IO を動かす設定
