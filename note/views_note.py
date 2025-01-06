@@ -5,13 +5,12 @@ from django.shortcuts import render, redirect
 from .models import Note, Box, ShortURL
 from .default_api_handler import DefaultApiHandler
 from django.http import HttpResponse, Http404, JsonResponse, QueryDict
-from . import my_utils
+from . import my_utils, constants
 from .constants import API_RESPONSES, SYSTEM_API_PATH_SEGMENT
 
 import json
 import requests
 
-NODE_JS_SERVER_PORT = 3000
 # Create your views here.
 #テスト用
 
@@ -35,8 +34,9 @@ def editor(request, note_id):
         raise Http404("404")
     
     context = {
-        "nodejs_server_port": NODE_JS_SERVER_PORT,
-        "SYSTEM_API_PATH_SEGMENT": SYSTEM_API_PATH_SEGMENT,
+        "socket_server_url": constants.SOCKET_IO_SERVER_URL,
+        "nodejs_server_port": constants.NODE_JS_SERVER_PORT,
+        "SYSTEM_API_PATH_SEGMENT": constants.SYSTEM_API_PATH_SEGMENT,
         "note": { 
             "name": note.name,
             "posted_at": note.created_at,

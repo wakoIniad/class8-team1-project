@@ -16,7 +16,8 @@ h1 {
 }
 
 .landing-footer {
-    position: fixed;
+    //position: fixed;
+    display: block;
     bottom: 20px;
     margin: auto; 
     left: 0;

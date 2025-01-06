@@ -55,6 +55,10 @@ body {
     //align-items: center;
 }
 
+textarea.box-editor {
+    padding: 10px;
+}
+
 .image-box-frame > input[type="file"].box-editor::file-selector-button {
     //all: unset;
     display: block;
@@ -240,3 +244,7 @@ opacity:0;	○	○
 .text-editor.visible ~ .text-view {
     display: none;
 }
+
+/*.text-view {
+    overflow-y: scroll;
+}*/

@@ -1,15 +1,40 @@
-const { createServer } = require("http");
-const { Server } = require("socket.io");
 
-const httpServer = createServer();
-const io = new Server(httpServer, {
-    cors: {
-      origin: "http://localhost:8000", // Djangoサーバーからのアクセスを許可する！
-      methods: ["GET", "POST"],
-      allowedHeaders: ["self-proclaimed-referer"],  // クライアントから送るカスタムヘッダーを指定
-      credentials: true,
-    }
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+app.use((req, res, next) => {
+    const method = req.method;  // リクエストメソッド（GET, POST など）
+    const url = req.url;        // リクエストURL
+    const timestamp = new Date().toISOString();  // 現在時刻
+  
+    console.log(`[${timestamp}] ${method} ${url}`);  // ログをコンソールに出力
+  
+    next();  // 次のミドルウェアやルートハンドラーを呼び出す
 });
+
+const server = http.createServer(app);
+
+// "/socket" に限定して Socket.IO を動かす設定
+const io = new Server(server, {
+  //path: '/socket', // "/socket" のパスを指定
+  cors: {
+    origin: [
+        'http://localhost:8000', 
+        'http://127.0.0.1:8000',
+        'http://localhost:80', 
+        'http://127.0.0.1:80',
+    ],
+      //"http://localhost:8000", // Djangoサーバーからのアクセスを許可する！
+      //"'https://earwig-ruling-forcibly.ngrok-free.app'", //#本番環境では削除
+    //],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["self-proclaimed-referer"],  // クライアントから送るカスタムヘッダーを指定
+    credentials: true,
+  }
+}); 
 
 io.on("connection", (socket) => {
     const request = socket.handshake;
@@ -33,5 +58,7 @@ io.on("connection", (socket) => {
         });
     }
 });
-
-httpServer.listen(3000);
+// ポート 8000 でサーバーを起動
+server.listen(3000, () => {
+    console.log('Server is running on http://localhost:3000/');
+});

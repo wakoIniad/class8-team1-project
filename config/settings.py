@@ -26,8 +26,13 @@ SECRET_KEY = 'django-insecure-_f_v_-_rem#v0j2sd#541!d1)s1a@wguej)01c4zbj3m8tynf-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    #'earwig-ruling-forcibly.ngrok-free.app', 
+    'localhost', 
+    '127.0.0.1',
+    '[::1]',
+]
+#CSRF_TRUSTED_ORIGINS = ['https://earwig-ruling-forcibly.ngrok-free.app']#本番環境では削除
 
 # Application definition
 
