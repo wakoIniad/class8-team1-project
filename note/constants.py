@@ -1,7 +1,7 @@
 from django.http import HttpResponse, Http404, HttpResponseServerError, JsonResponse, QueryDict
 import json
 
-SOCKET_IO_SERVER_URL = "https://earwig-ruling-forcibly.ngrok-free.app"
+SOCKET_IO_SERVER_URL = "http://localhost:3000"
 NODE_JS_SERVER_PORT = 3000
 
 MODEL_NOT_FOUND_MESSAGE = "ModelDoesNotExist"

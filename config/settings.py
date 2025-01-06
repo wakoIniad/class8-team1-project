@@ -28,8 +28,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     #'earwig-ruling-forcibly.ngrok-free.app', 
-    #'localhost', 
-    #'127.0.0.1'
+    'localhost', 
+    '127.0.0.1',
+    '[::1]',
 ]
 #CSRF_TRUSTED_ORIGINS = ['https://earwig-ruling-forcibly.ngrok-free.app']#本番環境では削除
 
