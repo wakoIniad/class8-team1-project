@@ -6,6 +6,9 @@ h1{
     position: absolute;
     top: 20%;
     left: 70%;
+   border-width: 5px;
+   border-color: #000000;
+   border-style: dashed solid;
 
 
 }
@@ -34,5 +37,17 @@ p{
     top: 70%;
     left: 50%;
     transform: translateX(-50%);
+    color: #000000;
+    background-color: aliceblue;
+    border-width: 5px;
+   border-color: #fb0303;
+   border-style: double;
+   width: fit-content;
+   text-wrap: nowrap;
+   overflow: visible;
+   font-weight: 60px;
+   font-size: 40px;
+
+
 
 }
