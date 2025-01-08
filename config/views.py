@@ -1,5 +1,5 @@
 from django.shortcuts import redirect, render
-
+from django.http import Http404
 
 def redirect_view(request):
     response = redirect('note/')
