@@ -74,3 +74,12 @@ def home(request):
 def display404(request):
 
     return render(request,'note/404.html')
+
+@never_cache
+def handle404(request, exception):
+    return render(request, 'note/404.html')
+
+
+@never_cache
+def handle500(request):
+    return render(request, 'note/404.html')
