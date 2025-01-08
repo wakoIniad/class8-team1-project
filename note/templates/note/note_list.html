@@ -2,11 +2,15 @@
 {% load static %}
 {% block content %}
 <body>
+    <div id="note_list">
+        <h1>
+            ノート一覧
+        </h1>
+    </div>
+   
 <link rel='stylesheet' href='{% static "/note/style/note_list.css" %}'>
 <div id="container"></div>
-<h1>
-    ノート一覧
-</h1>
+
 
 <script src="{% static 'note/script/note_list.js' %}"></script>
 </body>
