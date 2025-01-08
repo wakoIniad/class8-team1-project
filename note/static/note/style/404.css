@@ -38,9 +38,9 @@ p{
     left: 50%;
     transform: translateX(-50%);
     color: #000000;
-    background-color: aliceblue;
+    background-color:#ffff00;
     border-width: 5px;
-   border-color: #fb0303;
+   border-color:#000000;
    border-style: double;
    width: fit-content;
    text-wrap: nowrap;
