@@ -3,11 +3,12 @@ const container = document.getElementById('container');
 function createLink(noteData) {
     console.log('aaa',noteData)
     const elm = document.createElement('a');
+    const created_at =noteData['created_at']
 
     elm.setAttribute('href', makeNoteURL(noteData.id));
     elm.setAttribute('id', noteData.id);
     elm.classList.add('note-list-item');
-    elm.textContent = noteData.name;
+    elm.innerHTML = `${noteData.name}<i class="created_at">${created_at}</i>`;
     
     container.appendChild(elm);
 }
