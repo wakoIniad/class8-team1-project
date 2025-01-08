@@ -36,6 +36,7 @@ h1#title-color{
 
 #container{
     padding-top: 0%;
+    width: 80%;
 }
 
 .break{
@@ -46,5 +47,6 @@ h1#title-color{
 .created_at{
     position:absolute;
     right:0;
+    color:#999;
 
 }
