@@ -969,14 +969,15 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
                 return file;
             }
         } else if(this.subtype === 'audio') {
-           // try {
+            //try {
                 return new Promise((resolve,rejects)=>{
                     function result(compressed) {
                         resolve(compressed)
                     }
-                    compressAudioToTargetSize(file, 0.1 );
-
+                    blobToMp3(file, result)
                 });
+                
+            //    return compressAudio(file );
             //} catch (e){
             //    console.warn(e)
             //    NoteController.alertMessage('音声圧縮に失敗しました。\nそのまま送信されます。');
@@ -2270,7 +2271,7 @@ function getDataURIDetails(dataURI='') {
 
     reader.readAsArrayBuffer(audioBlob);
 }*/
-
+/*
 async function compressAudioToTargetSize(inputBlob, targetSize, initialBitrate = 128) {
     const arrayBuffer = await blobToArrayBuffer(inputBlob);
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -2341,4 +2342,207 @@ async function compressAudioToTargetSize(inputBlob, targetSize, initialBitrate =
       const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
       resolve(mp3Blob);
     });
-  }
+  }*/
+/*
+    async function compressAudio(inputBlob) {
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+      
+        // FFmpegをロード
+        await ffmpeg.load();
+      
+        // BlobをファイルとしてFFmpegに書き込む
+        const inputData = new Uint8Array(await inputBlob.arrayBuffer());
+        ffmpeg.FS('writeFile', 'input.wav', inputData);
+      
+        // 圧縮用にFFmpegコマンドを実行
+        // 出力フォーマットや圧縮パラメータを適宜に設定してください
+        await ffmpeg.run('-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '128k', 'output.mp3');
+      
+        // 圧縮したファイルを取得
+        const outputData = ffmpeg.FS('readFile', 'output.mp3');
+      
+        // Uint8ArrayをBlobに変換して返す
+        return new Blob([outputData.buffer], { type: 'audio/mp3' });
+      }
+
+      function blobToMp3(blob, callback) {
+        // FileReaderを使用してBlobをArrayBufferに変換
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            // ArrayBufferからInt16Arrayに変換
+            const audioData = new Int16Array(arrayBuffer);
+    
+            // MP3エンコーダの作成
+            const mp3Encoder = new lamejs.Mp3Encoder(1, 44100, 128); // 1チャンネル、44.1kHz、128kbps
+    
+            // PCMデータをエンコード
+            const mp3Data = [];
+            const sampleBlockSize = 1152;
+            for (let i = 0; i < audioData.length; i += sampleBlockSize) {
+                const sampleChunk = audioData.subarray(i, i + sampleBlockSize);
+                const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
+                if (mp3buf.length > 0) {
+                    mp3Data.push(mp3buf);
+                }
+            }
+            
+            // フィニッシュ
+            const mp3buf = mp3Encoder.flush();
+            if (mp3buf.length > 0) {
+                mp3Data.push(mp3buf);
+            }
+    
+            // MP3データをBlobとして作成
+            const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+            callback(mp3Blob);
+        };
+    
+        reader.readAsArrayBuffer(blob);
+    }*//*
+        async function blobToMp3(blob, callback) {
+            // Web Audio APIのコンテキストを作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+            // BlobをArrayBufferに変換
+            const arrayBuffer = await blob.arrayBuffer();
+        
+            // ArrayBufferをデコードしてオーディオバッファを取得
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+                // 元の音声のサンプルレートおよびチャンネル数を取得
+                const sampleRate = audioBuffer.sampleRate;
+                const numChannels = audioBuffer.numberOfChannels;
+        
+                // MP3エンコーダを設定
+                const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+        
+                // エンコード時のブロックサイズ設定
+                const sampleBlockSize = 1152;
+                const mp3Data = [];
+        
+                // 各チャンネル用のPCMデータを収集してエンコード
+                for (let i = 0; i < audioBuffer.length; i += sampleBlockSize) {
+                    const samples = new Int16Array(sampleBlockSize * numChannels);
+        
+                    for (let channel = 0; channel < numChannels; channel++) {
+                        const channelData = audioBuffer.getChannelData(channel);
+                        for (let j = 0; j < sampleBlockSize; j++) {
+                            const sampleIndex = i + j;
+                            if (sampleIndex < channelData.length) {
+                                samples[j * numChannels + channel] = Math.max(-32768, Math.min(32767, channelData[sampleIndex] * 32767));
+                            } else {
+                                samples[j * numChannels + channel] = 0;
+                            }
+                        }
+                    }
+        
+                    // エンコード
+                    const mp3buffer = mp3Encoder.encodeBuffer(samples);
+                    if (mp3buffer.length > 0) {
+                        mp3Data.push(mp3buffer);
+                    }
+                }
+        
+                // エンコーダをフラッシュ
+                const flushBuffer = mp3Encoder.flush();
+                if (flushBuffer.length > 0) {
+                    mp3Data.push(flushBuffer);
+                }
+        
+                // 完成したMP3データをBlobに変換
+                const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                callback(mp3Blob);
+        
+            } catch (error) {
+                console.error("音声デコードに失敗しました:", error);
+            }
+        }*/
+
+
+        async function blobToMp3(blob, callback) {
+            // Web Audio APIのコンテキストを作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+            // BlobをArrayBufferに変換
+            const arrayBuffer = await blob.arrayBuffer();
+        
+            // ArrayBufferをデコードしてオーディオバッファを取得
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+                // 元の音声のサンプルレートおよびチャンネル数を取得
+                const sampleRate = audioBuffer.sampleRate;
+                const numChannels = audioBuffer.numberOfChannels;
+        
+                // MP3エンコーダを設定
+                const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+                const mp3Data = [];
+                const samplesPerFrame = 1152;
+        
+                // 各チャンネルからPCMデータを生成
+                const pcmData = [];
+                for (let i = 0; i < numChannels; i++) {
+                    pcmData.push(audioBuffer.getChannelData(i));
+                }
+        
+                // PCMデータをエンコード
+                let offset = 0;
+                while (offset < audioBuffer.length) {
+                    const sampleChunk = new Int16Array(samplesPerFrame * numChannels);
+        
+                    for (let i = 0; i < samplesPerFrame; i++) {
+                        for (let channel = 0; channel < numChannels; channel++) {
+                            const sampleIndex = offset + i;
+                            if (sampleIndex < audioBuffer.length) {
+                                sampleChunk[i * numChannels + channel] = Math.max(-32768, Math.min(32767, pcmData[channel][sampleIndex] * 32767));
+                            } else {
+                                sampleChunk[i * numChannels + channel] = 0; // 余った部分は0で埋める
+                            }
+                        }
+                    }
+        
+                    offset += samplesPerFrame;
+        
+                    let mp3Buffer;
+                    if (numChannels === 1) {
+                        mp3Buffer = mp3Encoder.encodeBuffer(sampleChunk);
+                    } else {
+                        const left = sampleChunk.filter((_, index) => index % 2 === 0);
+                        const right = sampleChunk.filter((_, index) => index % 2 === 1);
+                        mp3Buffer = mp3Encoder.encodeBuffer(left, right);
+                    }
+        
+                    if (mp3Buffer.length > 0) {
+                        mp3Data.push(mp3Buffer);
+                    }
+                }
+        
+                // フラッシュ
+                const flushBuffer = mp3Encoder.flush();
+                if (flushBuffer.length > 0) {
+                    mp3Data.push(flushBuffer);
+                }
+        
+                // 完成したMP3データをBlobに変換
+                const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                callback(mp3Blob);
+        
+            } catch (error) {
+                console.error("音声デコードに失敗しました:", error);
+            }
+        }
+        
+        // 使用例
+        // const inputBlob = ...  // 例: MP3, WAV, M4AなどのBlob
+        // blobToMp3(inputBlob, function(mp3Blob) {
+        //     const url = URL.createObjectURL(mp3Blob);
+        //     const link = document.createElement('a');
+        //     link.href = url;
+        //     link.download = 'output.mp3';
+        //     document.body.appendChild(link);
+        //     link.click();
+        //     document.body.removeChild(link);
+        // });
