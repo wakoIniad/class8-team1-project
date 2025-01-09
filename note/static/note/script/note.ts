@@ -820,9 +820,9 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     async init() {
         await super.init();
         this.editorElement.value = this.value;
-        this.editorElement.classList.add('text-editor');
+        this.editorElement.classList.add('ai-editor');
 
-        this.displayElement.classList.add('text-view');
+        this.displayElement.classList.add('ai-view');
         this.displayElement.classList.add('markdown-text-default');
         
         this.boxFrameElement.addEventListener('dblclick', (e)=>{
@@ -853,7 +853,7 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         await super.applyValue(nosynch);
     }
 
-    async dropped(block: Block<any, any>): void {
+    async dropped(block: Block<any, any>): Promise<void> {
 
         if(block instanceof TextBlock) {
             const gpt_url = 
