@@ -769,7 +769,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             } else {
                 return `[embed not found]`;
             }
-        }).bind(this));
+        }).bind(this))
+//        .replace(/\\([^\\])/g,'$1');
         
         return parsedAsMarkdown;
     }

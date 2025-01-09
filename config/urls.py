@@ -26,3 +26,6 @@ urlpatterns = [
     path('share/', include('note.urls_share')),
     path('api/', include('note.urls_api')),
 ]
+
+handler404 = "note.views_note.handle404"
+handler500 = "note.views_note.handle500"

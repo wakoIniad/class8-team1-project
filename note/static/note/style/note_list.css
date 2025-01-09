@@ -5,4 +5,48 @@
     border: rgb(80,80,80) solid 1px;
     margin: 10px;
     padding: 5px;
+    position: relative;
+}
+
+#note_list{
+    display:flex;
+    flex-wrap: wrap;
+    align-items:flex-start;
+    justify-content:center;
+    width:100%;
+    height:fit-content;
+    
+
+}
+
+h1#title-color{
+    display:block;
+    width:fit-content;
+    height:fit-content;
+    color: var(--accent-color);
+    
+    
+}
+
+#background{
+    width: 100%;
+    height: 100%;
+    background-color:#323;
+}
+
+#container{
+    padding-top: 0%;
+    width: 80%;
+}
+
+.break{
+    flex-basis: 100%;
+    height: 0;
+}
+
+.created_at{
+    position:absolute;
+    right:0;
+    color:#999;
+
 }
