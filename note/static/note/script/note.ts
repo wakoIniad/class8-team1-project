@@ -858,6 +858,17 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
         this.editorElement.addEventListener('dragleave', ()=> {
             this.toggleToView();
         });
+        /*this.boxFrameElement.addEventListener('dblclick', (e)=>{
+            
+            //イベントの伝搬を中止
+            e.stopPropagation();
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            } else {
+                this.toggleToEditor();
+            }
+        });*/
         this.editorElement.addEventListener('drop', ()=> {
             this.toggleToView();
         });
@@ -915,15 +926,16 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
     };
     
     toggleSubtype(subtype) {
-        console.log('SUBSUBSUB= [  '+ subtype+'  ];')
         this.subtype = subtype;
         switch(subtype) {
             case 'image':        
             this.displayElement = this.replaceTagName<HTMLImageElement>(this.displayElement, 'img');
+            this.displayElement.style.pointerEvents = 'none';
                 break;
             case 'audio':
                 this.displayElement = this.replaceTagName<HTMLAudioElement>(this.displayElement, 'audio');
                 this.displayElement.setAttribute('controls', 'true');
+                this.displayElement.style.pointerEvents = 'all';
                 break;
             default:
                 throw new Error('fileblock: サポートされてないファイル形式です！');
