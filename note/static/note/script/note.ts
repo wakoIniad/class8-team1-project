@@ -972,7 +972,7 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
             try {
                 return new Promise((resolve,rejects)=>{
                     function result(compressed) {
-                        processAudio(compressed);
+                        analyzeFrequency(compressed);
                         resolve(compressed)
                     }
                     blobToMp3(file, result)
@@ -2252,38 +2252,36 @@ async function blobToMp3(blob, callback) {
     }
 }
 
-// フーリエ変換を使用して周波数ごとの配列を取得する
-function getFrequencyData(audioBuffer) {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
 
-    // バッファーからソースノードを作成
-    const source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    // 周波数データを格納するための配列
-    const frequencyData = new Uint8Array(analyser.frequencyBinCount);
-
-    // 再生を開始
-    source.start();
-
-    // 周波数データを更新して取得
-    analyser.getByteFrequencyData(frequencyData);
-    
-    return frequencyData;
-}
-
-// BlobをAudioBufferに変換する
-async function blobToAudioBuffer(blob) {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+async function analyzeFrequency(blob) {
     const arrayBuffer = await blob.arrayBuffer();
-    return audioContext.decodeAudioData(arrayBuffer);
-}
+    
 
-async function processAudio(blob) {
-    const audioBuffer = await blobToAudioBuffer(blob);
-    const frequencyData = getFrequencyData(audioBuffer);
+    // OfflineAudioContextを作成（44100Hz、1チャンネル、最大40秒）
+    const offlineContext = new OfflineAudioContext(1, 44100 * 40, 44100);
+    
+
+    // 音声データをデコード
+    const audioBuffer = await offlineContext.decodeAudioData(arrayBuffer);
+
+    // AudioBufferSourceNodeを作成
+    const source = offlineContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    // AnalyserNodeを作成
+    const analyser = offlineContext.createAnalyser();
+    analyser.fftSize = 1024; // FFTのサイズ
+    source.connect(analyser);
+    analyser.connect(offlineContext.destination);
+
+    // ソースを開始し、オフラインでレンダリング
+    source.start(0);
+    const renderedBuffer = await offlineContext.startRendering();
+
+    // 周波数データを取得
+    const frequencyData = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatFrequencyData(frequencyData);
+
+    // 結果をコンソールに表示
     console.log(frequencyData);
 }
