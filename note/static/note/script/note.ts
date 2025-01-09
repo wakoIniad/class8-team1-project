@@ -810,6 +810,91 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
 }
 
+class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
+    constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
+    }
+
+    async init() {
+        await super.init();
+        this.boxFrameElement.classList.add('no-focus-editor');
+
+        this.editorElement.setAttribute('type', 'file');
+        this.editorElement.setAttribute('accept', 'image/*,audio/*');
+
+        this.displayElement.setAttribute('src', this.value||SPACER_URI);
+        this.displayElement.setAttribute('alt','');
+        this.editorElement.addEventListener('change', ()=>{
+            this.update();
+            this.editorElement.value = '';
+        });
+        this.editorElement.addEventListener('dragenter', ()=>{
+            this.toggleToEditor(); 
+        });
+        this.editorElement.addEventListener('dragleave', ()=> {
+            this.toggleToView();
+        });
+        this.editorElement.addEventListener('drop', ()=> {
+            this.toggleToView();
+        });
+        this.toggleToView();
+    }
+ 
+    async getValue(): Promise<string> {
+        const fileReader = new FileReader();
+        const files = this.editorElement.files!;
+        return await new Promise<string>(async(resolve, reject)=>{
+            fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
+                if(e.target instanceof FileReader && typeof e.target.result === 'string') {
+                    resolve(e.target.result);
+                } else {
+                    reject(new Error('[ImageBlock-update]想定通りではありません'))
+                }
+            });
+            //input[type="file"] と input[type="button"] を分ける型はない
+            if(files.length) {
+                fileReader.readAsDataURL(await this.compress(files[0]));
+            } else {
+                resolve(SPACER_URI);
+            }
+        });
+    }
+    async applyValue(nosynch: boolean = false) {
+        this.displayElement.setAttribute('src', this.value);
+        this.toggleToView();
+        await super.applyValue(nosynch);
+    }
+    relayout(): void {
+        this.displayElement.onload = ()=> {
+            this.resize(this.width, this.displayElement.naturalHeight/this.displayElement.naturalWidth*this.width, 0, 0, 0, 0, true);
+        }
+    }
+    toggleToView() {
+        if(this.value) {
+            super.toggleToView();
+        } else {
+            super.toggleToEditor();
+        }
+        //this.assign(this.displayElement);
+    }
+    async dropped(block: Block<any, any>) {
+        if(block instanceof CanvasBlock) {
+            this.value = block.value;
+            this.applyValue();
+        } else
+        if(block instanceof ImageBlock) {
+            console.log('apply image', )
+            this.value = block.value;
+            this.applyValue();
+        } else 
+        if (block instanceof TextBlock) {
+            const src: string = await block.toImage();
+            this.value = src;
+            this.applyValue();
+        }
+    }
+}
+
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
@@ -906,6 +991,103 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
             const src: string = await block.toImage();
             this.value = src;
             this.applyValue();
+        }
+    }
+}
+
+class AudioBlock extends Block<HTMLInputElement, HTMLAudioElement> {
+    constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
+        super({ 'EditorType': 'input', 'DisplayType': 'audio' }, range, id, noteController, URI, 'audio');
+    }
+
+    async init() {
+        await super.init();
+        this.boxFrameElement.classList.add('no-focus-editor');
+
+        this.editorElement.setAttribute('type', 'file');
+        this.editorElement.setAttribute('accept', 'audio/*');
+
+        this.displayElement.setAttribute('src', this.value||SPACER_URI);
+        this.displayElement.setAttribute('alt','');
+        this.editorElement.addEventListener('change', ()=>{
+            this.update();
+            this.editorElement.value = '';
+        });
+        this.editorElement.addEventListener('dragenter', ()=>{
+            this.toggleToEditor(); 
+        });
+        this.editorElement.addEventListener('dragleave', ()=> {
+            this.toggleToView();
+        });
+        this.editorElement.addEventListener('drop', ()=> {
+            this.toggleToView();
+        });
+        this.toggleToView();
+    }
+    async compress(audioFile) {
+        try {
+            throw new Error('まだ音声の圧縮には非対応');
+            const options = {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 1024
+            }
+            
+            const compressed = await imageCompression(imageFile, options);
+
+            return compressed;
+        } catch {
+            NoteController.alertMessage('音声圧縮に失敗しました。\nそのまま送信されます。');
+            return audioFile;
+        }
+    }
+
+    async getValue(): Promise<string> {
+        const fileReader = new FileReader();
+        const files = this.editorElement.files!;
+        return await new Promise<string>(async(resolve, reject)=>{
+            fileReader.addEventListener('load', (e: ProgressEvent<FileReader>)=> {
+                if(e.target instanceof FileReader && typeof e.target.result === 'string') {
+                    resolve(e.target.result);
+                } else {
+                    reject(new Error('[AudioBlock-update]想定通りではありません'))
+                }
+            });
+            //input[type="file"] と input[type="button"] を分ける型はない
+            if(files.length) {
+                fileReader.readAsDataURL(await this.compress(files[0]));
+            } else {
+                resolve(SPACER_URI);
+            }
+        });
+    }
+    async applyValue(nosynch: boolean = false) {
+        this.displayElement.setAttribute('src', this.value);
+        this.toggleToView();
+        await super.applyValue(nosynch);
+    }
+    toggleToView() {
+        if(this.value) {
+            super.toggleToView();
+        } else {
+            super.toggleToEditor();
+        }
+        //this.assign(this.displayElement);
+    }
+    async dropped(block: Block<any, any>) {
+        if(block instanceof CanvasBlock) {
+            /**
+             * ここは画像を音声データとして読み込む！
+             */
+        } else
+        if(block instanceof ImageBlock) {
+            /**
+             * ここは画像を音声データとして読み込む！
+             */
+        } else 
+        if (block instanceof TextBlock) {
+            /**
+             * 用意してないよ！
+             */
         }
     }
 }
