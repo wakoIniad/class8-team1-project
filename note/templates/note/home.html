@@ -1,16 +1,20 @@
 {% extends 'note/base.html' %}
 {% load static %}
 {% block content %}
+
+<link rel="stylesheet" href='{% static "/note/style/home.css" %}'>
 <body>
     {% csrf_token %}
     <h1>web note qpp</h1>
     <p>
+        <h3>新規ノート作成</h3>
         <img src="https://illustimage.com/photo/dl/2507.png?20161226" width="200px" height="200px">
         
         <input type="text" id="note_name" placeholder="ここにノートの名前を書く">
         <input type="button" id="submit" value="作成">
     </p>
     <p>
+        <h3>過去ノート閲覧</h3>
         <img src="https://media.gettyimages.com/id/165767004/ja/%E3%83%99%E3%82%AF%E3%82%BF%E3%83%BC/%E3%83%96%E3%83%83%E3%82%AF%E3%82%B7%E3%82%A7%E3%83%AB%E3%83%95.jpg?s=612x612&w=0&k=20&c=hkgLkJh0xZAmfThqCLVk1o4X9ccjcfKua6MFAmk5ri4=" width="200px" height="150px"></p>
         <p><a href="{% url 'note_list' %}">過去ノート一覧</a></p>
     </p>
