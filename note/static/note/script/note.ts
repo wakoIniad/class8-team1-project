@@ -2252,13 +2252,34 @@ async function blobToMp3(blob, callback) {
     }
 }
 
+async function getAudioPropertiesFromBlob(blob) {
+    // BlobをArrayBufferに変換
+    const arrayBuffer = await blob.arrayBuffer();
+    
+    // OfflineAudioContextを作成 (仮の値で初期化)
+    const offlineContext = new OfflineAudioContext(1, 1, 44100); 
 
+    // 音声データをデコード
+    const audioBuffer = await offlineContext.decodeAudioData(arrayBuffer);
+
+    // sampleRate と length を含むオブジェクトを作成
+    const audioProperties = {
+        sampleRate: audioBuffer.sampleRate,
+        length: audioBuffer.length
+    };
+
+    // 結果を返す
+    return audioProperties;
+}
 async function analyzeFrequency(blob) {
+    const aud = await getAudioPropertiesFromBlob(blob);
+    console.log(aud);
+
     const arrayBuffer = await blob.arrayBuffer();
     
 
     // OfflineAudioContextを作成（44100Hz、1チャンネル、最大40秒）
-    const offlineContext = new OfflineAudioContext(1, 44100 * 40, 44100);
+    const offlineContext = new OfflineAudioContext(1, aud.length, aud.sampleRate);
     
 
     // 音声データをデコード
