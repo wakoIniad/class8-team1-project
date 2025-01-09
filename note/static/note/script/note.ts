@@ -812,6 +812,85 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
 }
 
+class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
+    embedBlockList: { [key: string]: Block<any, any> } = {};
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'ai', );
+    }
+    async init() {
+        await super.init();
+        this.editorElement.value = this.value;
+        this.editorElement.classList.add('text-editor');
+
+        this.displayElement.classList.add('text-view');
+        this.displayElement.classList.add('markdown-text-default');
+        
+        this.boxFrameElement.addEventListener('dblclick', (e)=>{
+            
+            //イベントの伝搬を中止
+            e.stopPropagation();
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            } else {
+                this.toggleToEditor();
+            }
+        });
+        this.boxFrameElement.addEventListener('focusout', (e)=>{
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            }
+        })
+        //this.boxFrameElement.addEventListener('focusout', (e)=>{
+        //});
+    }
+    getValue() {
+        return this.editorElement.value;
+    }
+    async applyValue(nosynch: boolean = false) {
+        this.displayElement.innerText = this.value;
+        await super.applyValue(nosynch);
+    }
+
+    async dropped(block: Block<any, any>): void {
+
+        if(block instanceof TextBlock) {
+            const gpt_url = 
+                window.location.origin+'/api/gpt/?message='+block.value;
+            const result = await fetch(gpt_url);
+            const res_text = await result.text();
+            this.value = res_text;
+        }
+        await this.applyValue();
+    }
+    async toImage(): Promise<string> {
+        const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
+        return result.toDataURL("image/png");
+    }
+    async toImage_old(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if(this.onContainer) {
+                const scale = 1;
+//              const quality = 50;
+
+                const e2i = new Elem2Img();
+                e2i.save_png(function (img_data) {
+                    //const img_elem = document.createElement("img");
+                    //img_elem.src = img_data;
+                    resolve(img_data);
+                    //document.getElementsByTagName("body")[0].appendChild(img_elem);
+
+                    //表示と同時にダウンロードもさせる場合
+                    //Elem2Img.save_image(img_data, "Sample.jpeg");
+                }, this.boxFrameElement, scale);
+            } else {
+                reject(new Error('HTML上に存在しないため画像を作成できません。'));
+            };
+        });
+    }
+}
+
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
@@ -1227,6 +1306,9 @@ class NoteController {
                 break;
             case 'canvas':
                 res = new CanvasBlock(range, value, id, noteController);
+                break;
+            case 'ai':
+                res = new AiBlock(range, value, id, noteController);
                 break;
         }
         NoteController.pageObjects.push(res);
