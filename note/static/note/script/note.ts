@@ -811,6 +811,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 }
 
 class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
+    subtype: string = '';
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
     }
@@ -859,10 +860,57 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
+    replaceTagName ( target:Element, tagName:string ):Element {
+        if ( ! target.parentNode ) { return target; }
+    
+        const replacement = document.createElement( tagName );
+        Array.from( target.attributes ).forEach( ( attribute ) => {
+            const { nodeName, nodeValue } = attribute;
+            if ( nodeValue ) {
+                replacement.setAttribute( nodeName, nodeValue );
+            }
+        } );
+        Array.from( target.childNodes ).forEach( ( node ) => {
+            replacement.appendChild( node );
+        } ); // For some reason, only textNodes are appended
+            // without converting childNodes to Array.
+        target.parentNode.replaceChild( replacement, target );
+        return replacement;
+    };
+    
+    toggleSubtype(subtype) {
+        switch(subtype) {
+            case 'image':        
+                this.displayElement.setAttribute('src', this.value||SPACER_URI);
+                this.displayElement.setAttribute('alt', '');
+                break;
+            case 'audio':
+                
+        }
+    }
     async applyValue(nosynch: boolean = false) {
         this.displayElement.setAttribute('src', this.value);
         this.toggleToView();
         await super.applyValue(nosynch);
+    }
+    async compress(file) {
+        if(this.subtype === 'image') {
+            try {
+                const options = {
+                  maxSizeMB: 0.8,
+                  maxWidthOrHeight: 1024
+                }
+
+                const compressed = await imageCompression(file, options);
+
+                return compressed;
+            } catch {
+                NoteController.alertMessage('画像圧縮に失敗しました。\nそのまま送信されます。');
+                return file;
+            }
+        } else if(this.subtype === 'audio') {
+            return file;
+        }
     }
     relayout(): void {
         this.displayElement.onload = ()=> {
