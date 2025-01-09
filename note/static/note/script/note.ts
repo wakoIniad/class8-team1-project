@@ -14,6 +14,7 @@ import { rangeData } from '../type/rangeData';
 import { rejects } from 'assert';
 import { error } from 'console';
 import e from 'cors';
+import { ReadVResult } from 'fs';
 const SPACER_URI: string = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const NOTE_API_URL: string = window.location.origin + '/api/note/';
 
@@ -931,11 +932,13 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
             case 'image':        
             this.displayElement = this.replaceTagName<HTMLImageElement>(this.displayElement, 'img');
             this.displayElement.style.pointerEvents = 'none';
+            this.displayElement.style.height = '100%';
                 break;
             case 'audio':
                 this.displayElement = this.replaceTagName<HTMLAudioElement>(this.displayElement, 'audio');
                 this.displayElement.setAttribute('controls', 'true');
                 this.displayElement.style.pointerEvents = 'all';
+                this.displayElement.style.height = '50%';
                 break;
             default:
                 throw new Error('fileblock: サポートされてないファイル形式です！');
@@ -966,7 +969,19 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
                 return file;
             }
         } else if(this.subtype === 'audio') {
-            return file;
+           // try {
+                return new Promise((resolve,rejects)=>{
+                    function result(compressed) {
+                        resolve(compressed)
+                    }
+                    compressAudioToTargetSize(file, 0.1 );
+
+                });
+            //} catch (e){
+            //    console.warn(e)
+            //    NoteController.alertMessage('音声圧縮に失敗しました。\nそのまま送信されます。');
+            //    return file;
+            //}
         }
     }
     relayout(): void {
@@ -2162,3 +2177,168 @@ function getDataURIDetails(dataURI='') {
           fileType: fileType // "image" or "audio"
     };
 }
+
+//By GPT4o
+/*async function compressAudio(file, targetSizeInMB) {
+    const { createFFmpeg, fetchFile } = FFmpegWASM;
+    const ffmpeg = createFFmpeg({ log: true });
+    
+    // FFmpegをロード
+    await ffmpeg.load();
+    
+    // 音声ファイルを読み込む
+    const audioData = await fetchFile(file);
+    const inputFileName = file.name;  // 元のファイル名
+    await ffmpeg.FS('writeFile', inputFileName, audioData);
+
+    // 初期ビットレートを設定（例えば128kbps）
+    let bitrate = 128;
+    
+    // 出力ファイル名
+    const outputFileName = 'output.mp3';  // 出力ファイル形式（MP3を使用）
+
+    // 最初にMP3で変換（最初は128kbpsを設定）
+    await ffmpeg.run('-i', inputFileName, '-b:a', `${bitrate}k`, outputFileName);
+
+    // 変換したファイルのサイズを確認
+    const data = ffmpeg.FS('readFile', outputFileName);
+    let fileSizeMB = data.length / 1024 / 1024; // MB単位
+
+    // ターゲットサイズに収まるようにビットレートを調整
+    while (fileSizeMB > targetSizeInMB && bitrate > 32) {
+        // ビットレートを下げる
+        bitrate -= 16;
+        
+        // 新たな圧縮を実行
+        await ffmpeg.run('-i', inputFileName, '-b:a', `${bitrate}k`, outputFileName);
+        
+        // 変換したファイルのサイズを確認
+        const data = ffmpeg.FS('readFile', outputFileName);
+        fileSizeMB = data.length / 1024 / 1024; // MB単位
+    }
+
+    // 最終的に変換したファイルをBlobとして取得
+    const finalData = ffmpeg.FS('readFile', outputFileName);
+    const outputBlob = new Blob([finalData.buffer], { type: 'audio/mp3' });
+
+    // 結果を返す
+    return outputBlob;
+}*/
+
+// lamejsライブラリを使用して音声を圧縮する関数
+/*function compressAudioToTargetSize(audioBlob, targetSizeMB, callback) {
+    // 音声データの読み込み
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const audioData = event!.target!.result!;
+
+        // LameJSのインスタンスを作成
+        const mp3encoder = new lamejs.Mp3Encoder(1, 44100, 128); // モノラル、44.1kHz、128kbpsでエンコード
+        const mp3Data = [];
+        const sampleRate = 44100; // サンプルレート (通常は44.1kHz)
+        const bitRate = 128; // 最初のビットレート設定 (後で調整)
+
+        // 音声データをエンコードする
+        const maxSize = targetSizeMB; // ターゲットサイズ (バイト単位)
+        const buffer = new Int16Array(audioData); // 16bit PCMデータへの変換
+
+        // データの圧縮
+        let mp3Buffer = mp3encoder.encodeBuffer(buffer);
+        mp3Data.push(mp3Buffer);
+
+        // 圧縮したデータのサイズ
+        let mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+        let currentSize = mp3Blob.size;
+
+        // 目標サイズに収束するように調整
+        if (currentSize > maxSize) {
+            // ファイルが大きすぎる場合、ビットレートを下げる
+            const newBitRate = Math.max(64, Math.floor((bitRate * maxSize) / currentSize)); // ビットレートを調整
+            mp3encoder.setBitRate(newBitRate);
+            mp3Data.length = 0; // 新しいエンコードデータを再生成
+
+            mp3Buffer = mp3encoder.encodeBuffer(buffer);
+            mp3Data.push(mp3Buffer);
+
+            // 再度、圧縮したデータを生成
+            mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+        }
+
+        // 結果をコールバックで返す
+        callback(mp3Blob);
+    };
+
+    reader.readAsArrayBuffer(audioBlob);
+}*/
+
+async function compressAudioToTargetSize(inputBlob, targetSize, initialBitrate = 128) {
+    const arrayBuffer = await blobToArrayBuffer(inputBlob);
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    
+    let bitrate = initialBitrate;
+    let mp3Blob = await encodeWavToMp3(audioBuffer, bitrate);
+  
+    while (mp3Blob.size > targetSize && bitrate > 32) {
+      bitrate -= 16; // Adjust bitrate downwards by 16 kbps
+      mp3Blob = await encodeWavToMp3(audioBuffer, bitrate);
+    }
+  
+    if (mp3Blob.size > targetSize) {
+      throw new Error("Target size is too small for the given audio input.");
+    }
+  
+    return mp3Blob;
+  }
+  
+  function blobToArrayBuffer(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+  
+  function encodeWavToMp3(audioBuffer, bitrate) {
+    return new Promise((resolve) => {
+      const { Lame } = lamejs;
+      const sampleRate = audioBuffer.sampleRate;
+      const channels = audioBuffer.numberOfChannels;
+      const mp3encoder = new Lame.Encoder({
+        params: {
+          channels,
+          sample_rate: sampleRate,
+          bit_rate: bitrate
+        }
+      });
+  
+      const mp3Data = [];
+      const samples = audioBuffer.length;
+      const leftData = audioBuffer.getChannelData(0);
+      const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData;
+  
+      let offset = 0;
+      const samplesPerFrame = mp3encoder.fmpl();
+  
+      while (offset < samples) {
+        const left = leftData.subarray(offset, offset + samplesPerFrame);
+        const right = rightData.subarray(offset, offset + samplesPerFrame);
+        const mp3Buffer = mp3encoder.encodeBuffer(left, right);
+  
+        if (mp3Buffer.length > 0) {
+          mp3Data.push(new Int8Array(mp3Buffer));
+        }
+  
+        offset += samplesPerFrame;
+      }
+  
+      const finalBuffer = mp3encoder.flush();
+      if (finalBuffer.length > 0) {
+        mp3Data.push(new Int8Array(finalBuffer));
+      }
+  
+      const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+      resolve(mp3Blob);
+    });
+  }
