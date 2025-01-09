@@ -919,10 +919,11 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
         this.subtype = subtype;
         switch(subtype) {
             case 'image':        
-                this.displayElement = this.replaceTagName<HTMLAudioElement>(this.displayElement, 'audio');
+            this.displayElement = this.replaceTagName<HTMLImageElement>(this.displayElement, 'img');
                 break;
             case 'audio':
-                this.displayElement = this.replaceTagName<HTMLImageElement>(this.displayElement, 'img');
+                this.displayElement = this.replaceTagName<HTMLAudioElement>(this.displayElement, 'audio');
+                this.displayElement.setAttribute('controls', 'true');
                 break;
             default:
                 throw new Error('fileblock: サポートされてないファイル形式です！');
