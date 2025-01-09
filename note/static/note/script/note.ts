@@ -214,7 +214,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 //                this.boxFrameElement.removeEventListener("keydown", this);
                 this.dump();
             } else {
-
+                this.onKeydown(e);
             }
             console.log(this.id, e.key);
         }).bind(this));
@@ -222,7 +222,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             /**ブロック編集時にブロック作成操作が実行されないようにする用 */
             event.stopPropagation();
         })
-        
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
@@ -271,6 +270,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             }
         });
         
+    }
+    onKeydown(e: KeyboardEvent) {
+
     }
     duplicate() {
         if(this.type) {
@@ -837,6 +839,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.addEventListener('drop', ()=> {
             this.toggleToView();
         });
+        //#imageb
         this.toggleToView();
     }
     async compress(imageFile) {
@@ -951,10 +954,12 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 const image = new Image();
                 image.addEventListener("load", () => {
                     this.backgroundContext.drawImage(image, 0, 0);
+                    this.editingContext.drawImage(image, 0, 0);
                 });
                 image.src = this.value;
             }
         }
+        
 
         this.editorElement.setAttribute('width', String(this.width));
         this.editorElement.setAttribute('height', String(this.height));
@@ -974,6 +979,24 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.lastX = null;
         this.lastY = null;
+    }
+    onKeydown(e: KeyboardEvent): void {
+        if(e.key === 'f') {
+            // 画像情報の取得（offsetX, offsetY, 幅、高さ）
+            const imageData = this.editingContext.getImageData(0, 0, this.editingRange.width, this.editingRange.height);
+
+            let data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                // 255-(r|g|b)
+                data[i]   = 255 - data[i]  ;
+                data[i+1] = 255 - data[i+1];
+                data[i+2] = 255 - data[i+2];
+            }                          
+            this.editingContext.putImageData(imageData, 0, 0);
+            this.applyValue();
+            this.relayout();
+        }
     }
     activateCanvasEditor() {
         
@@ -1065,18 +1088,6 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-
-    /**
-     * 左上から縮小 ⇒ relocate & ( -= moveMent )
-     * 左上から拡大 ⇒ relocate & ( -= movement )
-     * 右下から縮小 ⇒ += movement
-     * 右下から拡大 ⇒ += movement 
-     * 
-     * rangeが -n (n: 自然数)
-     * (x + |-x|)/2 ⇒ n: n, -n: 0
-     * 
-     * 
-     */
 
     async applyValue(nosynch: boolean = false) {
         
