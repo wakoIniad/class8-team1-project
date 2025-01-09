@@ -136,6 +136,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
     value: string;
     id: string | Promise<string>;
     private type_?: string;
+    subtype: string = '';
 
     pendingRequest?: Promise<any>;
 
@@ -300,10 +301,15 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
         this.value = value;
         this.type = type;
     }
+    getType(): string {
+        return this.type + '/' + this.subtype;
+    }
 
     dropped(block: Block<any, any>) {
-        switch(block.type) {
-            case 'image':
+        switch(block.getType()) {
+            case 'file/image':
+                break;
+            case 'file/image':
                 break;
             case 'text':
                 break;
@@ -810,12 +816,29 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
 }
 
+class SubType {
+
+}
+
+class ImageSubtype extends SubType {
+
+}
+ 
 class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
     subtype: string = '';
+    subtypeClass: SubType;
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
+        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'file');
     }
 
+    async toImage() {
+        switch(this.subtype) {
+            case 'image':
+                return this.value;
+            case 'audio':
+                return ''//##なんか処理やれ！
+        }
+    }
     async init() {
         await super.init();
         this.boxFrameElement.classList.add('no-focus-editor');
@@ -854,6 +877,19 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
             });
             //input[type="file"] と input[type="button"] を分ける型はない
             if(files.length) {
+                const file = files[0];
+                const mimeType = file.type;
+                //mimeTypeは」 audio/mp3 のような形式なのでファイルの種別も取れる
+                const typeCategory = mimeType.split("/")[0]; 
+                //形式に応じて型チェンジする
+                switch(typeCategory) {
+                    case 'image':
+                        this.toggleSubtype('image')
+                        break;
+                    case 'audio':
+                        this.toggleSubtype('audio')
+                        break;
+                }
                 fileReader.readAsDataURL(await this.compress(files[0]));
             } else {
                 resolve(SPACER_URI);
@@ -879,12 +915,13 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
     };
     
     toggleSubtype(subtype) {
+        this.subtype = subtype;
         switch(subtype) {
             case 'image':        
-                this.displayElement.setAttribute('src', this.value||SPACER_URI);
-                this.displayElement.setAttribute('alt', '');
+                this.replaceTagName(this.displayElement, 'audio');
                 break;
             case 'audio':
+                this.replaceTagName(this.displayElement, 'img');
                 
         }
     }
@@ -900,7 +937,6 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
                   maxSizeMB: 0.8,
                   maxWidthOrHeight: 1024
                 }
-
                 const compressed = await imageCompression(file, options);
 
                 return compressed;
@@ -943,6 +979,7 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
 }
 
+//イメージブロックは用済み
 class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'image');
@@ -1043,6 +1080,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
     }
 }
 
+//オーディオブロックにはあったことがない
 class AudioBlock extends Block<HTMLInputElement, HTMLAudioElement> {
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
         super({ 'EditorType': 'input', 'DisplayType': 'audio' }, range, id, noteController, URI, 'audio');
@@ -1160,6 +1198,9 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
         super({ 'EditorType': 'canvas', 'DisplayType': 'img' }, range, id, noteController, URI, 'canvas');
         
         this.bindedEvents = [];
+    }
+    async toImage() {
+        return this.value;
     }
     async init() {
         await super.init();
@@ -1441,8 +1482,8 @@ class NoteController {
             case 'text':
                 res = new TextBlock(range, value, id, noteController);
                 break;
-            case 'image':
-                res = new ImageBlock(range, value, id, noteController);
+            case 'file':
+                res = new FileBlock(range, value, id, noteController);
                 break;
             case 'canvas':
                 res = new CanvasBlock(range, value, id, noteController);
@@ -1752,18 +1793,18 @@ class UiDrawMode {
     async dropped(block: Block<any, any>) {
         if(block instanceof TextBlock) {
             switch(this.type) {
-                case 'image':
+                case 'file':
                 case 'canvas':
                     block.changeBlockType(this.type, await block.toImage());
                     break;
                 case 'text': 
                     break;
             }
-        } else if(block instanceof ImageBlock || block instanceof CanvasBlock) {
-            switch(this.type) {
-                case 'image':
+        } else if(block instanceof FileBlock || block instanceof CanvasBlock) {
+            switch(this.type) {//#未処理
+                case 'file':
                 case 'canvas':
-                    block.changeBlockType(this.type, block.value);
+                    block.changeBlockType(this.type, await block.toImage());
                     break;
                 case 'text':                
                     //埋め込み
