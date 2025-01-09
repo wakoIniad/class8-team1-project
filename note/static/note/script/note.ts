@@ -922,10 +922,16 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
                 break;
             case 'audio':
                 this.replaceTagName(this.displayElement, 'img');
+            default:
+                throw new Error('fileblock: サポートされちいないファイル形式です！');
                 
         }
     }
+    applyFileType() {
+        this.toggleSubtype(getDataURIDetails(this.value).fileType);
+    }
     async applyValue(nosynch: boolean = false) {
+        this.applyFileType();
         this.displayElement.setAttribute('src', this.value);
         this.toggleToView();
         await super.applyValue(nosynch);
@@ -2128,3 +2134,16 @@ class SocketIOManager {
 }
 const socketIOManager = new SocketIOManager();
 socketIOManager.start();
+
+function getDataURIDetails(dataURI) {
+    const [scheme, mimeTypeAndData] = dataURI.split(':'); // "data" と "image/png;base64..."
+    const [mimeType, data] = mimeTypeAndData.split(';'); // "image/png" と "base64..."
+    
+    const fileType = mimeType.split('/')[0]; // "image" or "audio"
+    
+    return {
+          scheme: scheme, // "data"
+          mimeType: mimeType, // "image/png"
+          fileType: fileType // "image" or "audio"
+    };
+}

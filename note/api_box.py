@@ -28,7 +28,7 @@ class BoxApiHandler(DefaultApiHandler):
     
     def post_processer(self, process, **kwargs):
         if kwargs["model"] is not None and \
-            kwargs["model"].type == 'image' and\
+            kwargs["model"].type == 'file/image' and\
             "value" in kwargs["data"]["update_keys"]:
             print('update', kwargs["data"]["update_keys"], '->', kwargs["data"]["update_values"]);
             i = kwargs["data"]["update_keys"].index("value")
