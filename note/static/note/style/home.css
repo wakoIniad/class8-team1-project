@@ -2,14 +2,43 @@ body {
     background: var(--main-color2);
 }
 
-input[tipe="text"] {
+input[type="text"]::placeholder {
     color: rgb(255,255,255);
+    text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000;
+    outline: 2px solid rgb(0, 0, 0);
+}
+
+input[type="button"] {
+    color: rgb(255,255,255);
+    outline: 2px solid rgb(0, 0, 0);
 }
 
 h1 {
     color: rgb(255, 255, 255);
+    width: 100%;
 }
 
 h3 {
     color: rgb(255,255,255);
+}
+
+p2 {
+    background-color: #ffffff;
+}
+
+#all {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+}
+
+.note {
+    display: block;
+    width:  50%;
+    height: 100%;
+    justify-content: center;
 }
