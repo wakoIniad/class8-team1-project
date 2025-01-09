@@ -969,20 +969,20 @@ class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageEleme
                 return file;
             }
         } else if(this.subtype === 'audio') {
-            //try {
+            try {
                 return new Promise((resolve,rejects)=>{
                     function result(compressed) {
+                        processAudio(compressed);
                         resolve(compressed)
                     }
                     blobToMp3(file, result)
                 });
                 
-            //    return compressAudio(file );
-            //} catch (e){
-            //    console.warn(e)
-            //    NoteController.alertMessage('音声圧縮に失敗しました。\nそのまま送信されます。');
-            //    return file;
-            //}
+            } catch (e){
+                console.warn(e)
+                NoteController.alertMessage('音声圧縮に失敗しました。\nそのまま送信されます。');
+                return file;
+            }
         }
     }
     relayout(): void {
@@ -2179,370 +2179,111 @@ function getDataURIDetails(dataURI='') {
     };
 }
 
-//By GPT4o
-/*async function compressAudio(file, targetSizeInMB) {
-    const { createFFmpeg, fetchFile } = FFmpegWASM;
-    const ffmpeg = createFFmpeg({ log: true });
-    
-    // FFmpegをロード
-    await ffmpeg.load();
-    
-    // 音声ファイルを読み込む
-    const audioData = await fetchFile(file);
-    const inputFileName = file.name;  // 元のファイル名
-    await ffmpeg.FS('writeFile', inputFileName, audioData);
-
-    // 初期ビットレートを設定（例えば128kbps）
-    let bitrate = 128;
-    
-    // 出力ファイル名
-    const outputFileName = 'output.mp3';  // 出力ファイル形式（MP3を使用）
-
-    // 最初にMP3で変換（最初は128kbpsを設定）
-    await ffmpeg.run('-i', inputFileName, '-b:a', `${bitrate}k`, outputFileName);
-
-    // 変換したファイルのサイズを確認
-    const data = ffmpeg.FS('readFile', outputFileName);
-    let fileSizeMB = data.length / 1024 / 1024; // MB単位
-
-    // ターゲットサイズに収まるようにビットレートを調整
-    while (fileSizeMB > targetSizeInMB && bitrate > 32) {
-        // ビットレートを下げる
-        bitrate -= 16;
-        
-        // 新たな圧縮を実行
-        await ffmpeg.run('-i', inputFileName, '-b:a', `${bitrate}k`, outputFileName);
-        
-        // 変換したファイルのサイズを確認
-        const data = ffmpeg.FS('readFile', outputFileName);
-        fileSizeMB = data.length / 1024 / 1024; // MB単位
-    }
-
-    // 最終的に変換したファイルをBlobとして取得
-    const finalData = ffmpeg.FS('readFile', outputFileName);
-    const outputBlob = new Blob([finalData.buffer], { type: 'audio/mp3' });
-
-    // 結果を返す
-    return outputBlob;
-}*/
-
-// lamejsライブラリを使用して音声を圧縮する関数
-/*function compressAudioToTargetSize(audioBlob, targetSizeMB, callback) {
-    // 音声データの読み込み
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const audioData = event!.target!.result!;
-
-        // LameJSのインスタンスを作成
-        const mp3encoder = new lamejs.Mp3Encoder(1, 44100, 128); // モノラル、44.1kHz、128kbpsでエンコード
-        const mp3Data = [];
-        const sampleRate = 44100; // サンプルレート (通常は44.1kHz)
-        const bitRate = 128; // 最初のビットレート設定 (後で調整)
-
-        // 音声データをエンコードする
-        const maxSize = targetSizeMB; // ターゲットサイズ (バイト単位)
-        const buffer = new Int16Array(audioData); // 16bit PCMデータへの変換
-
-        // データの圧縮
-        let mp3Buffer = mp3encoder.encodeBuffer(buffer);
-        mp3Data.push(mp3Buffer);
-
-        // 圧縮したデータのサイズ
-        let mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-        let currentSize = mp3Blob.size;
-
-        // 目標サイズに収束するように調整
-        if (currentSize > maxSize) {
-            // ファイルが大きすぎる場合、ビットレートを下げる
-            const newBitRate = Math.max(64, Math.floor((bitRate * maxSize) / currentSize)); // ビットレートを調整
-            mp3encoder.setBitRate(newBitRate);
-            mp3Data.length = 0; // 新しいエンコードデータを再生成
-
-            mp3Buffer = mp3encoder.encodeBuffer(buffer);
-            mp3Data.push(mp3Buffer);
-
-            // 再度、圧縮したデータを生成
-            mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-        }
-
-        // 結果をコールバックで返す
-        callback(mp3Blob);
-    };
-
-    reader.readAsArrayBuffer(audioBlob);
-}*/
-/*
-async function compressAudioToTargetSize(inputBlob, targetSize, initialBitrate = 128) {
-    const arrayBuffer = await blobToArrayBuffer(inputBlob);
+async function blobToMp3(blob, callback) {
+    // Web Audio APIのコンテキストを作成
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
-    let bitrate = initialBitrate;
-    let mp3Blob = await encodeWavToMp3(audioBuffer, bitrate);
-  
-    while (mp3Blob.size > targetSize && bitrate > 32) {
-      bitrate -= 16; // Adjust bitrate downwards by 16 kbps
-      mp3Blob = await encodeWavToMp3(audioBuffer, bitrate);
-    }
-  
-    if (mp3Blob.size > targetSize) {
-      throw new Error("Target size is too small for the given audio input.");
-    }
-  
-    return mp3Blob;
-  }
-  
-  function blobToArrayBuffer(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(blob);
-    });
-  }
-  
-  function encodeWavToMp3(audioBuffer, bitrate) {
-    return new Promise((resolve) => {
-      const { Lame } = lamejs;
-      const sampleRate = audioBuffer.sampleRate;
-      const channels = audioBuffer.numberOfChannels;
-      const mp3encoder = new Lame.Encoder({
-        params: {
-          channels,
-          sample_rate: sampleRate,
-          bit_rate: bitrate
+
+    // BlobをArrayBufferに変換
+    const arrayBuffer = await blob.arrayBuffer();
+
+    // ArrayBufferをデコードしてオーディオバッファを取得
+    try {
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        // 元の音声のサンプルレートおよびチャンネル数を取得
+        const sampleRate = audioBuffer.sampleRate;
+        const numChannels = audioBuffer.numberOfChannels;
+
+        // MP3エンコーダを設定
+        const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+        const mp3Data = [];
+        const samplesPerFrame = 1152;
+
+        // 各チャンネルからPCMデータを生成
+        const pcmData = [];
+        for (let i = 0; i < numChannels; i++) {
+            pcmData.push(audioBuffer.getChannelData(i));
         }
-      });
-  
-      const mp3Data = [];
-      const samples = audioBuffer.length;
-      const leftData = audioBuffer.getChannelData(0);
-      const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData;
-  
-      let offset = 0;
-      const samplesPerFrame = mp3encoder.fmpl();
-  
-      while (offset < samples) {
-        const left = leftData.subarray(offset, offset + samplesPerFrame);
-        const right = rightData.subarray(offset, offset + samplesPerFrame);
-        const mp3Buffer = mp3encoder.encodeBuffer(left, right);
-  
-        if (mp3Buffer.length > 0) {
-          mp3Data.push(new Int8Array(mp3Buffer));
-        }
-  
-        offset += samplesPerFrame;
-      }
-  
-      const finalBuffer = mp3encoder.flush();
-      if (finalBuffer.length > 0) {
-        mp3Data.push(new Int8Array(finalBuffer));
-      }
-  
-      const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-      resolve(mp3Blob);
-    });
-  }*/
-/*
-    async function compressAudio(inputBlob) {
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
-      
-        // FFmpegをロード
-        await ffmpeg.load();
-      
-        // BlobをファイルとしてFFmpegに書き込む
-        const inputData = new Uint8Array(await inputBlob.arrayBuffer());
-        ffmpeg.FS('writeFile', 'input.wav', inputData);
-      
-        // 圧縮用にFFmpegコマンドを実行
-        // 出力フォーマットや圧縮パラメータを適宜に設定してください
-        await ffmpeg.run('-i', 'input.wav', '-acodec', 'libmp3lame', '-b:a', '128k', 'output.mp3');
-      
-        // 圧縮したファイルを取得
-        const outputData = ffmpeg.FS('readFile', 'output.mp3');
-      
-        // Uint8ArrayをBlobに変換して返す
-        return new Blob([outputData.buffer], { type: 'audio/mp3' });
-      }
 
-      function blobToMp3(blob, callback) {
-        // FileReaderを使用してBlobをArrayBufferに変換
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const arrayBuffer = event.target.result;
-            // ArrayBufferからInt16Arrayに変換
-            const audioData = new Int16Array(arrayBuffer);
-    
-            // MP3エンコーダの作成
-            const mp3Encoder = new lamejs.Mp3Encoder(1, 44100, 128); // 1チャンネル、44.1kHz、128kbps
-    
-            // PCMデータをエンコード
-            const mp3Data = [];
-            const sampleBlockSize = 1152;
-            for (let i = 0; i < audioData.length; i += sampleBlockSize) {
-                const sampleChunk = audioData.subarray(i, i + sampleBlockSize);
-                const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
-                if (mp3buf.length > 0) {
-                    mp3Data.push(mp3buf);
-                }
-            }
-            
-            // フィニッシュ
-            const mp3buf = mp3Encoder.flush();
-            if (mp3buf.length > 0) {
-                mp3Data.push(mp3buf);
-            }
-    
-            // MP3データをBlobとして作成
-            const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-            callback(mp3Blob);
-        };
-    
-        reader.readAsArrayBuffer(blob);
-    }*//*
-        async function blobToMp3(blob, callback) {
-            // Web Audio APIのコンテキストを作成
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-            // BlobをArrayBufferに変換
-            const arrayBuffer = await blob.arrayBuffer();
-        
-            // ArrayBufferをデコードしてオーディオバッファを取得
-            try {
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
-                // 元の音声のサンプルレートおよびチャンネル数を取得
-                const sampleRate = audioBuffer.sampleRate;
-                const numChannels = audioBuffer.numberOfChannels;
-        
-                // MP3エンコーダを設定
-                const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
-        
-                // エンコード時のブロックサイズ設定
-                const sampleBlockSize = 1152;
-                const mp3Data = [];
-        
-                // 各チャンネル用のPCMデータを収集してエンコード
-                for (let i = 0; i < audioBuffer.length; i += sampleBlockSize) {
-                    const samples = new Int16Array(sampleBlockSize * numChannels);
-        
-                    for (let channel = 0; channel < numChannels; channel++) {
-                        const channelData = audioBuffer.getChannelData(channel);
-                        for (let j = 0; j < sampleBlockSize; j++) {
-                            const sampleIndex = i + j;
-                            if (sampleIndex < channelData.length) {
-                                samples[j * numChannels + channel] = Math.max(-32768, Math.min(32767, channelData[sampleIndex] * 32767));
-                            } else {
-                                samples[j * numChannels + channel] = 0;
-                            }
-                        }
-                    }
-        
-                    // エンコード
-                    const mp3buffer = mp3Encoder.encodeBuffer(samples);
-                    if (mp3buffer.length > 0) {
-                        mp3Data.push(mp3buffer);
-                    }
-                }
-        
-                // エンコーダをフラッシュ
-                const flushBuffer = mp3Encoder.flush();
-                if (flushBuffer.length > 0) {
-                    mp3Data.push(flushBuffer);
-                }
-        
-                // 完成したMP3データをBlobに変換
-                const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-                callback(mp3Blob);
-        
-            } catch (error) {
-                console.error("音声デコードに失敗しました:", error);
-            }
-        }*/
+        // PCMデータをエンコード
+        let offset = 0;
+        while (offset < audioBuffer.length) {
+            const sampleChunk = new Int16Array(samplesPerFrame * numChannels);
 
-
-        async function blobToMp3(blob, callback) {
-            // Web Audio APIのコンテキストを作成
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-            // BlobをArrayBufferに変換
-            const arrayBuffer = await blob.arrayBuffer();
-        
-            // ArrayBufferをデコードしてオーディオバッファを取得
-            try {
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
-                // 元の音声のサンプルレートおよびチャンネル数を取得
-                const sampleRate = audioBuffer.sampleRate;
-                const numChannels = audioBuffer.numberOfChannels;
-        
-                // MP3エンコーダを設定
-                const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
-                const mp3Data = [];
-                const samplesPerFrame = 1152;
-        
-                // 各チャンネルからPCMデータを生成
-                const pcmData = [];
-                for (let i = 0; i < numChannels; i++) {
-                    pcmData.push(audioBuffer.getChannelData(i));
-                }
-        
-                // PCMデータをエンコード
-                let offset = 0;
-                while (offset < audioBuffer.length) {
-                    const sampleChunk = new Int16Array(samplesPerFrame * numChannels);
-        
-                    for (let i = 0; i < samplesPerFrame; i++) {
-                        for (let channel = 0; channel < numChannels; channel++) {
-                            const sampleIndex = offset + i;
-                            if (sampleIndex < audioBuffer.length) {
-                                sampleChunk[i * numChannels + channel] = Math.max(-32768, Math.min(32767, pcmData[channel][sampleIndex] * 32767));
-                            } else {
-                                sampleChunk[i * numChannels + channel] = 0; // 余った部分は0で埋める
-                            }
-                        }
-                    }
-        
-                    offset += samplesPerFrame;
-        
-                    let mp3Buffer;
-                    if (numChannels === 1) {
-                        mp3Buffer = mp3Encoder.encodeBuffer(sampleChunk);
+            for (let i = 0; i < samplesPerFrame; i++) {
+                for (let channel = 0; channel < numChannels; channel++) {
+                    const sampleIndex = offset + i;
+                    if (sampleIndex < audioBuffer.length) {
+                        sampleChunk[i * numChannels + channel] = Math.max(-32768, Math.min(32767, pcmData[channel][sampleIndex] * 32767));
                     } else {
-                        const left = sampleChunk.filter((_, index) => index % 2 === 0);
-                        const right = sampleChunk.filter((_, index) => index % 2 === 1);
-                        mp3Buffer = mp3Encoder.encodeBuffer(left, right);
-                    }
-        
-                    if (mp3Buffer.length > 0) {
-                        mp3Data.push(mp3Buffer);
+                        sampleChunk[i * numChannels + channel] = 0; // 余った部分は0で埋める
                     }
                 }
-        
-                // フラッシュ
-                const flushBuffer = mp3Encoder.flush();
-                if (flushBuffer.length > 0) {
-                    mp3Data.push(flushBuffer);
-                }
-        
-                // 完成したMP3データをBlobに変換
-                const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-                callback(mp3Blob);
-        
-            } catch (error) {
-                console.error("音声デコードに失敗しました:", error);
+            }
+
+            offset += samplesPerFrame;
+
+            let mp3Buffer;
+            if (numChannels === 1) {
+                mp3Buffer = mp3Encoder.encodeBuffer(sampleChunk);
+            } else {
+                const left = sampleChunk.filter((_, index) => index % 2 === 0);
+                const right = sampleChunk.filter((_, index) => index % 2 === 1);
+                mp3Buffer = mp3Encoder.encodeBuffer(left, right);
+            }
+
+            if (mp3Buffer.length > 0) {
+                mp3Data.push(mp3Buffer);
             }
         }
-        
-        // 使用例
-        // const inputBlob = ...  // 例: MP3, WAV, M4AなどのBlob
-        // blobToMp3(inputBlob, function(mp3Blob) {
-        //     const url = URL.createObjectURL(mp3Blob);
-        //     const link = document.createElement('a');
-        //     link.href = url;
-        //     link.download = 'output.mp3';
-        //     document.body.appendChild(link);
-        //     link.click();
-        //     document.body.removeChild(link);
-        // });
+
+        // フラッシュ
+        const flushBuffer = mp3Encoder.flush();
+        if (flushBuffer.length > 0) {
+            mp3Data.push(flushBuffer);
+        }
+
+        // 完成したMP3データをBlobに変換
+        const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+        callback(mp3Blob);
+
+    } catch (error) {
+        console.error("音声デコードに失敗しました:", error);
+    }
+}
+
+// フーリエ変換を使用して周波数ごとの配列を取得する
+function getFrequencyData(audioBuffer) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+
+    // バッファーからソースノードを作成
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    // 周波数データを格納するための配列
+    const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+    // 再生を開始
+    source.start();
+
+    // 周波数データを更新して取得
+    analyser.getByteFrequencyData(frequencyData);
+    
+    return frequencyData;
+}
+
+// BlobをAudioBufferに変換する
+async function blobToAudioBuffer(blob) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await blob.arrayBuffer();
+    return audioContext.decodeAudioData(arrayBuffer);
+}
+
+async function processAudio(blob) {
+    const audioBuffer = await blobToAudioBuffer(blob);
+    const frequencyData = getFrequencyData(audioBuffer);
+    console.log(frequencyData);
+}
