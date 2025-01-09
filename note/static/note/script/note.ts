@@ -824,11 +824,11 @@ class ImageSubtype extends SubType {
 
 }
  
-class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
+class FileBlock extends Block<HTMLInputElement,HTMLAudioElement | HTMLImageElement> {
     subtype: string = '';
     subtypeClass: SubType;
     constructor( range: rangeData, URI: string = '', id: string|Promise<string>, noteController: NoteController ) {
-        super({ 'EditorType': 'input', 'DisplayType': 'img' }, range, id, noteController, URI, 'file');
+        super({ 'EditorType': 'input', 'DisplayType': 'div' }, range, id, noteController, URI, 'file');
     }
 
     async toImage() {
@@ -896,9 +896,9 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
             }
         });
     }
-    replaceTagName ( target:Element, tagName:string ):Element {
+    replaceTagName<T>( target:Element, tagName:string ):T {
         if ( ! target.parentNode ) { return target; }
-    
+        console.log('REPLACINGINGINGINGINGINGINGINGING');
         const replacement = document.createElement( tagName );
         Array.from( target.attributes ).forEach( ( attribute ) => {
             const { nodeName, nodeValue } = attribute;
@@ -911,19 +911,21 @@ class FileBlock extends Block<HTMLInputElement,HTMLImageElement> {
         } ); // For some reason, only textNodes are appended
             // without converting childNodes to Array.
         target.parentNode.replaceChild( replacement, target );
-        return replacement;
+        return replacement as T;
     };
     
     toggleSubtype(subtype) {
+        console.log('SUBSUBSUB= [  '+ subtype+'  ];')
         this.subtype = subtype;
         switch(subtype) {
             case 'image':        
-                this.replaceTagName(this.displayElement, 'audio');
+                this.displayElement = this.replaceTagName<HTMLAudioElement>(this.displayElement, 'audio');
                 break;
             case 'audio':
-                this.replaceTagName(this.displayElement, 'img');
+                this.displayElement = this.replaceTagName<HTMLImageElement>(this.displayElement, 'img');
+                break;
             default:
-                throw new Error('fileblock: サポートされちいないファイル形式です！');
+                throw new Error('fileblock: サポートされてないファイル形式です！');
                 
         }
     }
@@ -2135,11 +2137,11 @@ class SocketIOManager {
 const socketIOManager = new SocketIOManager();
 socketIOManager.start();
 
-function getDataURIDetails(dataURI) {
+function getDataURIDetails(dataURI='') {
     const [scheme, mimeTypeAndData] = dataURI.split(':'); // "data" と "image/png;base64..."
-    const [mimeType, data] = mimeTypeAndData.split(';'); // "image/png" と "base64..."
+    const [mimeType, data] = (mimeTypeAndData||'').split(';'); // "image/png" と "base64..."
     
-    const fileType = mimeType.split('/')[0]; // "image" or "audio"
+    const fileType = (mimeType||'').split('/')[0]; // "image" or "audio"
     
     return {
           scheme: scheme, // "data"
