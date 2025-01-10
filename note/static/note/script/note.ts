@@ -814,7 +814,7 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
 
 class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     embedBlockList: { [key: string]: Block<any, any> } = {};
-    constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
+    constructor( range: rangeData, text: string = 'こんにちは！今日はどんなことをお話ししましょうか？', id: string|Promise<string> , noteController: NoteController) {
         super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'ai', );
     }
     async init() {
@@ -845,8 +845,9 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         //this.boxFrameElement.addEventListener('focusout', (e)=>{
         //});
     }
-    getValue(): Promise<string> {
+    getValue(): string | Promise<string> {
         const val = this.editorElement.value;
+        if(!val)return '';
         const gpt_url = 
             window.location.origin+'/api/gpt/?message='+encodeURI(val);
         console.log('ASK GPT:', gpt_url);
@@ -863,10 +864,12 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
     }
 
     async dropped(block: Block<any, any>): Promise<void> {
+        console.log('ai block dropped::', block.value, block instanceof TextBlock)
         if(block instanceof TextBlock) {
             this.value = block.value;
+            this.editorElement.value = this.value;
         }
-        await this.applyValue();
+        this.applyValue();
     }
     async toImage(): Promise<string> {
         const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
