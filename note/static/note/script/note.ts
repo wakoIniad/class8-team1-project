@@ -846,23 +846,31 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         //});
     }
     getValue() {
-        return this.editorElement.value;
+        const val = this.editorElement.value;
+        const gpt_url = 
+            window.location.origin+'/api/gpt/?message='+val;
+        return new Promise<string>(async (resolve, rejects) => {
+            
+            const result = await fetch(gpt_url);
+            const res_text: string = await result.text();
+            resolve(res_text);
+        })
     }
     async applyValue(nosynch: boolean = false) {
-        this.displayElement.innerText = this.value;
+        this.displayElement.innerText = await Promise.any([this.getValue()])[0];
         await super.applyValue(nosynch);
     }
 
     async dropped(block: Block<any, any>): Promise<void> {
-
+        let res = '';
         if(block instanceof TextBlock) {
             const gpt_url = 
                 window.location.origin+'/api/gpt/?message='+block.value;
             const result = await fetch(gpt_url);
             const res_text = await result.text();
-            this.value = res_text;
+            res = res_text;
         }
-        await this.applyValue();
+        await this.applyValue(res);
     }
     async toImage(): Promise<string> {
         const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);

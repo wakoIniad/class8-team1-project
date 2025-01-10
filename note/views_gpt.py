@@ -14,6 +14,20 @@ chat = ChatOpenAI(openai_api_key=OPENAI_API_KEY, openai_api_base=OPENAI_API_BASE
 def call_gpt(request):
     message = request.GET.get('message', '');
     if message:
-        result = chat([HumanMessage(content=message)])
-        result = result.content
+        result = agent.run(message)
         return HttpResponse(result);
+
+def get_weather(name):
+    url = f'https://api.openweathermap.org/data/2.5/weather?q={name}&appid=c6731a69dc98809c1ce62b13fb9e05dc'
+    return requests.get(url).json()
+
+tools = [
+    Tool.from_function(
+        func=get_weather,
+        name='get_weather',
+        description='天気を取得できます'+
+        "第一引数に取得したい都市の名前をローマ字で書きます。例: Tokyo"
+    )
+]
+
+agent = initialize_agent(tools, chat, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
