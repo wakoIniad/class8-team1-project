@@ -15,4 +15,6 @@ urlpatterns = [
     #shareの方と揃えるためにマージするときは 下の１行だけ 'list/' にしてほしい!
     path('list/', views_note.note_list, name='note_list'),
     path('', views_note.home, name='home'),
+    path('404/', views_note.display404, name='404'),
+    
 ]

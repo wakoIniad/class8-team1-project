@@ -5,7 +5,10 @@
     {% include 'note/header-ui.html' %}
     <script src="{% static 'note/script/ex_lib/html2canvas/html2canvas.min.js' %}"></script>
     <script src="{% static 'note/script/ex_lib/browser-image-compression@2.0.0/browser-image-compression.js' %}"></script>
-    <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
+    <!--
+        <script src="http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js"></script>
+    -->
+    <script src="{{socket_server_url}}/socket.io/socket.io.js" id="socket-io-lib"></script>
 
     <link rel='stylesheet' href='{% sass_src "note/style/editor.scss" %}'>
     
@@ -34,6 +37,9 @@
             <div class="ui-item ui-button" id="ui-item-for_canvas">
                 <img class="ui-icon" src="{% static 'note/image/ui_icon_canvas.png' %}">
             </div>
+            <div class="ui-item ui-button" id="ui-item-for_ai">
+                <img class="ui-icon" src="{% static 'note/image/ui_icon_ai.png' %}">
+            </div>
             <span class="vr"></span>
             <div class="ui-item ui-lamp" id="ui-item-for_autosave">Autosave</div>
             <div class="ui-item ui-lamp" id="ui-item-for_nudge">Nudge</div>
@@ -54,7 +60,7 @@
 
         const NOTE_ID = "{{ note.id }}";
         const SYSTEM_API_PATH_SEGMENT = "{{ SYSTEM_API_PATH_SEGMENT }}";
-        const SOCKET_IO_LIBURL = "http://localhost:{{ nodejs_server_port }}/socket.io/socket.io.js";
+        const SOCKET_IO_LIBURL = "{{socket_server_url}}/socket.io/socket.io.js";
         //import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
     </script>
     <script src="{% static 'note/script/note.ts' %}" type="text/typescript"></script>

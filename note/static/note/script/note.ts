@@ -214,7 +214,7 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
 //                this.boxFrameElement.removeEventListener("keydown", this);
                 this.dump();
             } else {
-
+                this.onKeydown(e);
             }
             console.log(this.id, e.key);
         }).bind(this));
@@ -222,7 +222,6 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             /**ブロック編集時にブロック作成操作が実行されないようにする用 */
             event.stopPropagation();
         })
-        
 
         /** フォーカスを受け取れるようにする 
          * 参考: https://www.mitsue.co.jp/knowledge/blog/a11y/201912/23_0000.html */
@@ -271,6 +270,9 @@ class Block<T extends HTMLElement,S extends HTMLElement>{
             }
         });
         
+    }
+    onKeydown(e: KeyboardEvent) {
+
     }
     duplicate() {
         if(this.type) {
@@ -769,7 +771,8 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
             } else {
                 return `[embed not found]`;
             }
-        }).bind(this));
+        }).bind(this))
+//        .replace(/\\([^\\])/g,'$1');
         
         return parsedAsMarkdown;
     }
@@ -780,6 +783,85 @@ class TextBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         
         this.value += `\n[embed=${objectId}]`;
         this.editorElement.value = this.value;
+        await this.applyValue();
+    }
+    async toImage(): Promise<string> {
+        const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
+        return result.toDataURL("image/png");
+    }
+    async toImage_old(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if(this.onContainer) {
+                const scale = 1;
+//              const quality = 50;
+
+                const e2i = new Elem2Img();
+                e2i.save_png(function (img_data) {
+                    //const img_elem = document.createElement("img");
+                    //img_elem.src = img_data;
+                    resolve(img_data);
+                    //document.getElementsByTagName("body")[0].appendChild(img_elem);
+
+                    //表示と同時にダウンロードもさせる場合
+                    //Elem2Img.save_image(img_data, "Sample.jpeg");
+                }, this.boxFrameElement, scale);
+            } else {
+                reject(new Error('HTML上に存在しないため画像を作成できません。'));
+            };
+        });
+    }
+}
+
+class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
+    embedBlockList: { [key: string]: Block<any, any> } = {};
+    constructor( range: rangeData, text: string = '', id: string|Promise<string> , noteController: NoteController) {
+        super({ EditorType: 'textarea', DisplayType: 'p' }, range, id, noteController, text, 'ai', );
+    }
+    async init() {
+        await super.init();
+        this.editorElement.value = this.value;
+        this.editorElement.classList.add('ai-editor');
+
+        this.displayElement.classList.add('ai-view');
+        this.displayElement.classList.add('markdown-text-default');
+        
+        this.boxFrameElement.addEventListener('dblclick', (e)=>{
+            
+            //イベントの伝搬を中止
+            e.stopPropagation();
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            } else {
+                this.toggleToEditor();
+            }
+        });
+        this.boxFrameElement.addEventListener('focusout', (e)=>{
+            if(this.editorIsActive) {
+                this.update();
+                this.toggleToView();
+            }
+        })
+        //this.boxFrameElement.addEventListener('focusout', (e)=>{
+        //});
+    }
+    getValue() {
+        return this.editorElement.value;
+    }
+    async applyValue(nosynch: boolean = false) {
+        this.displayElement.innerText = this.value;
+        await super.applyValue(nosynch);
+    }
+
+    async dropped(block: Block<any, any>): Promise<void> {
+
+        if(block instanceof TextBlock) {
+            const gpt_url = 
+                window.location.origin+'/api/gpt/?message='+block.value;
+            const result = await fetch(gpt_url);
+            const res_text = await result.text();
+            this.value = res_text;
+        }
         await this.applyValue();
     }
     async toImage(): Promise<string> {
@@ -836,6 +918,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
         this.editorElement.addEventListener('drop', ()=> {
             this.toggleToView();
         });
+        //#imageb
         this.toggleToView();
     }
     async compress(imageFile) {
@@ -844,7 +927,7 @@ class ImageBlock extends Block<HTMLInputElement,HTMLImageElement> {
               maxSizeMB: 0.8,
               maxWidthOrHeight: 1024
             }
-        
+            
             const compressed = await imageCompression(imageFile, options);
 
             return compressed;
@@ -950,10 +1033,12 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
                 const image = new Image();
                 image.addEventListener("load", () => {
                     this.backgroundContext.drawImage(image, 0, 0);
+                    this.editingContext.drawImage(image, 0, 0);
                 });
                 image.src = this.value;
             }
         }
+        
 
         this.editorElement.setAttribute('width', String(this.width));
         this.editorElement.setAttribute('height', String(this.height));
@@ -973,6 +1058,24 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
 
         this.lastX = null;
         this.lastY = null;
+    }
+    onKeydown(e: KeyboardEvent): void {
+        if(e.key === 'f') {
+            // 画像情報の取得（offsetX, offsetY, 幅、高さ）
+            const imageData = this.editingContext.getImageData(0, 0, this.editingRange.width, this.editingRange.height);
+
+            let data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                // 255-(r|g|b)
+                data[i]   = 255 - data[i]  ;
+                data[i+1] = 255 - data[i+1];
+                data[i+2] = 255 - data[i+2];
+            }                          
+            this.editingContext.putImageData(imageData, 0, 0);
+            this.applyValue();
+            this.relayout();
+        }
     }
     activateCanvasEditor() {
         
@@ -1064,18 +1167,6 @@ class CanvasBlock extends Block<HTMLCanvasElement,HTMLImageElement> {
     getValue() {
         return this.editorElement.toDataURL();
     }
-
-    /**
-     * 左上から縮小 ⇒ relocate & ( -= moveMent )
-     * 左上から拡大 ⇒ relocate & ( -= movement )
-     * 右下から縮小 ⇒ += movement
-     * 右下から拡大 ⇒ += movement 
-     * 
-     * rangeが -n (n: 自然数)
-     * (x + |-x|)/2 ⇒ n: n, -n: 0
-     * 
-     * 
-     */
 
     async applyValue(nosynch: boolean = false) {
         
@@ -1215,6 +1306,9 @@ class NoteController {
                 break;
             case 'canvas':
                 res = new CanvasBlock(range, value, id, noteController);
+                break;
+            case 'ai':
+                res = new AiBlock(range, value, id, noteController);
                 break;
         }
         NoteController.pageObjects.push(res);

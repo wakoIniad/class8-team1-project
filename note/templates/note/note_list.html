@@ -1,9 +1,23 @@
 {% extends 'note/base.html' %}
 {% load static %}
 {% block content %}
+{% include 'note/header-ui.html' %}
 <body>
+    <div  id="background">
+        <div id="note_list">
+            <h1 id="title-color">
+                ノート一覧
+            </h1>
+        <div class="break"></div>
+            <div id="container"></div>
+        </div>
+        
+    </div>
+   
+   
 <link rel='stylesheet' href='{% static "/note/style/note_list.css" %}'>
-<div id="container"></div>
+
+
 
 <script src="{% static 'note/script/note_list.js' %}"></script>
 </body>
