@@ -845,10 +845,11 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         //this.boxFrameElement.addEventListener('focusout', (e)=>{
         //});
     }
-    getValue() {
+    getValue(): Promise<string> {
         const val = this.editorElement.value;
         const gpt_url = 
-            window.location.origin+'/api/gpt/?message='+val;
+            window.location.origin+'/api/gpt/?message='+encodeURI(val);
+        console.log('ASK GPT:', gpt_url);
         return new Promise<string>(async (resolve, rejects) => {
             
             const result = await fetch(gpt_url);
@@ -857,20 +858,15 @@ class AiBlock extends Block<HTMLTextAreaElement,HTMLParagraphElement> {
         })
     }
     async applyValue(nosynch: boolean = false) {
-        this.displayElement.innerText = await Promise.any([this.getValue()])[0];
+        this.displayElement.innerText = await Promise.any([this.getValue()]);
         await super.applyValue(nosynch);
     }
 
     async dropped(block: Block<any, any>): Promise<void> {
-        let res = '';
         if(block instanceof TextBlock) {
-            const gpt_url = 
-                window.location.origin+'/api/gpt/?message='+block.value;
-            const result = await fetch(gpt_url);
-            const res_text = await result.text();
-            res = res_text;
+            this.value = block.value;
         }
-        await this.applyValue(res);
+        await this.applyValue();
     }
     async toImage(): Promise<string> {
         const result: HTMLCanvasElement = await html2canvas(this.boxFrameElement);
