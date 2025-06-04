@@ -11,6 +11,8 @@ python manage.py migrate`
 ## サーバー起動
 `python manage.py runserver`
 
+## APIkey
+`note/views_gpt.py` の OPENAI_API_KEY, OPENAI_API_BASEを設定。（直書きです。すみません。）
 
 
 
