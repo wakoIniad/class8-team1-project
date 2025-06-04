@@ -1,6 +1,9 @@
 # class8-team1-project
 CS基礎演習2 - チームプロジェクト 
 
+## 動作動画
+`./sample_video.mp4`
+
 ## ライブラリ
 `pip install openai langchain langchain-community langchain-core langchain-openai django-compressor libsass django-sass-processor requests pillow`
 
