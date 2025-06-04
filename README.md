@@ -3,7 +3,7 @@ CS基礎演習2 - チームプロジェクト
 
 ## 動作動画
 `./sample_video.mp4`
-> 視聴にはダウンロードをお願いいたします
+> 多分動画は表示はされないので、ダウンロードをお願いいたします
 
 ## ライブラリ
 `pip install openai langchain langchain-community langchain-core langchain-openai django-compressor libsass django-sass-processor requests pillow`
