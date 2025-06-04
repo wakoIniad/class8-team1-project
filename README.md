@@ -2,8 +2,7 @@
 CS基礎演習2 - チームプロジェクト 
 
 ## ライブラリ
-`pip install openai langchain langchain-community langchain-core langchain-openai`
-`pip install django-compressor libsass django-sass-processor requests pillow`
+`pip install openai langchain langchain-community langchain-core langchain-openai django-compressor libsass django-sass-processor requests pillow`
 
 ## マイグレーション
 `python manage.py makemigration
